@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Travel Crumbs</string>
+    <string name="home_title">Travel Crumbs</string>
+    <string name="home_subtitle">빌드 · 설치 · 실행 확인</string>
+
+    <string name="home_vehicle_label">Vehicle · 기어</string>
+    <string name="home_navi_label">NaviHelper · 경로 상태</string>
+    <string name="home_llm_label">LLM · 기기 안 모델</string>
+
+    <string name="driving_state_parked">정차(P)</string>
+    <string name="driving_state_driving">주행(R · N · D)</string>
+    <string name="driving_state_unknown">모름</string>
+
+    <string name="status_idle">아직 부르지 않음</string>
+    <string name="status_loading">부르는 중…</string>
+    <string name="status_failed">실패 · %1$s</string>
+
+    <string name="navi_ready">내비 서비스 연결됨</string>
+    <string name="navi_not_ready">내비 서비스 연결 안 됨</string>
+    <string name="navi_route_state">안내 중 %1$s · 모드 %2$s · 경로 선택 %3$s</string>
+    <string name="navi_refresh">경로 상태 다시 조회</string>
+
+    <string name="llm_ask">짧은 프롬프트 보내기</string>
+
+    <string name="yes">예</string>
+    <string name="no">아니요</string>
+</resources>
