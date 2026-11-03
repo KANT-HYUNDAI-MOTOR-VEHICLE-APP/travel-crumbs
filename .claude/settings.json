@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(git push * main)",
+      "Bash(git push * main *)",
+      "Bash(git push * HEAD:main)",
+      "Bash(git push * develop)",
+      "Bash(git push * develop *)",
+      "Bash(git push * HEAD:develop)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh repo delete *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(!.env.example)",
+      "Read(*.jks)",
+      "Read(*.keystore)",
+      "Edit(./docs/api/openapi.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/guard.py"
+            ],
+            "timeout": 10,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/trace_log.py"
+            ],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/trace_log.py"
+            ],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/trace_log.py"
+            ],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/trace_log.py"
+            ],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PROJECT_DIR}/.claude/guardrails/trace_log.py"
+            ],
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

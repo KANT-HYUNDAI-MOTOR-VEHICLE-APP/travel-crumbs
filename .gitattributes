@@ -1,0 +1,24 @@
+# 맥 ↔ 윈도우 — 저장소 안은 LF 하나. 윈도우 배치만 CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+gradlew text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.keystore binary
+*.jks binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.wav binary
+*.pdf binary
+*.apk binary
+*.aab binary

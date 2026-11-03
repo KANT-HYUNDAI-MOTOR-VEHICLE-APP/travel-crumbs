@@ -1,0 +1,79 @@
+name: 버그 수정
+description: 잘못 동작하는 것. AI 가 재현 → 원인 → 수정 순서로 진행
+title: "[버그] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **담당자(Assignees)를 지정해야 AI 가 실행함.** 고칠 사람이 오른쪽 Assignees 에서 자기 이름을 고름.
+        로그 · 캡처에 비밀값(토큰 · 키 · 비밀번호)이 있으면 지우고 올림.
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - app(차 화면)
+        - server
+        - 둘 다
+        - 모름
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 순서
+      description: 처음 상태부터. 로그인 여부 · 기어(P/D) · 주행 경로(GPX 파일 등) · 어느 화면에서 시작했는지.
+      placeholder: |
+        처음 상태: 에뮬레이터 · 기어 D · 시험 경로 GPX 재생 중
+        1. 앱 실행
+        2. 재생 버튼 누름
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 것
+      description: 원래 이래야 함.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제로 일어난 것
+      description: 본 그대로. 화면 문구는 「」 안에 그대로.
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 얼마나 자주
+      options:
+        - 매번
+        - 가끔
+        - 한 번만 봄
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 환경
+      description: 에뮬레이터 / 실차 · Pleos Connect 판 · 앱 판(커밋) · 맥 / 윈도우.
+      placeholder: 에뮬레이터 Pleos Connect v2.1.0 · 커밋 5544311 · 윈도우 11
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그 · 캡처
+      description: logcat · 서버 로그 · 화면 녹화. 비밀값은 지우고.
+      render: text
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      description: 주행 중 화면 조작이 열림 · 개인정보 노출 · 데이터 사라짐이면 「높음」.
+      options:
+        - 높음 — 안전 · 개인정보 · 데이터 손실
+        - 보통 — 기능이 안 됨
+        - 낮음 — 불편 · 보기 문제

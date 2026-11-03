@@ -1,0 +1,88 @@
+# 로컬 센서와 같은 명령(team-workflow 9절 · sensors 스킬). 잡 이름 = 보호 규칙 contexts(app · server · common).
+# app 잡은 앱 쪽 작업에서 더함 — 여기엔 server · common 만.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              - 'docs/api/**'
+              - '.github/workflows/ci.yml'
+
+  server:
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      # CI 전용 가짜 값 — 비밀 아님. alembic check 는 위 services DB, pytest 는 testcontainers.
+      DATABASE_URL: postgresql+asyncpg://app:app@localhost:5432/app
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: server/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+      - run: uv run lint-imports
+      - run: uv run pytest
+      - run: uv run alembic upgrade head
+      - run: uv run alembic check
+      - run: python3 ../.claude/skills/sensors/scripts/check_alembic_heads.py --server-dir .
+      - run: python3 ../.claude/skills/sensors/scripts/check_sql_comments.py app
+      - run: python3 .claude/skills/sensors/scripts/check_routes.py server/app
+        working-directory: .
+      - run: uv run python -m app.tools.export_openapi ../docs/api/openapi.json && git diff --exit-code ../docs/api/openapi.json
+
+  common:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python .claude/skills/sensors/scripts/check_repo_hygiene.py
+      - run: python .claude/skills/sensors/scripts/check_secrets.py
+      # 계약 파일은 서버 첫 이슈에서 생김 — 그 전엔 건너뜀
+      - if: hashFiles('docs/api/openapi.json') != ''
+        run: python .claude/skills/sensors/scripts/check_api_contract.py docs/api/openapi.json app/src/main/java
+      - run: python .claude/guardrails/tests/test_guard.py
+      - run: python .claude/guardrails/tests/test_trace.py
+      - run: python .claude/guardrails/tests/test_check_manifest.py
+      - run: python .claude/skills/sensors/scripts/check_skill_frontmatter.py

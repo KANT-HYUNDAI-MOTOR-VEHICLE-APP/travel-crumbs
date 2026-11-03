@@ -1,0 +1,52 @@
+name: 하네스 피드백
+description: AI 작업 방식(에이전트 · 스킬 · 훅 · 템플릿 · 규칙)에 대한 피드백. AI 가 harness:evolve 로 반영
+title: "[하네스 피드백] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **담당자(Assignees)를 지정해야 AI 가 실행함.** 진행은 담당자 본인이 Claude Code 에 「이슈 #번호 진행해줘」.
+        하네스를 바꾸는 요청은 직접 프롬프트로 하지 않고 이 이슈로 함 — 바뀐 이유가 모두에게 남도록.
+  - type: dropdown
+    id: target
+    attributes:
+      label: 대상
+      options:
+        - 흐름(오케스트레이터 · 단계 순서)
+        - 에이전트(spec-writer · builder · 리뷰어)
+        - 규칙 스킬(구조 · 협업 · SDK · 심사 · 센서)
+        - 훅 · 권한(guard · 활동 로그 · settings)
+        - 이슈 · PR 템플릿
+        - 모름
+    validations:
+      required: true
+  - type: textarea
+    id: situation
+    attributes:
+      label: 무슨 일이 있었나
+      description: AI 가 실제로 한 일 · 관련 이슈 · PR · .claude/log 기록. 「~라고 시켰더니 ~를 했다」 꼴로.
+      placeholder: |
+        #5 진행 중 spec-writer 가 기획 문서의 다음 이슈 화면까지 스펙에 넣음(.claude/log/5-my-feature/log.md 1단계).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 바라는 동작
+      description: 앞으로 AI 가 어떻게 해야 하나. 한 사례가 아니라 같은 종류의 상황 전체에 맞는 말로.
+      placeholder: 이슈에 없는 화면은 기획 문서에 있어도 스펙에 넣지 않고 미확정 표에만 올림.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      description: 반영됐다고 확인할 수 있는 문장. 기계로 막아야 하면 그 점도.
+      placeholder: |
+        - [ ] spec-writer 규칙에 반영
+        - [ ] 같은 상황을 다시 시켰을 때 미확정 표로만 나옴
+  - type: textarea
+    id: refs
+    attributes:
+      label: 참고
+      description: 관련 이슈 · PR · ADR · 문서 주소.
