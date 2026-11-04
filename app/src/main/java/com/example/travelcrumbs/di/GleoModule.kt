@@ -1,7 +1,7 @@
 package com.example.travelcrumbs.di
 
-import com.example.travelcrumbs.data.llm.DefaultLlmRepository
-import com.example.travelcrumbs.data.llm.LlmRepository
+import com.example.travelcrumbs.data.gleo.DefaultGleoActionRepository
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -10,9 +10,9 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class LlmModule {
+abstract class GleoModule {
 
     @Binds
     @Singleton
-    abstract fun bindLlmRepository(impl: DefaultLlmRepository): LlmRepository
+    abstract fun bindGleoActionRepository(impl: DefaultGleoActionRepository): GleoActionRepository
 }

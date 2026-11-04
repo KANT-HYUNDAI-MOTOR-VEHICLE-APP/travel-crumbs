@@ -9,5 +9,5 @@ data class HomeUiState(
     val drivingState: DrivingState = DrivingState.UNKNOWN,
     val naviReady: Boolean = false,
     val navi: SdkStatus<NaviRouteState> = SdkStatus.Idle,
-    val llm: SdkStatus<String> = SdkStatus.Idle,
+    val openedByGleoAction: Boolean = false,
 )

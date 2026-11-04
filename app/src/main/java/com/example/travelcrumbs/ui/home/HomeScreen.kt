@@ -79,14 +79,21 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            SdkCard(label = stringResource(R.string.home_llm_label)) {
+            SdkCard(label = stringResource(R.string.home_gleo_label)) {
                 Text(
-                    text = llmText(uiState.llm),
+                    text = stringResource(R.string.gleo_function),
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                Button(onClick = viewModel::askLlm) {
-                    Text(text = stringResource(R.string.llm_ask))
-                }
+                Text(
+                    text = stringResource(
+                        if (uiState.openedByGleoAction) {
+                            R.string.gleo_opened
+                        } else {
+                            R.string.gleo_not_opened
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
     }
@@ -121,14 +128,6 @@ private fun naviText(status: SdkStatus<NaviRouteState>): String = when (status) 
         status.value.mode,
         status.value.routeOption,
     )
-}
-
-@Composable
-private fun llmText(status: SdkStatus<String>): String = when (status) {
-    SdkStatus.Idle -> stringResource(R.string.status_idle)
-    SdkStatus.Loading -> stringResource(R.string.status_loading)
-    is SdkStatus.Failed -> stringResource(R.string.status_failed, status.code)
-    is SdkStatus.Ready -> status.value
 }
 
 private fun DrivingState.labelRes(): Int = when (this) {

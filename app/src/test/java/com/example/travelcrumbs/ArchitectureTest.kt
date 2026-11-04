@@ -38,8 +38,7 @@ class ArchitectureTest {
             !file.hasImport { import -> import.name.startsWith("ai.pleos.") } ||
                 file.packagee?.name.orEmpty().let { pkg ->
                     pkg == "com.example.travelcrumbs.data.vehicle" ||
-                        pkg == "com.example.travelcrumbs.data.navi" ||
-                        pkg == "com.example.travelcrumbs.data.llm"
+                        pkg == "com.example.travelcrumbs.data.navi"
                 }
         }
     }

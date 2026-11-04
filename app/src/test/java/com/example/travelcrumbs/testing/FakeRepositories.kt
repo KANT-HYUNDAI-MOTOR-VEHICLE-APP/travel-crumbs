@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.testing
 
-import com.example.travelcrumbs.data.llm.LlmRepository
+import android.content.Intent
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.DrivingState
@@ -33,9 +34,19 @@ class FakeNaviRepository(
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
 }
 
-class FakeLlmRepository(
-    private val result: Result<String> = Result.success("안녕하세요."),
-) : LlmRepository {
+class FakeGleoActionRepository(
+    opened: Boolean = false,
+) : GleoActionRepository {
 
-    override suspend fun ask(prompt: String): String = result.getOrThrow()
+    private val state = MutableStateFlow(opened)
+
+    override val openedByGleoAction: StateFlow<Boolean> = state
+
+    var handledCount: Int = 0
+        private set
+
+    /** 단위 테스트에서는 Intent 를 만들 수 없어 호출만 세어 둠. */
+    override fun handleActionIntent(intent: Intent?) {
+        handledCount++
+    }
 }

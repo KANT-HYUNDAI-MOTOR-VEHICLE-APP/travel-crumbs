@@ -6,7 +6,7 @@
 
     <string name="home_vehicle_label">Vehicle · 기어</string>
     <string name="home_navi_label">NaviHelper · 경로 상태</string>
-    <string name="home_llm_label">LLM · 기기 안 모델</string>
+    <string name="home_gleo_label">Gleo Interface · 앱 열기</string>
 
     <string name="driving_state_parked">정차(P)</string>
     <string name="driving_state_driving">주행(R · N · D)</string>
@@ -21,7 +21,9 @@
     <string name="navi_route_state">안내 중 %1$s · 모드 %2$s · 경로 선택 %3$s</string>
     <string name="navi_refresh">경로 상태 다시 조회</string>
 
-    <string name="llm_ask">짧은 프롬프트 보내기</string>
+    <string name="gleo_function">function · OPEN_TRAVEL_CRUMBS</string>
+    <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
+    <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
 
     <string name="yes">예</string>
     <string name="no">아니요</string>

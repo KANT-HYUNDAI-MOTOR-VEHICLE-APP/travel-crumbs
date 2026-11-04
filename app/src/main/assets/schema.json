@@ -1,0 +1,20 @@
+{
+  "packageName": "com.example.travelcrumbs",
+  "appDescription": "An app that shows travel records left along the route the vehicle has driven.",
+  "version": "0.1.0",
+  "actionCalls": [
+    {
+      "type": "function",
+      "function": {
+        "name": "OPEN_TRAVEL_CRUMBS",
+        "description": "Opens the Travel Crumbs screen so the driver can see their travel records.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "component": "activity"
+      }
+    }
+  ]
+}

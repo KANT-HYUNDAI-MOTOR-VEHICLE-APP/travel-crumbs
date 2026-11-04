@@ -10,9 +10,7 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
-    <!-- LLM SDK 의 모든 호출이 요구(ApiChecker 가 없으면 SecurityException) — data/llm/LlmDataSource -->
-    <uses-permission android:name="pleos.car.permission.LLM_SERVICE" />
-    <!-- 서버 API 호출(Retrofit 배선) · LLM SDK 자체도 요구 -->
+    <!-- 서버 API 호출(Retrofit 배선) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -30,6 +28,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+              Gleo Interface — assets/schema.json 의 function 이름과 같은 action.
+              Gleo AI 가 context.startActivity() 로 부름(component = "activity").
+            -->
+            <intent-filter>
+                <action android:name="OPEN_TRAVEL_CRUMBS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
     </application>

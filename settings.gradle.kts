@@ -17,7 +17,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Pleos SDK(Vehicle · NaviHelper · LLM) 배포소 — 공개 · 자격증명 없음
+        // Pleos SDK(Vehicle · NaviHelper) 배포소 — 공개 · 자격증명 없음
         maven {
             url = uri("https://nexus-playground.pleos.ai/repository/maven-releases/")
             content { includeGroupByRegex("ai\\.pleos.*") }

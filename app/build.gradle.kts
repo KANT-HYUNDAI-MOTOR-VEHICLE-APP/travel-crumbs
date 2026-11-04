@@ -69,7 +69,6 @@ dependencies {
     // Pleos SDK — Vehicle 2.3.2 가 kotlin-reflect 1.9.25 를 끌어오므로 내장 Kotlin 판으로 올려 고정
     implementation(libs.pleos.vehicle)
     implementation(libs.pleos.navi.helper)
-    implementation(libs.pleos.llm)
     implementation(libs.kotlin.reflect)
 
     testImplementation(libs.junit)
