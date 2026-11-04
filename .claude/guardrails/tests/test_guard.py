@@ -1,4 +1,6 @@
 """guard.py 막기 · 통과 사례. 실행: python3 .claude/guardrails/tests/test_guard.py"""
+import importlib.util
+import io
 import json
 import os
 import subprocess
@@ -20,6 +22,21 @@ def run(cmd, readonly=False, cwd=None, tool="Bash"):
     env = dict(os.environ, CLAUDE_PROJECT_DIR=LOG_DIR)
     r = subprocess.run(args, input=data, capture_output=True, text=True, encoding="utf-8", env=env)
     return r.returncode
+
+
+def run_raw(payload, readonly=False):
+    """훅 입력(stdin)을 그대로 넘김 — 깨진 입력을 어떻게 받는지 보려고."""
+    args = [sys.executable, GUARD] + (["--readonly"] if readonly else [])
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=LOG_DIR)
+    r = subprocess.run(args, input=payload, capture_output=True, text=True, encoding="utf-8", env=env)
+    return r.returncode
+
+
+def load_guard():
+    spec = importlib.util.spec_from_file_location("guard_under_test", GUARD)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class Default(unittest.TestCase):
@@ -211,6 +228,37 @@ class Readonly(unittest.TestCase):
         for c in self.PASS:
             with self.subTest(c=c):
                 self.assertEqual(run(c, readonly=True), 0)
+
+
+class FailClosed(unittest.TestCase):
+    """차단기는 자기가 터져도 닫힘. 2 말고 다른 종료 코드는 Claude Code 가
+    「비차단 오류」로 보고 명령을 그대로 실행하므로, 0 이나 1 이 나가면 울타리가 비는 것."""
+
+    def test_broken_hook_input(self):
+        self.assertEqual(run_raw("{깨진 JSON"), 2)
+        self.assertEqual(run_raw(""), 2)
+        self.assertEqual(run_raw("[1, 2, 3]"), 2)
+
+    def test_guard_itself_crashes(self):
+        mod = load_guard()
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("검사기 고장")
+
+        mod.inspect = boom
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push origin main"},
+                              "cwd": os.getcwd()})
+        os.environ["CLAUDE_PROJECT_DIR"] = LOG_DIR
+        stdin, stderr = sys.stdin, sys.stderr
+        sys.stdin, sys.stderr = io.StringIO(payload), io.StringIO()
+        try:
+            self.assertEqual(mod.main(), 2)
+        finally:
+            sys.stdin, sys.stderr = stdin, stderr
+
+    def test_no_command_is_not_blocked(self):
+        """기록기 · 명령 없는 호출까지 막으면 세션이 멈춤 — 닫는 것은 검사 실패일 때만."""
+        self.assertEqual(run_raw(json.dumps({"tool_name": "Read", "tool_input": {"file_path": "a.kt"}})), 0)
 
 
 if __name__ == "__main__":
