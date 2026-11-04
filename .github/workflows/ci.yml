@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read  # dorny/paths-filter 가 PR 의 바뀐 파일 목록을 GitHub API 로 읽음
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       server: ${{ steps.filter.outputs.server }}
+      server_exists: ${{ steps.exists.outputs.server }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -29,10 +31,14 @@ jobs:
               - 'server/**'
               - 'docs/api/**'
               - '.github/workflows/ci.yml'
+      # server/ 는 아직 없음. ci.yml 만 고쳐도 위 필터가 켜지므로 폴더 유무를 함께 봄 —
+      # 서버 첫 이슈에서 폴더가 생기면 이 줄은 저절로 true 가 됨.
+      - id: exists
+        run: echo "server=$([ -d server ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   server:
     needs: changes
-    if: needs.changes.outputs.server == 'true'
+    if: needs.changes.outputs.server == 'true' && needs.changes.outputs.server_exists == 'true'
     runs-on: ubuntu-latest
     services:
       db:
