@@ -182,11 +182,11 @@ JSON
 ```
 `contexts` 는 CI 잡 이름과 같게.
 
-## 9. CI 잡 정의(`.github/workflows/ci.yml` — builder 가 첫 이슈에서 만듦 · 로컬 센서와 같은 명령)
+## 9. CI 잡 정의(`.github/workflows/ci.yml` · 로컬 센서와 같은 명령 · compileSdk · buildTools · JDK 판을 바꾸면 이 잡도 함께)
 
 | 잡 | 트리거(경로 필터) | 명령 |
 |---|---|---|
-| `app` | `app/**` · `gradle/**` · `*.gradle.kts` | JDK(JBR 과 같은 메이저) · `./gradlew lint testDebugUnitTest assembleRelease` · `python .claude/skills/sensors/scripts/check_manifest.py app/src/main/AndroidManifest.xml --gradle app/build.gradle.kts` · APK 아티팩트 |
+| `app` | `app/**` · `gradle/**` · `*.gradle.kts` · `gradle.properties` · `check_manifest.py` · `ci.yml` | JDK(JBR 과 같은 메이저 · 지금 25) · `sdkmanager` 로 `app/build.gradle.kts` 의 compileSdk · buildTools 판 설치 · `./gradlew lint testDebugUnitTest assembleRelease` · 서명 없는 release APK 아티팩트 · `python .claude/skills/sensors/scripts/check_manifest.py app/src/main/AndroidManifest.xml --gradle app/build.gradle.kts`(빌드 결과가 먼저 보이도록 마지막) |
 | `server` | `server/**` | uv · `uv sync --frozen` · ruff · mypy · lint-imports · pytest(testcontainers — ubuntu 러너 Docker) · `alembic check` · `check_alembic_heads.py` · `check_sql_comments.py` · `check_routes.py` · `export_openapi` → `git diff --exit-code docs/api/openapi.json` |
 | `common` | 항상 | `check_repo_hygiene.py` · `check_secrets.py` · `check_skill_frontmatter.py` · `check_api_contract.py docs/api/openapi.json app/src/main/java` · `python .claude/guardrails/tests/test_guard.py` · `python .claude/guardrails/tests/test_trace.py` · `python .claude/guardrails/tests/test_check_manifest.py` |
 
