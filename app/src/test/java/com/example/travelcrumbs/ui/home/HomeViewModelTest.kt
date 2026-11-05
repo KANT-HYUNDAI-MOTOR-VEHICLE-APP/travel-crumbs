@@ -8,8 +8,12 @@ import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
+import com.example.travelcrumbs.testing.FakePinRepository
+import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
+import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.pinnedPlacesRepositoryOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +56,10 @@ class HomeViewModelTest {
         drivingSignalRepository = FakeDrivingSignalRepository(DrivingState.PARKED),
         gleoActionRepository = gleo,
         naviRepository = navi,
+        placeCatalogRepository = FakePlaceCatalogRepository(),
+        pinnedPlacesRepository = pinnedPlacesRepositoryOf(),
+        pinRepository = FakePinRepository(),
+        placeStatsRepository = FakePlaceStatsRepository(),
     )
 
     @Test

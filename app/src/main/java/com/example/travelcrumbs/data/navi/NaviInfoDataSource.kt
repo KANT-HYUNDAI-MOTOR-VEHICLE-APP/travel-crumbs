@@ -1,12 +1,17 @@
 package com.example.travelcrumbs.data.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
+import ai.pleos.playground.navi.data.RouteInfo
+import ai.pleos.playground.navi.data.RouteStartInfo
 import ai.pleos.playground.navi.data.RouteStateInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
 import android.util.Log
 import com.example.travelcrumbs.domain.model.NaviRouteState
+import com.example.travelcrumbs.domain.model.Place
+import com.example.travelcrumbs.domain.model.RouteFailReason
+import com.example.travelcrumbs.domain.model.RouteRequestResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -20,7 +25,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Pleos NaviHelper 를 감싸는 유일한 파일 — `ai.pleos.*` 타입은 이 패키지 밖으로 나가지 않음.
- * 쓰는 범위는 조회 하나(getRouteStateInfo) → 권한도 `pleos.car.permission.NAVI_ROUTE` 하나.
+ * 쓰는 범위: 조회 getRouteStateInfo(권한 `NAVI_ROUTE`) · 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
+ * 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations
  */
 @Singleton
 class NaviInfoDataSource @Inject constructor(
@@ -80,6 +86,48 @@ class NaviInfoDataSource @Inject constructor(
                 if (continuation.isActive) continuation.resumeWithException(error)
             }
     }
+
+    /**
+     * 목적지 설정(스펙 navigation 4.1) — 좌표 · 이름 · 주소만 넘김 · POI 식별자는 빈 문자열(SDK 칸이 null 불가 · U6) · 경로 옵션은 내비 기본값(U12).
+     * 결과 = 경로 탐색 시작 알림(onRouteStarted · U4) 또는 오류 알림. 응답 대기 한도 · 연결 끊김은 부르는 쪽이 봄.
+     * 로그에는 콜백 이름 · 오류 코드 이름 · 예외 종류만(좌표 · 이름 · 주소 없음 · 4.4).
+     */
+    suspend fun requestRoute(place: Place): RouteRequestResult = suspendCancellableCoroutine { continuation ->
+        val listener = object : NaviHelperEventListener {
+            override fun onRouteStarted(routeStartInfo: RouteStartInfo) {
+                Log.i(TAG, "onRouteStarted")
+                naviHelper.removeListener(this)
+                if (continuation.isActive) continuation.resume(RouteRequestResult.Started)
+            }
+
+            override fun onError(errorCode: NaviErrorCode) {
+                Log.w(TAG, "onError ${errorCode.name}")
+                naviHelper.removeListener(this)
+                if (continuation.isActive) continuation.resume(RouteRequestResult.Failed(errorCode.toFailReason()))
+            }
+        }
+        naviHelper.addListener(listener)
+        continuation.invokeOnCancellation { naviHelper.removeListener(listener) }
+        runCatching { naviHelper.requestRoute(place.toRouteInfo()) }
+            .onFailure { error ->
+                Log.w(TAG, "requestRoute 호출 실패: ${error.javaClass.simpleName}")
+                naviHelper.removeListener(listener)
+                if (continuation.isActive) {
+                    continuation.resume(RouteRequestResult.Failed(RouteFailReason.REQUEST_FAILED))
+                }
+            }
+    }
+
+    private fun Place.toRouteInfo(): RouteInfo = RouteInfo(
+        latitude = latitude,
+        longitude = longitude,
+        displayLatitude = null,
+        displayLongitude = null,
+        poiName = name,
+        poiId = "",
+        poiSubId = "",
+        address = address,
+    )
 
     private fun RouteStateInfo.toDomain(): NaviRouteState = NaviRouteState(
         routing = isRouting,

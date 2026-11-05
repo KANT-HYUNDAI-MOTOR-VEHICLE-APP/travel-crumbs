@@ -16,6 +16,9 @@ object Dimens {
     /** 홈 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 
+    /** 장소 항목 오른쪽 버튼(「여기로 안내」 · 「고정」) 최소 폭 — 높이는 [HomeButtonHeight](스펙 navigation E5 · E10). */
+    val PlaceButtonMinWidth = 220.dp
+
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
     val NoticeLineHeight = 40.dp
 }

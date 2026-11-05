@@ -14,6 +14,27 @@ object AppConfig {
     /** 화면이 안 보인 뒤 uiState 구독을 멈추기까지(밀리초) — 회전 · 창 크기 변경 때 다시 시작하지 않을 만큼. */
     const val UI_STATE_STOP_TIMEOUT_MILLIS: Long = 5_000L
 
+    /**
+     * 길안내 요청 뒤 시작 · 오류 알림을 기다리는 한도(밀리초 · 스펙 navigation 3.2 T14).
+     * 스펙은 [SDK_CALL_TIMEOUT_MS](10초) 재사용이지만 에뮬레이터 실측(2026-11-05)에서 onRouteStarted 가
+     * 요청 뒤 약 11.5초(경로 탐색 약 3초 + 내비 경로 선택 화면의 자동 시작 카운트다운 약 8초)에 와 10초면 늘 TIMEOUT —
+     * 따로 둠 · 값은 사람 확정 전 임시(builder 보고서 「스펙 밖」).
+     */
+    const val ROUTE_START_TIMEOUT_MILLIS: Long = 30_000L
+
+    /** 「가 볼 장소」 고정 최대 개수(스펙 navigation 결정 기록 U16). */
+    const val PINNED_PLACES_MAX: Int = 3
+
+    /** 핀을 남길 때 기록 상태(#6 RecordingState)를 기다리는 한도(밀리초) — 넘으면 「못 읽음」 → 핀 없음(U42). */
+    const val RECORDING_STATUS_READ_TIMEOUT_MILLIS: Long = 2_000L
+
+    /** 핀 다시 보내기 첫 간격 · 최대 간격(밀리초) — 30초부터 두 배 · 최대 1시간(결정 기록 U30). */
+    const val PIN_UPLOAD_RETRY_INITIAL_MILLIS: Long = 30_000L
+    const val PIN_UPLOAD_RETRY_MAX_MILLIS: Long = 3_600_000L
+
+    /** debug 진단 카드 「안내 건수」 한 줄에 보일 장소 수(스펙 navigation 4.6 · U41). */
+    const val PLACE_STATS_CARD_LIMIT: Int = 3
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 

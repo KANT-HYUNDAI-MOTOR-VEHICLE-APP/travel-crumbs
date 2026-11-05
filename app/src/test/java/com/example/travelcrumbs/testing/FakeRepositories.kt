@@ -6,6 +6,9 @@ import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
+import com.example.travelcrumbs.domain.model.Place
+import com.example.travelcrumbs.domain.model.RouteRequestResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,9 +32,36 @@ class FakeNaviRepository(
     ready: Boolean = true,
 ) : NaviRepository {
 
-    override val ready: StateFlow<Boolean> = MutableStateFlow(ready)
+    private val readyState = MutableStateFlow(ready)
+
+    override val ready: StateFlow<Boolean> = readyState
 
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
+
+    /** 길안내 요청을 받은 장소들(#4) — 요청 건수를 셈. */
+    val routeRequests = mutableListOf<Place>()
+
+    /** 요청 호출이 던질 예외(T15) — null 이면 [answerRoute] 를 기다림. */
+    var routeError: Throwable? = null
+
+    private var pendingAnswer = CompletableDeferred<RouteRequestResult>()
+
+    override suspend fun requestRoute(place: Place): RouteRequestResult {
+        routeRequests += place
+        routeError?.let { throw it }
+        return pendingAnswer.await()
+    }
+
+    /** 내비가 시작 · 오류를 알림 — 기다리던 요청에 답하고 다음 요청은 새로 기다림. */
+    fun answerRoute(result: RouteRequestResult) {
+        val answer = pendingAnswer
+        pendingAnswer = CompletableDeferred()
+        answer.complete(result)
+    }
+
+    fun setReady(value: Boolean) {
+        readyState.value = value
+    }
 }
 
 class FakeGleoActionRepository(

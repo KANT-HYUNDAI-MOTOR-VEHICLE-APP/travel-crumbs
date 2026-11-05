@@ -16,12 +16,20 @@ import com.example.travelcrumbs.ui.shell.AppShellViewModel
  * Compose UI 테스트용 조립 — Hilt 없이 fake 저장소로 화면의 ViewModel 을 만듦.
  * 화면의 `viewModel()` 은 [owner] 의 기본 팩토리로 이 ViewModel 들을 받음.
  */
-class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
+class ShellTestGraph(
+    initialDriving: DrivingState = DrivingState.PARKED,
+    pinned: List<String> = emptyList(),
+    places: List<com.example.travelcrumbs.domain.model.Place> = TEST_PLACES,
+) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
     val recording = recordingRepositoryOf(time)
     val drafts = draftRepositoryOf(time)
     val savedState = SavedStateHandle()
+    val navi = FakeNaviRepository()
+    val catalog = FakePlaceCatalogRepository(places)
+    val pinnedStore = FakePinnedPlacesStore(pinned, catalog)
+    val pins = FakePinRepository()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -45,7 +53,11 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             recordPlace = FakeRecordPlaceUseCase(),
             drivingSignalRepository = driving,
             gleoActionRepository = FakeGleoActionRepository(),
-            naviRepository = FakeNaviRepository(),
+            naviRepository = navi,
+            placeCatalogRepository = catalog,
+            pinnedPlacesRepository = pinnedStore.repository,
+            pinRepository = pins,
+            placeStatsRepository = FakePlaceStatsRepository(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

@@ -34,14 +34,15 @@ import com.example.travelcrumbs.ui.theme.Dimens
  * 1 맨 위 영역(기록 상태 · 경과 · 「이 장소 기록」) → 2 기능 구역 자리 → 3 debug SDK 확인 카드.
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「기록 일시정지」 · 「음성 입력」은 두지 않음(D10).
  *
- * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈.
+ * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
+ * [featureSections] 가 null 이면 실제 기능 구역(HomeFeatureSections · #4 「가 볼 장소」 · 「장소 고르기」).
  */
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
     showSdkCard: Boolean = BuildConfig.DEBUG,
-    featureSections: @Composable ColumnScope.() -> Unit = { HomeFeatureSections() },
+    featureSections: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -82,7 +83,16 @@ fun HomeScreen(
                 }
             }
 
-            featureSections()
+            if (featureSections != null) {
+                featureSections()
+            } else {
+                HomeFeatureSections(
+                    state = uiState,
+                    onGuide = viewModel::onGuide,
+                    onPin = viewModel::onPin,
+                    onUnpin = viewModel::onUnpin,
+                )
+            }
 
             if (showSdkCard) {
                 SdkCheckCard(
@@ -91,6 +101,8 @@ fun HomeScreen(
                     navi = uiState.navi,
                     openedByGleoAction = uiState.openedByGleoAction,
                     onRefreshNavi = viewModel::refreshNavi,
+                    placeStats = uiState.placeStats,
+                    onRefreshPlaceStats = viewModel::refreshPlaceStats,
                 )
             }
         }
