@@ -5,6 +5,9 @@
       이슈 게이트 — 이슈 작업 폴더(_workspace/current → state.md) 없이 이슈 작업 브랜치(<기능명>/main·spec·impl·sync · bug/<n>-… · harness/<n>-…)를 만드는 명령을 막음.
 --readonly: 리뷰어용. 읽기 · 검사 명령만 통과(허용 목록).
 
+검사 중 예외가 나도 통과시키지 않음(fail-closed) — Claude Code 는 종료 코드 2 만 차단으로 읽고
+나머지는 「비차단 오류」로 보아 명령을 그대로 실행하기 때문.
+
 입력: 훅 JSON(stdin) — tool_name · tool_input.command · cwd.
 """
 import json
@@ -317,6 +320,13 @@ def inspect(cmd, cwd, readonly, depth=0):
             check_default(argv, cwd)
 
 
+def block(data, reason):
+    """막는 길 한 곳 — 이유는 stderr(나에게 보임) · 사실은 활동 로그 · 종료 코드 2."""
+    print(f"guard: {reason}", file=sys.stderr)
+    log_block(data, reason)
+    return 2
+
+
 def log_block(data, reason):
     """막은 사실을 활동 로그(trace_log.py)에 남김. 실패해도 막기 결과는 그대로."""
     try:
@@ -329,19 +339,20 @@ def log_block(data, reason):
 
 def main():
     readonly = "--readonly" in sys.argv[1:]
+    data = {}
     try:
         data = json.load(sys.stdin)
-    except ValueError:
-        return 0
-    cmd = (data.get("tool_input") or {}).get("command") or ""
-    if not cmd:
-        return 0
-    try:
+        cmd = (data.get("tool_input") or {}).get("command") or ""
+        if not cmd:
+            return 0
         inspect(cmd, data.get("cwd"), readonly)
     except Blocked as e:
-        print(f"guard: {e}", file=sys.stderr)
-        log_block(data, str(e))
-        return 2
+        return block(data, str(e))
+    except Exception as e:
+        # 훅 입력이 깨졌거나 guard 자신이 터진 경우. 0 을 돌려주면 울타리 없이 명령이 나가고
+        # 아무 표시도 남지 않음 — settings.json 의 onFailure: block 은 Claude Code 2.1.295
+        # 이상에서만 도므로 버전과 무관하게 여기서 스스로 닫음.
+        return block(data, f"검사하지 못함({type(e).__name__}: {e}) — 사람이 확인한 뒤 다시 실행")
     return 0
 
 
