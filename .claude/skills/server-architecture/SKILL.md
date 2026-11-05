@@ -57,7 +57,7 @@ server/
 
 ## 데이터(최소 수집)
 
-- 서버가 맡는 범위: 여러 사용자 데이터가 있어야 하는 것만 — 로그인(계정 · 토큰) · 추천 근거 집계(예: 장소별 안내 시작 기록). 여행 기록 · 공유는 기기 안(Room)이 원본이고 서버로 오지 않음(ADR 0014). 새 도메인 테이블은 그 기능 스펙의 「최소 수집」 절이 근거.
+- 서버가 맡는 범위: 여러 사용자 데이터가 있어야 하는 것만 — 로그인(계정 · 토큰) · 추천 근거 집계(예: 장소별 안내 시작 기록 · 지금은 계약만 두고 구현은 후속). 여행 기록 · 공유는 기기 안(Room)이 원본이고 서버로 오지 않음(ADR 0014). 새 도메인 테이블은 그 기능 스펙의 「최소 수집」 절이 근거.
 - 테이블: `users`(id uuid · pleos_user_id unique · brand · display_name · token_version · created_at) · `<도메인 테이블>`(필요한 칸만) · `consents`(policy_version · agreed_at) · `pleos_login_states`(state · brand · expires_at). FK 전부 `ON DELETE CASCADE`(탈퇴 = 하드 삭제).
 - 서버에 **없는** 것: 좌표 · 기어 · 속도 · VIN · Pleos 토큰 · 비밀번호. 스키마 · 계약에 나타나면 위반.
 - 응답 코드 · 라벨: 서버는 `UPPER_SNAKE` 코드 → 앱이 한글 문구로.
