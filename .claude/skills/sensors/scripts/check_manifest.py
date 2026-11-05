@@ -15,7 +15,7 @@ ANDROID = "{http://schemas.android.com/apk/res/android}"
 # 다음 사람이 판단할 수 있게 함께 적음.
 ALLOWED = {
     "pleos.car.permission.CAR_DRIVE": "기어(DrivingMode) 읽기 · pleos-vehicle-sdk 2절",
-    "android.permission.INTERNET": "서버 API 호출",
+    "android.permission.INTERNET": "서버 API 호출 · 안내 시작 기록 전송(docs/spec/navigation/artifacts/set-destination.md 4.3 · #4)",
     "android.permission.ACCESS_NETWORK_STATE": "연결 유무 확인 · 오프라인 처리",
     "pleos.car.permission.NAVI_ROUTE": "NaviHelper 경로 상태 조회(get*Info) · docs/spec/navigation/artifacts/set-destination.md 4.3 · #4",
     "pleos.car.permission.NAVI_ROUTE_SEARCH": "NaviHelper 길안내 요청(requestRoute) · docs/spec/navigation/artifacts/set-destination.md 4.3 · #4",
