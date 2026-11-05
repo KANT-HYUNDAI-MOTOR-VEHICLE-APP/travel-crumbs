@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.driving
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -37,7 +38,7 @@ class DrivingViewModel @Inject constructor(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
         initialValue = DrivingUiState(),
     )
 
@@ -57,9 +58,5 @@ class DrivingViewModel @Inject constructor(
         viewModelScope.launch {
             if (action() == ActionResult.NOT_READY) message.value = UiMessage.NOT_READY
         }
-    }
-
-    private companion object {
-        const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

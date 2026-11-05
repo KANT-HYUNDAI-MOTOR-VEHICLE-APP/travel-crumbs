@@ -35,9 +35,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** 앱 틀 Compose UI 테스트(Robolectric · landscape 전체 화면). */
+/** 앱 틀 Compose UI 테스트(Robolectric · 창 2개 영역 = 에뮬레이터 실측 앱 창 1682 × 1210 dp · D18). */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class, qualifiers = "w1280dp-h720dp-land")
+@Config(application = Application::class, qualifiers = "w1682dp-h1210dp-land")
 class AppShellScreenTest {
 
     @get:Rule

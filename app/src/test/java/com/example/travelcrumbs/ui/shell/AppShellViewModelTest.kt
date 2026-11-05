@@ -137,6 +137,19 @@ class AppShellViewModelTest {
     }
 
     @Test
+    fun `T21 화면이 안 보이는 사이(구독 없음) 주행으로 바뀌어도 임시 저장`() = runTest(dispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        drafts.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "백그라운드"))
+
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+
+        assertEquals("백그라운드", drafts.savedDraft.first()?.fields?.get("memo"))
+        assertTrue(vm.uiState.value.showDrivingScreen)
+    }
+
+    @Test
     fun `T24 입력 중 내용이 없으면 띠 없음`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)

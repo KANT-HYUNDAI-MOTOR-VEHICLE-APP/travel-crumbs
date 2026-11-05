@@ -10,7 +10,7 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
-    <!-- 서버 API 호출(Retrofit 배선) -->
+    <!-- 서버 API 호출(#4 부터 · 팀 서버 사용 결정 2026-11-05) — 이 이슈(#6)는 네트워크 호출 없음 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application

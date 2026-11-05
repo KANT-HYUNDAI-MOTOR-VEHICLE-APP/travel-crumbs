@@ -33,12 +33,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * 창 1개 영역(스펙 app-shell D8) — 에뮬레이터 Pleos_Connect_v2.1.0 실측 약 840 × 1210 dp(builder 보고서).
- * 실기기에선 landscape 고정 앱이 이 크기로 줄지 않으므로(보고서 「스펙 모순」) 화면 배치만 여기서 잼.
+ * 창 2개 영역(landscape 전체 폭 · 스펙 app-shell D18) — 에뮬레이터 Pleos_Connect_v2.1.0 실측 앱 창 1682 × 1210 dp.
+ * landscape 고정 앱은 창 1개 영역으로 줄지 않음(Pleos 가 「창 크기를 넓게」 안내 · 앱 책임 아님).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class, qualifiers = "w840dp-h1210dp-land")
-class AppShellOneAreaWindowTest {
+@Config(application = Application::class, qualifiers = "w1682dp-h1210dp-land")
+class AppShellTwoAreaWindowTest {
 
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
@@ -58,7 +58,7 @@ class AppShellOneAreaWindowTest {
     }
 
     @Test
-    fun `T26 주행 화면 — 상태 경과 버튼 3 모두 스크롤 없이 보이고 눌림`() {
+    fun `T26 창 2개 영역 주행 화면 — 상태 경과 버튼 3 모두 스크롤 없이 보이고 눌림`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
@@ -71,7 +71,7 @@ class AppShellOneAreaWindowTest {
     }
 
     @Test
-    fun `T27 정차 홈 — 레일 · 기록 상태 · 이 장소 기록이 보이고 눌림`() {
+    fun `T27 창 2개 영역 정차 홈 — 레일 · 기록 상태 · 이 장소 기록이 보이고 눌림`() {
         showShell()
 
         compose.onNode(hasText(text(R.string.nav_home))).assertIsDisplayed()
@@ -81,7 +81,7 @@ class AppShellOneAreaWindowTest {
     }
 
     @Test
-    fun `T37 홈 순서 — 맨 위 영역 · 시험 구역 · debug 카드 · 맨 위 영역은 스크롤 없이 보임`() {
+    fun `T37 창 2개 영역 홈 순서 — 맨 위 영역 · 시험 구역 · debug 카드 · 맨 위 영역은 스크롤 없이 보임`() {
         val tallSection: @androidx.compose.runtime.Composable ColumnScope.() -> Unit = {
             Text(
                 text = "시험 구역",

@@ -61,7 +61,7 @@ class HomeViewModel @Inject constructor(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
         initialValue = HomeUiState(),
     )
 
@@ -92,7 +92,4 @@ class HomeViewModel @Inject constructor(
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
 
-    private companion object {
-        const val STOP_TIMEOUT_MILLIS = 5_000L
-    }
 }
