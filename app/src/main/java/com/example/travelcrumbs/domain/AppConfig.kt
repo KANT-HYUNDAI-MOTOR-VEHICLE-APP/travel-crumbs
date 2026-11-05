@@ -5,6 +5,12 @@ object AppConfig {
     /** SDK 호출 응답을 기다리는 한도(밀리초). */
     const val SDK_CALL_TIMEOUT_MS: Long = 10_000L
 
+    /** 「준비 중」 안내가 보였다 사라지기까지(밀리초) — 스펙 app-shell 2-5. */
+    const val NOT_READY_NOTICE_MILLIS: Long = 2_000L
+
+    /** 경과 표시 단위(밀리초) — 분 단위로만 바뀜(스펙 D6). */
+    const val ELAPSED_UNIT_MILLIS: Long = 60_000L
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 
