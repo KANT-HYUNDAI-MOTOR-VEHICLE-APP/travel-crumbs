@@ -1,6 +1,6 @@
 ---
 name: sensors
-description: <앱 이름> 저장소의 계산형 센서 — 앱(Android Lint · 단위 테스트 · Konsist · assembleRelease · 매니페스트 검사) · 서버(ruff · mypy · import-linter · pytest · alembic check · heads · SQL comment · response_model 검사) · 공통(API 계약 ↔ 앱 Retrofit 대조 · 비밀 리터럴 · 저장소 위생 · 하네스 설명 잘림 · 환경 doctor). 명령은 로컬(맥 · 윈도우)과 CI 가 같다. builder 가 넘기기 전, 메인이 PR 전 · 머지 뒤 센서를 돌릴 때, CI 를 쓰거나 고칠 때, 리뷰어가 「센서가 재는 규칙」을 확인할 때 사용한다. 새 센서를 넣는 일(리뷰 반복 지적 → 스크립트)은 harness:evolve 가 이 스킬을 고친다.
+description: travel-crumbs 저장소의 계산형 센서 — 앱(Android Lint · 단위 테스트 · Konsist · assembleRelease · 매니페스트 검사) · 서버(ruff · mypy · import-linter · pytest · alembic check · heads · SQL comment · response_model 검사) · 공통(API 계약 ↔ 앱 Retrofit 대조 · 비밀 리터럴 · 저장소 위생 · 하네스 설명 잘림 · 환경 doctor). 명령은 로컬(맥 · 윈도우)과 CI 가 같다. builder 가 넘기기 전, 메인이 PR 전 · 머지 뒤 센서를 돌릴 때, CI 를 쓰거나 고칠 때, 리뷰어가 「센서가 재는 규칙」을 확인할 때 사용한다. 새 센서를 넣는 일(리뷰 반복 지적 → 스크립트)은 harness:evolve 가 이 스킬을 고친다.
 ---
 
 # 센서 — 계산으로 재는 것

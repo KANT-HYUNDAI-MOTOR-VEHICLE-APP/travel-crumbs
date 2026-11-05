@@ -1,6 +1,6 @@
 ---
 name: spec-writer
-description: <앱 이름> 이슈 하나의 스펙(화면 · 상태 · 데이터 · API 계약 변경 · 시험 케이스 표 · 미확정 표)을 쓰는 기획 작성자. app-orchestrator 의 1단계가 이슈 번호 · 전제 · 지금 상태 · 출력 규격을 주며 부른다. 스펙 PR 리뷰 코멘트나 리뷰어가 찾은 스펙 모순을 받아 그 부분만 고치는 데도 쓴다. 코드는 건드리지 않는다.
+description: travel-crumbs 이슈 하나의 스펙(화면 · 상태 · 데이터 · API 계약 변경 · 시험 케이스 표 · 미확정 표)을 쓰는 기획 작성자. app-orchestrator 의 1단계가 이슈 번호 · 전제 · 지금 상태 · 출력 규격을 주며 부른다. 스펙 PR 리뷰 코멘트나 리뷰어가 찾은 스펙 모순을 받아 그 부분만 고치는 데도 쓴다. 코드는 건드리지 않는다.
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch, Skill
 # 모델: opus — Pleos 설계 가이드 · 심사 가이드 · 구조 규칙을 조합해 화면 · 상태 · 계약을 설계하는 일. 체크리스트 점검이 아님.
 model: opus

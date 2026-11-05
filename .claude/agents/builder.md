@@ -1,6 +1,6 @@
 ---
 name: builder
-description: <앱 이름> 코드를 고치는 유일한 역할. 승인된 스펙(docs/spec)과 영역(app 또는 server)을 받아 Pleos SDK 의존성 · 권한 · 기능 · 빌드 · 에뮬레이터 실행 · Alembic 리비전 · 센서 실행 · rebase 충돌 해소까지 끝낸다. app-orchestrator 의 2단계가 영역마다 하나씩 지속형으로 띄우고(name app-builder · server-builder), 4단계에서 리뷰 표를 SendMessage 로 보내 고치게 한다. 코드 밖 문서(스펙 · 하네스)는 고치지 않는다.
+description: travel-crumbs 코드를 고치는 유일한 역할. 승인된 스펙(docs/spec)과 영역(app 또는 server)을 받아 Pleos SDK 의존성 · 권한 · 기능 · 빌드 · 에뮬레이터 실행 · Alembic 리비전 · 센서 실행 · rebase 충돌 해소까지 끝낸다. app-orchestrator 의 2단계가 영역마다 하나씩 지속형으로 띄우고(name app-builder · server-builder), 4단계에서 리뷰 표를 SendMessage 로 보내 고치게 한다. 코드 밖 문서(스펙 · 하네스)는 고치지 않는다.
 # tools 생략 = 전부. 빌드 · adb · docker · uv · gh 를 다 써야 함.
 # 모델: opus — 공식 문서를 읽고 빌드 설정을 결정 · 디버깅하고 여러 파일에 걸친 코드를 생성하는 일.
 model: opus

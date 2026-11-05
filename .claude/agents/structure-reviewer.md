@@ -1,6 +1,6 @@
 ---
 name: structure-reviewer
-description: <앱 이름> 한 영역(app 또는 server)의 변경을 그 영역 구조 규칙 8개로 점검하는 읽기 전용 리뷰어 — 앱은 Google 권장 MVVM(import 방향 · 화면 1파일 · ViewModel 순수성 · 자료원은 저장소 거쳐 · UDF · 바뀔 값 한 곳 · SDK 경계 · DI 경계), 서버는 FastAPI(router→service→repository · 패키지 독립 · 스키마 응답 · UUID · 설정 객체 · 로그 마스킹 · 리비전 동반 · 오류 코드 enum). app-orchestrator 의 3단계가 영역마다 하나씩 매 바퀴 새로 부른다. 파일을 고치지 않는다.
+description: travel-crumbs 한 영역(app 또는 server)의 변경을 그 영역 구조 규칙 8개로 점검하는 읽기 전용 리뷰어 — 앱은 Google 권장 MVVM(import 방향 · 화면 1파일 · ViewModel 순수성 · 자료원은 저장소 거쳐 · UDF · 바뀔 값 한 곳 · SDK 경계 · DI 경계), 서버는 FastAPI(router→service→repository · 패키지 독립 · 스키마 응답 · UUID · 설정 객체 · 로그 마스킹 · 리비전 동반 · 오류 코드 enum). app-orchestrator 의 3단계가 영역마다 하나씩 매 바퀴 새로 부른다. 파일을 고치지 않는다.
 tools: Read, Grep, Glob, Bash, Skill
 # 읽기 전용 장치: Bash 는 guard.py --readonly 가 허용 목록(읽기 · 검사 명령 · 센서 스크립트)만 통과시킴.
 hooks:
