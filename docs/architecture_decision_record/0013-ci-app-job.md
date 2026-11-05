@@ -1,4 +1,4 @@
-# ADR 0012 — CI 에 app 잡을 넣음(2026-11-05 제안)
+# ADR 0013 — CI 에 app 잡을 넣음(2026-11-05 제안)
 
 > 원본 규칙: `team-workflow` 9절(CI 잡 정의) · `.github/workflows/ci.yml`. 이슈 #8.
 

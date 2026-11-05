@@ -5,7 +5,7 @@
 - 브랜치: harness/8-ci-app-job
 
 ## 반영 끝 — 2026-11-05 · 노희주
-- 산출물: `.github/workflows/ci.yml`(app 잡) · `team-workflow` 9절 · ADR 0012
+- 산출물: `.github/workflows/ci.yml`(app 잡) · `team-workflow` 9절 · ADR 0013
 - 에이전트: 없음(메인 직접 · harness:evolve 스킬이 이 환경에 없어 메인이 이슈의 바라는 동작대로 반영)
 - 센서: YAML 파싱 녹색(jobs changes · app · server · common) · guardrails 시험 22 통과 · check_repo_hygiene 녹색 · check_secrets 녹색 · check_skill_frontmatter 녹색 · 로컬 `./gradlew lint testDebugUnitTest assembleRelease` 녹색 · check_manifest 빨강 1(NAVI_ROUTE — 하네스 #2 몫 · 기존 상태)
 - 리뷰 지적: 없음
