@@ -91,5 +91,4 @@ class HomeViewModel @Inject constructor(
 
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
-
 }
