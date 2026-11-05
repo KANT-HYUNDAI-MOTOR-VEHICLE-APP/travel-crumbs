@@ -3,11 +3,11 @@
 
 # 장소를 차량 내비 목적지로 설정(NaviHelper 길안내 연동)
 
-## 1. 요약 (수정: 2026-11-05 리뷰 · 미확정 답 반영)
+## 1. 요약 (수정: 2026-11-05 서버 전송 결정 반영)
 
 - 홈 맨 위 「가 볼 장소」 구역 = 사용자가 핀 고정한 장소(최대 3곳 · 결정 기록 U16 · 장소 이름 · 주소)와 장소마다 「여기로 안내」 버튼 · 고정한 장소가 없으면 구역 제목 + 안내 한 줄. 고정 · 해제는 정차 중 홈의 「장소 고르기」 구역에서 앱 안 후보 장소(assets JSON 고정 값) 중 고름 · 고정 목록은 기기 안에 저장되어 앱을 다시 켜도 남음.
 - 버튼 한 번 터치 → NaviHelper 로 그 장소의 좌표 · 이름 · 주소를 기본 내비 앱에 넘겨 경로 안내 시작 · 시작 · 실패(짧은 이유)를 홈 상태에 남김 · 내비 서비스 미연결이면 버튼 비활성 + 연결 안 됨 문구.
-- 「여기로 안내」는 정차 · 주행 · 모름 모두 같은 한 번 터치(의존: #2) · 고정 · 해제는 정차 때만 · 서버 전송 없음 · 「안내 요청 기록」(장소 id · 시각만)을 기기 안에 쌓음 · 위치 수집 없음 · 좌표는 기기 안 NaviHelper 로만.
+- 「여기로 안내」는 정차 · 주행 · 모름 모두 같은 한 번 터치(의존: #2) · 고정 · 해제는 정차 때만 · 안내가 시작되면 「안내 시작 기록」(장소 id · 시각 · 계정)을 서버로 보냄 — 이 이슈가 `server/`(FastAPI)를 처음 만들고 기록 수신 API · 장소별 안내 건수 조회 API(추천 근거)까지 · 추천 화면은 범위 밖(결정 기록 U15). 좌표 · 장소 이름 · 주소는 서버로 가지 않음 · 좌표는 기기 안 NaviHelper 로만 · 위치 수집 없음.
 
 ## 2. 화면
 
@@ -128,7 +128,7 @@
 - 사용자 행동은 ViewModel 메서드 셋 — 「여기로 안내」(장소 id) · 「고정」(장소 id) · 「고정 해제」(장소 id). 결과는 이벤트가 아니라 상태 칸으로(android-architecture 규칙 5).
 - 고정 목록의 단일 출처는 기기 저장을 감싼 저장소 — ViewModel 은 그 흐름을 받아 `pinnedPlaces` · `candidates` · `canPinMore` 를 만듦(화면에서 따로 들고 있지 않음).
 
-### 3.2 전이 (수정: 2026-11-05 리뷰 · 미확정 답 반영)
+### 3.2 전이 (수정: 2026-11-05 서버 전송 결정 반영)
 
 길안내 요청
 
@@ -137,7 +137,7 @@
 | 대기 · 시작됨 · 실패 | 「여기로 안내」 터치 · 내비 연결됨 | 요청 중(X) | 내비에 목적지 요청 1건 |
 | 대기 · 시작됨 · 실패 | 「여기로 안내」 터치 · 그 순간 내비 연결 안 됨 | 실패(`NOT_CONNECTED`) | 내비에 요청하지 않음(버튼 비활성과 연결 끊김이 엇갈린 경우) |
 | 요청 중(X) | 「여기로 안내」 터치(어느 장소든) | 요청 중(X) 그대로 | 버튼이 비활성이라 원래 일어나지 않음 · 일어나도 무시 |
-| 요청 중(X) | 내비가 경로 탐색 시작을 알림(`onRouteStarted`) | 시작됨(X 의 이름) | 성공 판정 = 이 알림(결정 기록 U4) · 탐색 완료 · `ROUTE_DRIVE` 를 기다리지 않음 · 안내 요청 기록 1건 추가(결정 기록 U21 — 이 시점만) |
+| 요청 중(X) | 내비가 경로 탐색 시작을 알림(`onRouteStarted`) | 시작됨(X 의 이름) | 성공 판정 = 이 알림(결정 기록 U4) · 탐색 완료 · `ROUTE_DRIVE` 를 기다리지 않음 · 안내 요청 기록 1건 추가(결정 기록 U21 — 이 시점만) · 그 기록을 서버로 보냄(4.6 · 화면 상태는 바꾸지 않음) |
 | 요청 중(X) | 내비가 오류를 알림 | 실패(오류 코드에 맞는 이유) | 4.2 대응표 · 기록 없음(결정 기록 U21) |
 | 요청 중(X) | 응답 대기 한도 안에 시작 · 오류 둘 다 안 옴 | 실패(`TIMEOUT`) | 한도는 앱의 기존 SDK 응답 대기 한도(지금 10초 · AppConfig 한 곳) 재사용 |
 | 요청 중(X) | 요청 호출 자체가 예외(권한 없음 등) | 실패(`REQUEST_FAILED`) | — |
@@ -166,17 +166,18 @@
 
 ## 4. 데이터
 
-### 4.1 앱 모델 (수정: 2026-11-05 리뷰 · 미확정 답 반영)
+### 4.1 앱 모델 (수정: 2026-11-05 서버 전송 결정 반영 · 미확정 답 반영)
 
 | 모델 | 칸 | 출처 · 규칙 |
 |---|---|---|
-| 장소(domain/model) | id(앱 안 고유 문자열) · 이름 · 주소 · 위도 · 경도 | 앱 안 **후보 장소** 고정 값 · 수 · 구체 값은 미확정 U1 |
+| 장소(domain/model) | id(앱 안 고유 문자열 · 영문 소문자 · 숫자 · `-` · 64자 이하 — 서버 계약의 `placeId` 꼴과 같음 · 5절) · 이름 · 주소 · 위도 · 경도 | 앱 안 **후보 장소** 고정 값 · 수 · 구체 값은 미확정 U1 |
 | 고정 목록(domain/model) | 장소 id 의 순서 있는 목록 | 기기 안 저장(앱 종료 · 재부팅 뒤 유지 · 결정 기록 U13) · 최대 3곳(결정 기록 U16 · AppConfig 한 곳) · 이름 · 주소 · 좌표는 저장하지 않음(후보에서 id 로 찾음) |
-| 안내 요청 기록(domain/model) | 장소 id · 시각 | 기기 안 저장(결정 기록 U15) · 계정 · 좌표 · 이름 · 주소 · 결과 칸 없음 · 기록 시점 = 시작됨 때만(결정 기록 U21) · 보관 최근 100건(결정 기록 U22) · 삭제 화면 없음(결정 기록 U23) · 이번엔 보여 주는 화면 없음 |
+| 안내 요청 기록(domain/model) | 장소 id · 시각(시간대 포함) | 기기 안 저장 · 서버로 보낼 원본(결정 기록 U15) · 계정은 칸으로 두지 않음(서버가 토큰에서 얻음) · 좌표 · 이름 · 주소 · 결과 칸 없음 · 기록 시점 = 시작됨 때만(결정 기록 U21) · 역할 = **서버 전송 대기 큐**(Room · 보내면 지움 · 최대 100건 · 넘치면 오래된 것부터 지움 · 결정 기록 U29 · U22) · 삭제 화면 없음(결정 기록 U23) · 이번엔 보여 주는 화면 없음 |
 | 길안내 요청 결과(domain/model) | 시작됨 / 실패(이유 코드) | 내비 콜백을 data/navi 에서 이 모델로 바꿔 내보냄 — SDK 타입은 `data.vehicle` · `data.navi` 밖으로 나가지 않음(ArchitectureTest 규칙 7) |
 
 - 후보 장소 자리: **앱 안 한 곳 · 쉽게 바꿀 수 있는 자리**(android-architecture 규칙 6 의 콘텐츠 자리) — `app/src/main/assets/` 의 JSON 파일 하나(결정 기록 U3). 화면 · ViewModel 은 저장소를 거쳐 받음(규칙 4). 고를 원본이 생기면(#3 방문 기록 · 공유 받은 여행) 후보 저장소의 자료원만 바꿈 — 그때 id 체계가 달라 기존 고정이 보이지 않을 수 있음(시연용이라 받아들임 · 2.1 「후보에 없는 id」 규칙으로 처리).
-- 고정 목록 · 안내 요청 기록은 각각 저장소 하나를 거침(규칙 4) · 저장 방식은 둘 다 DataStore(결정 기록 U20).
+- 고정 목록 · 안내 요청 기록은 각각 저장소 하나를 거침(규칙 4) · 저장 방식: 고정 목록 = DataStore · 안내 요청 기록 = Room 전송 대기 큐(android-architecture 「오프라인」 · 결정 기록 U20 · U29).
+- 서버 호출은 Retrofit 인터페이스(`data/remote/AppApi`) 하나 · 계약(5절)과 경로 · 메서드 1:1 · 요청 DTO 는 `placeId` · `startedAt` 두 칸만(좌표 · userId 칸 없음 · android-architecture 규칙 8) · 주소는 기존 `BuildConfig.API_BASE_URL`(debug `http://10.0.2.2:4000/`).
 - 기기 저장은 백업 대상 아님 — 매니페스트 `allowBackup="false"` 유지.
 - 내비에 넘기는 값: 위도 · 경도 · 장소 이름 · 주소. POI 식별자(poiId · poiSubId)는 비움 — 우리 장소엔 POI 가 없음 · 비운 채 안내가 시작되는지 에뮬레이터에서 확인하고 안 되면 보고(장소 칸 추가는 사람 결정)(결정 기록 U6). 경로 옵션은 지정하지 않음 — 내비 기본값 · 운전자 설정을 따름(결정 기록 U12).
 - 이미 안내 중일 때 새 요청 = 목적지 바꾸기(Pleos 문서: `requestRoute` 는 목적지 설정 · 변경 · 재설정에 씀). 경유지 · 전체 코스 재안내는 만들지 않음.
@@ -194,7 +195,7 @@
 
 - 앱 쪽 실패: 미연결 `NOT_CONNECTED` · 응답 없음 `TIMEOUT` · 호출 예외 `REQUEST_FAILED`.
 
-### 4.3 권한 (수정: U10 사람 결정 반영)
+### 4.3 권한 (수정: 2026-11-05 서버 전송 결정 반영 — 네트워크 행 추가)
 
 | 권한 | 지금 | 이번 | 왜 필요한가(근거) |
 |---|---|---|---|
@@ -202,27 +203,148 @@
 | `pleos.car.permission.NAVI_ROUTE` | 있음 | 그대로 | 기존 경로 상태 조회 `getRouteStateInfo()`(진단 카드) — 문서 표: `get*Info()` · `requestTrip()`. 이번 기능이 새로 쓰지는 않음 |
 | `pleos.car.permission.NAVI_CUSTOM_MAP` | 없음 | 선언 안 함 | `requestNavigationScreen()` 용 · 이번에 안 씀(최소 권한) |
 | 위치 권한 | 없음 | 선언 안 함 | 목적지 좌표는 고정 값 · 현재 위치는 내비 앱이 앎 · 위치 수집(2-10)은 범위 밖 |
+| `android.permission.INTERNET` | 있음 | 그대로 · **이번에 처음 씀** | 안내 시작 기록을 서버로 보냄(4.6) · `ALLOWED` 에 이미 있음(「서버 API 호출」) |
+| `android.permission.ACCESS_NETWORK_STATE` | 없음 | 연결 유무를 보고 보내는 데 필요하면 추가 | 「연결되면 보냄」(4.6) · `ALLOWED` 에 이미 있음(「연결 유무 확인 · 오프라인 처리」) · 쓰지 않으면 선언 안 함 |
 
 - 허용 목록 원본(`check_manifest.py` 의 `ALLOWED`)에는 지금 `NAVI_ROUTE` · `NAVI_ROUTE_SEARCH` 둘 다 없음 — `NAVI_ROUTE` 는 이미 센서 위반 1건(2026-11-04 로컬 실행: 「허용 밖 권한 pleos.car.permission.NAVI_ROUTE」). 이 절이 두 권한의 근거이고, 목록 확장은 하네스 변경으로 **하네스 이슈 #2 에 묶음**(같은 `check_manifest.py` · 같은 센서라 충돌이 적음) · `ALLOWED` 근거 칸에 이 산출물 경로(`docs/spec/navigation/artifacts/set-destination.md`) · #4 를 적음(결정 기록 U10). #2 반영 전에는 구현 PR 의 매니페스트 센서가 녹색이 될 수 없음.
 - 주행 중 사용 선언(DO): MainActivity 가 주행 중에도 화면에 남도록 하는 선언이 필요 — 지금 `check_manifest.py` 가 `distraction` meta-data 를 막고 있음 → **의존: #2**. 이 스펙은 「주행 중에도 홈 · 「여기로 안내」가 보이고 동작함」을 요구로 둠.
 
-### 4.4 최소 수집 점검 (수정: 2026-11-05 리뷰 · 미확정 답 반영)
+### 4.4 최소 수집 · 개인정보 점검 (수정: 2026-11-05 서버 전송 결정 반영 — 서버 전송 기준으로 다시 씀 · 미확정 답 반영)
 
 | 항목 | 결과 |
 |---|---|
-| 서버로 가는 데이터 | 없음(서버 없음 · 네트워크 호출 없음 · 결정 기록 U15). 추천 근거(리뷰 2)는 기기 안 「안내 요청 기록」으로만 쌓아 둠 — 서버 · 추천을 만들 때 같은 칸(장소 id · 시각)만 보내는 별도 이슈 · 그때 동의 · 심사 「개인정보 · 보안」 점검 대상 |
-| 좌표 | 기기 안에서 후보 고정 값 → NaviHelper(기본 내비 앱)로만 · 화면 상태 · 로그 · 기기 저장(고정 목록 · 기록)에 없음 |
-| 기어 · 속도 · VIN | 이번에 새로 읽거나 내보내는 것 없음(기존 기어 → 주행 상태만) · 기록에도 없음 |
-| 기기 저장 | 고정 목록(장소 id · 순서) · 안내 요청 기록(장소 id · 시각)만 · 계정 · 이름 · 주소 · 좌표 · 결과 없음 · 백업 안 됨(`allowBackup="false"` 유지) · 보관 최근 100건(결정 기록 U22) · 삭제 화면 없음(결정 기록 U23) |
-| 기록의 성격 | 장소 id + 시각은 「언제 어디로 가려 했나」를 드러내는 이동 기록 — 그래서 칸을 둘로 묶고 건수 상한(결정 기록 U22)을 둠 · 기기 밖으로 나가지 않음 |
-| 로그 | 실패 시 이유 코드 · 오류 코드 이름만 · 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용(장소 id · 시각)을 로그에 남기지 않음(#3 뒤 실제 방문 장소가 같은 길을 타므로 지금부터 같은 규칙) |
+| 무엇이 서버로 가나 | 안내 시작 기록 1건 = 장소 id(앱 후보 목록의 고정 id) · 시작 시각 · 계정. 계정은 요청 본문 칸이 아니라 로그인 토큰에서 서버가 얻음(server-architecture 규칙 4) · 정의 밖 칸은 서버가 거절(422) |
+| 무엇이 안 가나 | 좌표 · 장소 이름 · 주소 · 기어 · 속도 · VIN · 내비 결과 · 실패 기록 · 고정 목록. 장소 id 는 앱 안 후보 목록에서만 뜻을 가짐 — 서버는 그 장소의 좌표 · 이름을 모름(하네스 규칙 「좌표는 서버에 없음」 유지) |
+| 언제 | 내비가 안내 시작을 알린 뒤 즉시(결정 기록 U21 · U30) · 로그인 · 동의 상태일 때만(결정 기록 U27 · U31 — #1 전에는 보내지 않음) · 실패하면 연결될 때 간격을 늘려 다시 보냄(4.6 · 결정 기록 U30) |
+| 왜 | 장소별로 안내가 쌓인 수를 다른 사용자 추천의 근거로 씀(PR #5 리뷰 2) — 이번엔 건수 조회 API 까지 · 추천 화면은 별도 이슈 |
+| 기록의 성격 | 계정 + 장소 id + 시각 = 「이 사람이 언제 어디로 가려 했나」를 드러내는 이동 기록 → Pleos 심사 「개인정보 · 보안」 대상 · 동의는 #1 로그인 동의에 항목으로 넣음(결정 기록 U31) |
+| 서버 보관 · 삭제 | 보관 365일 · 지난 행은 하루 한 번 지움(결정 기록 U32 · 수치는 `Settings` 한 곳 · #1 동의 안내문에 기간을 적음) · 계정 삭제(동의 철회 웹훅 포함 · #1)면 그 계정 행 전부 삭제(`ON DELETE CASCADE`) |
+| 조회 응답 | 장소 id 별 건수만 — 계정 · 시각 · 개별 행은 내보내지 않음 |
+| 기기 저장 | 고정 목록(장소 id · 순서) · 안내 요청 기록(장소 id · 시각)만 · 계정 · 이름 · 주소 · 좌표 · 결과 없음 · 백업 안 됨(`allowBackup="false"` 유지) · 안내 요청 기록은 보내면 지움 · 못 보낸 것만 최대 100건(결정 기록 U29 · U22) · 삭제 화면 없음(결정 기록 U23) |
+| 좌표 | 기기 안에서 후보 고정 값 → NaviHelper(기본 내비 앱)로만 · 화면 상태 · 로그 · 기기 저장 · 서버에 없음 |
+| 기어 · 속도 · VIN | 이번에 새로 읽거나 내보내는 것 없음(기존 기어 → 주행 상태만) · 기록 · 서버에도 없음 |
+| 로그(앱) | 실패 시 이유 코드 · 오류 코드 이름 · HTTP 상태만 · 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용(장소 id · 시각) · 토큰을 남기지 않음(#3 뒤 실제 방문 장소가 같은 길을 타므로 지금부터 같은 규칙) |
+| 로그(서버) | 경로 · 메서드 · 상태 코드 · 오류 코드만(structlog 마스킹 · server-architecture 규칙 6) · 계정 id · pleos_user_id · placeId · startedAt · 토큰을 남기지 않음 |
 | LLM | 없음 |
 
-## 5. API 계약 변경
+### 4.5 서버 테이블 (수정: 2026-11-05 서버 전송 결정 반영 · 새 절 · 미확정 답 반영)
 
-없음(서버 없음).
+`server/` 는 server-architecture 「폴더」 · 「도구 묶음」대로 처음 만듦(uv · FastAPI · Pydantic v2 · SQLAlchemy async · Alembic · PostgreSQL 17 · PyJWT · structlog · ruff · mypy · import-linter · pytest). 도메인 패키지 하나(`app/navigation/` — router · service · schemas · models · repository). LLM · Pleos 호출 없음(`app/llm/` · `app/auth/pleos/` 는 이번에 만들지 않음 — 결정 기록 U28). 첫 Alembic 리비전에 아래 테이블.
 
-## 6. 시험 케이스 (수정: 2026-11-05 리뷰 · 미확정 답 반영 — T1 · T19 · T21 · T24 · T26 · T27 · T28 고침 · T30 ~ T47 추가)
+| 테이블 | 칸(전부 `comment=`) | 규칙 |
+|---|---|---|
+| `users` | server-architecture 「데이터」의 칸 그대로(id uuid · pleos_user_id unique · brand · display_name · token_version · created_at) | 표는 #4 가 만듦 · 계정을 넣는 로그인 · 토큰 발급은 #1(결정 기록 U27 · U28) · #4 시험은 시험용 계정 행 + 시험용 비밀로 만든 토큰 |
+| `navigation_starts` | id uuid(PK · 서버 생성) · user_id uuid(FK `users.id` `ON DELETE CASCADE`) · place_id varchar(64)(앱 후보 고정 id) · started_at timestamptz(기기가 보낸 시작 시각) · received_at timestamptz(서버가 받은 시각) | 유일: (user_id · place_id · started_at) — 같은 기록을 다시 보내도 한 행(재시도 안전 · 결정 기록 U33) · 색인: place_id · started_at(보관 정리 · 집계) · 좌표 · 이름 · 주소 · VIN 칸 없음 |
+
+- 서버는 후보 장소 목록을 모름 — `place_id` 가 실제 후보인지 확인하지 않음(꼴만 확인).
+- 집계 · 조회는 보관 기간(365일) 안 행만(결정 기록 U32 · U33). 시각 허용 폭(미래 5분)도 `Settings` 한 곳.
+
+### 4.6 전송 규칙(앱) (수정: 2026-11-05 서버 전송 결정 반영 · 새 절 · 미확정 답 반영)
+
+| 상황 | 앱의 처리 |
+|---|---|
+| 안내 시작됨(기록 1건 생김) | 보낼 수 있으면 바로 `POST /navigation-starts` 1회(결정 기록 U30) |
+| 로그인 안 됨(토큰 없음 · #1 전 포함) · 동의 없음 | 보내지 않음 · 기록은 큐에 남김(결정 기록 U27 · U31) |
+| 201 · 200(이미 받음) | 보냄 끝 — 큐에서 그 기록을 지움(결정 기록 U29) |
+| 네트워크 없음 · 시간 초과 · 5xx | 기기에 남기고 다시 보냄 — 연결되면 · 간격을 늘려 가며 · 앱이 꺼져 있어도(30초부터 두 배 · 최대 1시간 · 수치는 AppConfig 한 곳 · 결정 기록 U30) |
+| 401 `UNAUTHENTICATED` | 보내지 않고 남김 — 토큰 갱신은 #1(TokenAuthenticator) 몫 · 갱신되면 다시 보냄 |
+| 403 `CONSENT_REQUIRED` | 보내지 않고 남김(결정 기록 U31) |
+| 422(`VALIDATION_FAILED` · `STARTED_AT_OUT_OF_RANGE`) | 다시 보내도 같은 결과 → 큐에서 지움 · 로그에 오류 코드만 |
+
+- 전송은 화면 상태(UiState) · 문구 · 버튼에 영향 없음 — 사용자에게 보이는 전송 상태 없음(기록 화면이 없음 · 결정 기록 U23). 주행 중에도 화면 변화 없이 뒤에서 일어남.
+- 순서 보장 없음 — 서버는 `startedAt` 으로 시각을 앎.
+- 앱 종료 · 재부팅 뒤에도 못 보낸 기록은 큐에서 다시 보냄. 큐가 100건을 넘으면 오래된 것부터 지움(결정 기록 U22).
+- 이번에 앱이 부르는 서버 경로는 POST 하나 — 건수 조회(GET)는 부르지 않음(추천 화면 이슈 몫).
+
+## 5. API 계약 변경 (수정: 2026-11-05 서버 전송 결정 반영 — 새 계약 · 미확정 답 반영)
+
+`docs/api/openapi.json` 을 처음 만듦(서버가 내보낸 파일 · server-architecture 「OpenAPI」). 초안: `_workspace/4/01_openapi_draft.json`(메인이 판단해 커밋 · 구현 PR 에서는 서버가 내보낸 파일로 갈음 · 경로 · 메서드 · 칸은 이 절과 같아야 함).
+
+공통
+
+- 인증: `Authorization: Bearer <우리 서버 액세스 토큰>`(server-architecture 「세션」 — PyJWT HS256 · 클레임 `sub` = `users.id` · `ver` = `token_version` · `exp` · 서버는 서명 · 만료 · `ver` 대조 · 발급은 #1 로그인 · 결정 기록 U28). 두 경로 모두 필요.
+- 오류 응답: `{"code": "<UPPER_SNAKE>"}` 하나(한글 문장 없음 · server-architecture 규칙 8). 앱이 코드를 보고 처리(4.6).
+- 요청 본문 · 쿼리에 userId 칸 없음(규칙 4) · 정의 밖 칸이 오면 422 — 좌표 · 이름 등이 들어오지 못하게.
+
+| 경로 | 메서드 | 요청 | 성공 응답 | 오류 |
+|---|---|---|---|---|
+| `/navigation-starts` | POST | 본문 `NavigationStartIn` — `placeId`(문자열 · `^[a-z0-9][a-z0-9-]{0,63}$`) · `startedAt`(date-time · 시간대 필수) | 201 `NavigationStartOut`(새로 받음) · 200 `NavigationStartOut`(같은 계정 · placeId · startedAt 이 이미 있음 — 기존 행 그대로) | 401 `UNAUTHENTICATED`(토큰 없음 · 만료 · 위조 · 지워진 계정) · 403 `CONSENT_REQUIRED`(결정 기록 U31 — #1 의 `consents` 가 생긴 뒤 켬) · 422 `VALIDATION_FAILED`(꼴 위반 · 정의 밖 칸 · 시간대 없음) · 422 `STARTED_AT_OUT_OF_RANGE`(서버 시각 + 5분보다 늦음 · 보관 기간 365일보다 오래됨) |
+| `/navigation-starts/stats` | GET | 쿼리 `limit`(정수 1 ~ 100 · 기본 20) · `placeId`(0 ~ 50개 반복 · 꼴은 위와 같음 · 주면 그 장소만) | 200 `NavigationStatsOut` — `items`: [{`placeId` · `startCount`(안내 시작 건수) · `userCount`(서로 다른 계정 수)}] · 정렬 `userCount` 내림 → `startCount` 내림 → `placeId` 오름 · 건수 0인 장소는 없음 · 보관 기간 안 행만 | 401 `UNAUTHENTICATED` · 422 `VALIDATION_FAILED` |
+
+- `NavigationStartOut`: `id`(uuid) · `placeId` · `startedAt` · `receivedAt`. 계정 칸 없음.
+- 집계 단위 · 중복 계산: 보관 기간 안 전체 누적 · 같은 (계정 · 장소 · 시각) 재전송은 한 행 · 같은 계정의 반복은 `startCount` 에만 더해짐(결정 기록 U33).
+
+```yaml
+openapi: 3.1.0
+paths:
+  /navigation-starts:
+    post:
+      operationId: createNavigationStart
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NavigationStartIn' }
+      responses:
+        '201': { description: 새로 받음, content: { application/json: { schema: { $ref: '#/components/schemas/NavigationStartOut' } } } }
+        '200': { description: 이미 받은 기록, content: { application/json: { schema: { $ref: '#/components/schemas/NavigationStartOut' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /navigation-starts/stats:
+    get:
+      operationId: getNavigationStats
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: placeId, in: query, required: false, style: form, explode: true, schema: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/PlaceId' } } }
+      responses:
+        '200': { description: 장소별 건수, content: { application/json: { schema: { $ref: '#/components/schemas/NavigationStatsOut' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    PlaceId: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$' }
+    NavigationStartIn:
+      type: object
+      additionalProperties: false
+      required: [placeId, startedAt]
+      properties:
+        placeId: { $ref: '#/components/schemas/PlaceId' }
+        startedAt: { type: string, format: date-time }
+    NavigationStartOut:
+      type: object
+      required: [id, placeId, startedAt, receivedAt]
+      properties:
+        id: { type: string, format: uuid }
+        placeId: { $ref: '#/components/schemas/PlaceId' }
+        startedAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+    PlaceStat:
+      type: object
+      required: [placeId, startCount, userCount]
+      properties:
+        placeId: { $ref: '#/components/schemas/PlaceId' }
+        startCount: { type: integer, minimum: 1 }
+        userCount: { type: integer, minimum: 1 }
+    NavigationStatsOut:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PlaceStat' } }
+    ErrorOut:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, enum: [UNAUTHENTICATED, CONSENT_REQUIRED, VALIDATION_FAILED, STARTED_AT_OUT_OF_RANGE] }
+  responses:
+    Error: { description: 오류 코드, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorOut' } } } }
+```
+
+## 6. 시험 케이스 (수정: 2026-11-05 미확정 답 반영 — U27 ~ U34 확정 · T45 · T46 큐 기준으로)
 
 | 번호 | 조건 | 행동 | 결과 | 비고 |
 |---|---|---|---|---|
@@ -252,8 +374,8 @@
 | T24 | 시작됨 · 고정 A · B | 프로세스 재생성 | 요청 상태 대기 · E3 없음 · 고정 A · B 순서 그대로 | 에뮬레이터(개발자 옵션 「활동 유지 안 함」) |
 | T25 | 주소가 한 줄을 넘는 장소 | 홈 보기(「가 볼 장소」 · 「장소 고르기」) | 주소 한 줄 · 말줄임 · 버튼 위치 · 크기 그대로 | Compose 또는 미리보기 |
 | T26 | 모든 상태 | 홈 전체 | 「가 볼 장소」 · 「장소 고르기」에 글 입력 칸 · 검색 · 키보드 · 회전 표시 · 애니메이션 없음 | 구조 리뷰 + 에뮬레이터 |
-| T27 | 고정 · 해제 · 실패 · 시작 경로 | logcat 확인 | 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용(장소 id · 시각)이 로그에 없음 · 이유 · 오류 코드 이름만 | 에뮬레이터 + 리뷰 |
-| T28 | 매니페스트 | 권한 · 백업 확인 | `NAVI_ROUTE_SEARCH` 선언 · `NAVI_CUSTOM_MAP` · 위치 권한 · 네트워크 권한 추가 없음 · `allowBackup="false"` 그대로 | `check_manifest.py`(#2 의 ALLOWED 확장 뒤) |
+| T27 | 고정 · 해제 · 실패 · 시작 · 전송 경로 | logcat 확인 | 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용(장소 id · 시각) · 토큰이 로그에 없음 · 이유 · 오류 코드 이름 · HTTP 상태만 | 에뮬레이터 + 리뷰 |
+| T28 | 매니페스트 | 권한 · 백업 확인 | `NAVI_ROUTE_SEARCH` 선언 · `NAVI_CUSTOM_MAP` · 위치 권한 추가 없음 · 네트워크는 `INTERNET`(이미 있음) · 쓰면 `ACCESS_NETWORK_STATE` 만 더함 · `allowBackup="false"` 그대로 | `check_manifest.py`(#2 의 ALLOWED 확장 뒤) |
 | T29 | 저장소 코드 | Konsist | `ai.pleos.*` import 는 `data.vehicle` · `data.navi` 에만 · ui 는 자료원을 직접 부르지 않음 | ArchitectureTest 규칙 4 · 7 |
 | T30 | 정차 · 고정 0곳 · 연결됨 | 홈 열기 | 「가 볼 장소」 제목 + E6 「아직 가 볼 장소가 없어요 · 아래에서 장소를 고정해 보세요」 · E4 없음 · 「장소 고르기」 후보 전부 「고정」 | ViewModel 단위 + Compose |
 | T31 | 주행 · 고정 0곳 | 홈 보기 | 「가 볼 장소」 제목 + E6 「아직 가 볼 장소가 없어요 · 정차 중에 고정할 수 있어요」 · 「장소 고르기」 없음 | ViewModel 단위 + Compose |
@@ -270,20 +392,42 @@
 | T42 | 요청 중(A) | 「장소 고르기」에서 A 「고정 해제」 → 시작 알림 | 요청 그대로 진행 · E3 「A까지 안내를 시작했어요」 · 「가 볼 장소」에 A 없음 | ViewModel 단위 |
 | T43 | 요청 중(A) | 시작 알림(`onRouteStarted`) | 안내 요청 기록 1건(장소 id A · 시각) · 기록에 이름 · 주소 · 좌표 · 결과 칸 없음 | 결정 기록 U21 · 저장소 단위(fake 시계) |
 | T44 | 요청 중(A) | 내비 오류 · 응답 없음 · 연결 끊김 · 호출 예외 | 기록 0건 | 결정 기록 U21 · ViewModel 단위 |
-| T45 | 기록이 최대 건수(100건 · 결정 기록 U22) | 시작 알림 1건 더 | 가장 오래된 1건이 지워지고 건수 = 최대 유지 | 결정 기록 U22 · 저장소 단위 |
-| T46 | 기록 3건 | 앱 강제 종료 → 다시 실행 | 기록 3건 그대로 | 저장소 단위 또는 에뮬레이터 |
+| T45 | 못 보낸 기록이 최대 건수(100건 · 결정 기록 U22) | 시작 알림 1건 더(보낼 수 없는 상태) | 가장 오래된 1건이 지워지고 건수 = 최대 유지 | 결정 기록 U22 · U29 · 저장소 단위 |
+| T46 | 못 보낸 기록 3건 | 앱 강제 종료 → 다시 실행(보낼 수 없는 상태 유지) | 큐에 3건 그대로 | 결정 기록 U29 · 저장소 단위 또는 에뮬레이터 |
 | T47 | 기기 저장 쓰기 실패(fake) | 「고정」 | 고정 목록 · 화면 그대로 · 앱 꺼지지 않음 · 로그에 이유 코드만 | ViewModel 단위 |
+| T48 | 서버 · 유효 토큰(계정 1) | `POST /navigation-starts` {placeId `a-place` · startedAt 지금} | 201 · 응답 id · placeId · startedAt · receivedAt · 계정 칸 없음 · DB 1행(user_id = 토큰 주인) | 서버 통합(testcontainers + `alembic upgrade head`) |
+| T49 | T48 뒤 | 같은 본문 다시 POST | 200 · 같은 id · 행 1개 그대로 | 서버 통합 |
+| T50 | 토큰 없음 · 만료 · 서명 위조 · `token_version` 다름 · 지워진 계정 | POST | 401 `{"code":"UNAUTHENTICATED"}` · 행 0 | 서버 통합 |
+| T51 | 유효 토큰 | placeId 빈 값 · 65자 · 대문자 · 공백 · `_` 포함 | 422 `VALIDATION_FAILED` · 행 0 | 서버 단위(schemas) + 통합 |
+| T52 | 유효 토큰 | 본문에 `userId` · `lat` · `lng` · `name` 칸을 더함 | 422 `VALIDATION_FAILED` · 행 0 | 서버 통합 · 최소 수집 |
+| T53 | 유효 토큰 | startedAt = 서버 시각 + 6분 / 보관 기간 + 1일 전 / 시간대 없는 값 | 422 `STARTED_AT_OUT_OF_RANGE` / 422 `STARTED_AT_OUT_OF_RANGE` / 422 `VALIDATION_FAILED` | 서버 단위(fake 시계) + 통합 |
+| T54 | 계정 1 이 A 2건 · 계정 2 가 A 1건 · B 1건 | `GET /navigation-starts/stats` | items = [A(startCount 3 · userCount 2) · B(1 · 1)] 이 순서 · 계정 · 시각 칸 없음 | 서버 통합 · 결정 기록 U33 |
+| T55 | T54 상태 | `?placeId=b` / `?limit=1` / `?limit=0` · `?limit=101` | [B] / [A] / 422 `VALIDATION_FAILED` | 서버 통합 |
+| T56 | 토큰 없음 | GET stats | 401 `UNAUTHENTICATED` | 서버 통합 |
+| T57 | T54 상태 | `users` 에서 계정 2 삭제 | 계정 2 의 행 모두 사라짐 · stats = [A(2 · 1)] | 서버 통합(`ON DELETE CASCADE`) |
+| T58 | 보관 기간 지난 행 1 · 안 지난 행 1 | stats 조회 → 정리 작업 실행 | 지난 행은 집계에 없음 · 정리 뒤 DB 에도 없음 | 서버 통합(fake 시계 · 결정 기록 U32) |
+| T59 | T48 ~ T58 실행 중 | 서버 로그(JSON) 확인 | 계정 id · pleos_user_id · placeId · startedAt · 토큰 없음 · 경로 · 메서드 · 상태 · 오류 코드만 | 서버 단위(로그 캡처) + 리뷰 |
+| T60 | 서버 · 앱 코드 | OpenAPI 내보내기 · 센서 | 내보낸 `docs/api/openapi.json` 과 커밋 파일 차이 0 · 5절과 같음 · `check_api_contract.py` 위반 0(앱 POST 1개 = 계약) | 센서 |
+| T61 | 앱 · 로그인됨 · 동의됨 · 연결됨 | 시작 알림(A) | `POST /navigation-starts` 1회(placeId A · startedAt) → 201 → 큐에서 지움(결정 기록 U29) · 화면은 T6 과 같음 | 앱 단위(fake AppApi · fake 시계) |
+| T62 | 앱 · 네트워크 없음 | 시작 알림(A) | 보내지 못함 · 기록 남음 → 연결되면 1회 보냄 | 앱 단위(fake 연결 상태) |
+| T63 | 앱 · 서버 5xx 또는 시간 초과 | 시작 알림(A) | 큐에 남음 · 다시 보냄 간격 30초 → 60초 → … 최대 1시간(AppConfig) · 성공하면 큐에서 지움 | 앱 단위(가상 시간) · 결정 기록 U30 |
+| T64 | 앱 · 서버 422 | 보냄 | 큐에서 지움 · 다시 보내지 않음 · 로그에 오류 코드만 | 앱 단위 |
+| T65 | 앱 · 토큰 없음(#1 전) / 401 / 403 `CONSENT_REQUIRED` | 시작 알림(A) | 보내지 않음(토큰 없음) · 더 보내지 않고 멈춤(401 · 403) · 기록 남음 · 화면 변화 없음 | 앱 단위 · 결정 기록 U27 · U31 |
+| T66 | 앱 · 못 보낸 기록 2건 | 앱 강제 종료 → 다시 실행(로그인됨 · 연결됨) | 2건 보냄 · 큐 비움 | 앱 단위 또는 에뮬레이터 |
+| T67 | 앱 · 주행(D) · 서버 실패 | 시작 알림(A) | 홈 화면 · 문구 · 버튼은 시작됨 그대로 · 전송 실패 표시 없음 · 앱 꺼지지 않음 | ViewModel 단위 |
+| T68 | 에뮬레이터 · 서버 실행(debug `http://10.0.2.2:4000/`) · 로그인됨 | 「여기로 안내」 → 안내 시작 | 서버 DB `navigation_starts` 1행(place_id · started_at · user_id) · 좌표 · 이름 없음 · stats 에 그 장소 | 왕복 · **#1 대기**(결정 기록 U27) · 보고서에 DB 조회 결과 |
+| T69 | 앱 코드 | Konsist · 센서 | 요청 DTO 칸은 placeId · startedAt 둘뿐 · 좌표 · userId 없음 · Retrofit 인터페이스는 `data/remote` 에만 | ArchitectureTest 규칙 8 · `check_api_contract.py` |
 
-## 7. 미확정 (수정: 2026-11-05 미확정 답 반영 — U16 ~ U23 결정 기록으로 옮김 · U26 제안함 · U1 · U24 · U25 남김)
+## 7. 미확정 (수정: 2026-11-05 미확정 답 반영 — U27 ~ U34 결정 기록으로 옮김 · U1 · U24 · U25 · U26 남김)
 
 | 번호 | 질문 | 선택지 | 추천 |
 |---|---|---|---|
 | U1 | 후보 장소 목록의 구체 값(수 · 장소 이름 · 주소 · 위도 · 경도)은? | (a) 사람이 직접 지정 (b) 회의록 2-B 의 예시 장소 (c) Pleos 공식 문서 예시 주소 포함 | (a) — 사람이 정함(2단계 시작 전 담당자에게 물음 · 2026-11-04 지시). 수는 고정 최대(3곳 · 결정 기록 U16)보다 많게(예: 5곳) — 그래야 「고르기」가 뜻이 있고 이슈 「3곳 이상」도 채움. 에뮬레이터 내비 지도 안 · 거리가 서로 다른 곳(가까운 곳 · 먼 곳)이면 시작 · 오류 케이스 재현에도 쓸모 있음. 스펙에는 「`assets/` JSON 한 곳의 고정 값」까지만 |
 | U24 | 새 문구 초안(E6 두 가지 · E7 「장소 고르기」 · E8 「가 볼 장소는 최대 <n>곳까지 고정할 수 있어요」 · E10 「고정」 · 「고정 해제」)을 그대로 쓰나? | (a) 초안 그대로 (b) 사람이 고침 | (a) — 기존 문구 톤(「…어요」)과 맞춤 · 한 줄 · 스펙 PR 리뷰에서 고칠 수 있음 |
-| U25 | 이슈 본문이 결정 U13 · U15 와 어긋남 — 「데이터: 저장 없음」 · 완료 조건 「홈에 장소 목록(3곳 이상)」(고정 0곳이면 빈 안내) | (a) 담당자가 이슈 본문을 고침(데이터 칸에 고정 목록 · 안내 요청 기록 · 완료 조건을 「고정 3곳이면 3곳이 보임」으로) (b) 그대로 두고 이 스펙 결정 기록으로 갈음 | (a) — 이슈가 범위의 원본이라 리뷰어 · builder 가 이슈와 스펙을 대조할 때 어긋나지 않게 |
+| U25 | 이슈 본문이 결정 U13 · U15 와 어긋남 — 「영역: app」만 · 「이번에 하지 않는 것: 서버 연동」 · 「데이터: 저장 없음 · 서버로 보내는 것 없음」 · 완료 조건 「홈에 장소 목록(3곳 이상)」(고정 0곳이면 빈 안내) | (a) 담당자가 이슈 본문을 고침(영역에 server 추가 · 「하지 않는 것」에서 서버 연동을 빼고 「추천 화면」을 넣음 · 데이터 칸에 고정 목록 · 안내 요청 기록 · 서버로 보내는 칸(장소 id · 시각 · 계정) · 완료 조건을 「고정 3곳이면 3곳이 보임」 · 「안내 시작 기록이 서버에 쌓이고 장소별 건수를 조회할 수 있음」으로) (b) 그대로 두고 이 스펙 결정 기록으로 갈음 | (a) — 이슈가 범위의 원본이라 리뷰어 · builder 가 이슈와 스펙을 대조할 때 어긋나지 않게 · 영역이 바뀌어 리뷰 관점(서버 구조 · 개인정보)도 달라짐 |
 | U26 | #6 앱 뼈대 spec PR #7(`docs/spec/app-shell/artifacts/app-shell.md`)과 부딪침 — #7 은 주행 · 모름 때 앱 전체를 「주행 전용 화면 1장 · 버튼 3개」로 바꾸고 정차 홈에 기록 상태 · 「이 장소 기록」을 둠 → 이 스펙의 「주행 중에도 홈에서 「여기로 안내」 한 번 터치」가 그릴 자리가 없음(그 밖에 진단 카드 debug 전용 · landscape 고정도 다름) | (a) #7 주행 화면에 「가 볼 장소」(최대 3곳 · 「여기로 안내」)를 더함 (b) #4 는 정차 홈에서만 · 이슈 완료 조건 「주행 중에도」를 고침 (c) #7 주행 화면에 버튼 하나 → 「가 볼 장소」 목록(한 단계 전환) | **상태: 제안함 · #6 담당 답 대기.** 결정(최성호 · 2026-11-05) — (a) 쪽: #6 주행 전용 화면에 고정 장소 안내 버튼을 넣자고 #6 담당(노희주)에게 제안 · 이 스펙의 「주행 중에도 「여기로 안내」 한 번 터치」는 그대로 둠 · 최종 확정은 #6 쪽 답 뒤 결정 기록으로 옮김 |
 
-### 결정 기록 (수정: 2026-11-05 미확정 답 반영 — U16 ~ U23 추가)
+### 결정 기록 (수정: 2026-11-05 미확정 답 반영 — U27 ~ U34 추가 · U20 · U22 · U23 정리)
 
 | 번호 | 결정 | 결정자 | 날짜 |
 |---|---|---|---|
@@ -300,17 +444,25 @@
 | U12 | 경로 옵션은 지정하지 않음(내비 기본값) | 최성호 | 2026-11-04 |
 | U13 | 「가 볼 장소」는 **사용자가 핀 고정**하는 목록 · 고를 원본(#3 방문 기록 · 공유 받은 여행)이 없어 지금은 앱 안 후보 장소(assets JSON)에서 고정 · 해제 · 고정 목록은 기기 안 저장 · 앱 재실행 뒤 유지(4.1 의 「저장 없음」 대체) — PR #5 리뷰 1(giboJK) | 최성호 | 2026-11-05 |
 | U14 | 고정한 장소가 0곳이면 구역 제목은 남기고 안내 한 줄 표시(구역을 숨기지 않음) — PR #5 리뷰 1 | 최성호 | 2026-11-05 |
-| U15 | #4 는 서버 전송 없음(11-04 「서버 없이 시연용」 유지) · 대신 「안내 요청 기록」을 기기 안에 쌓음 · 칸은 장소 id · 시각만(계정 · 좌표 · 이름 · 주소 없음) · 서버 · 추천은 같은 칸을 보내는 별도 이슈 — PR #5 리뷰 2(giboJK) | 최성호 | 2026-11-05 |
+| U15 | 처음(2026-11-05 오전): #4 는 서버 전송 없음 · 기기 안 기록(장소 id · 시각)만 → **2026-11-05 다시 결정(뒤집음)**: PR #5 리뷰 2(giboJK) 적극 수용 — #4 = app + server · `server/`(FastAPI)를 처음 만들고 안내 시작 기록 수신 API · 장소별 안내 건수 조회 API(추천 근거)까지 · 추천 화면은 별도 이슈 · 전송 칸 = 장소 id · 시각 · 계정(계정은 토큰에서) · 좌표 · 장소 이름 · 주소는 보내지 않음(「좌표는 서버에 없음」 유지) · 기기 안 기록은 전송 대기 큐(U29) | 최성호 | 2026-11-05 |
 | U16 | 고정 최대 개수 = 3곳(AppConfig 한 곳) — 옛 U2 의 「주행 중 스크롤 없이 첫 화면」 근거를 이어받음 · CarUxRestrictions `UX_RESTRICTIONS_LIMIT_CONTENT` 취지 | 최성호 | 2026-11-05 |
 | U17 | 고정 · 해제 자리 = 홈 안 「장소 고르기」 구역(「가 볼 장소」 아래) · 해제도 여기서 · 별도 화면 없음 · 「가 볼 장소」 항목엔 「여기로 안내」 하나만 | 최성호 | 2026-11-05 |
 | U18 | 주행 · 모름 중 고정 · 해제는 막음 — 「장소 고르기」 구역 숨김 · 조작이 와도 무시(근거: CarUxRestrictions `UX_RESTRICTIONS_NO_SETUP` · `UX_RESTRICTIONS_LIMIT_CONTENT` · Pleos 주행 안전 가이드 「최소한의 조작 · 메뉴 단순화 · 터치 최소화」 · 이슈 완료 조건 「주행 중 긴 목록 스크롤 없음」) | 최성호 | 2026-11-05 |
 | U19 | 「가 볼 장소」 순서 = 먼저 고정한 장소가 위 · 새 고정은 맨 아래 · 순서 바꾸기 없음 | 최성호 | 2026-11-05 |
-| U20 | 기기 저장 방식 = 고정 목록 · 안내 요청 기록 둘 다 DataStore(Room 은 #3 몫 · 서버 전송 이슈 때 기록을 Room 큐로 옮김) | 최성호 | 2026-11-05 |
+| U20 | 기기 저장 방식 = 고정 목록은 DataStore · 안내 요청 기록은 **Room 전송 대기 큐**(U29 로 고침 — 처음엔 둘 다 DataStore) | 최성호 | 2026-11-05 |
 | U21 | 안내 요청 기록 시점 = 시작됨(`onRouteStarted`)을 받은 때만 · 실패 · 응답 없음 · 미연결은 기록 안 함 | 최성호 | 2026-11-05 |
-| U22 | 기록 보관 = 최근 100건(AppConfig) · 넘치면 오래된 것부터 지움 · 기간 기준은 서버 · 추천 이슈 때 | 최성호 | 2026-11-05 |
-| U23 | 기록 삭제 화면은 이번엔 없음 — 앱 데이터 지우기 · 앱 삭제로 사라짐 · 백업 안 됨 · 고정 해제는 기록을 지우지 않음 · 「기록 지우기」는 서버 · 추천 이슈 때 | 최성호 | 2026-11-05 |
+| U22 | 안내 요청 기록 = 보내면 지움 · 못 보낸 기록은 최대 100건(AppConfig) · 넘치면 오래된 것부터 지움(U29 로 고침 — 처음엔 「최근 100건 보관」) · 서버 보관은 U32 | 최성호 | 2026-11-05 |
+| U23 | 기기 기록 삭제 화면은 이번엔 없음 — 보내면 지워짐 · 앱 데이터 지우기 · 앱 삭제로 사라짐 · 백업 안 됨 · 고정 해제는 기록을 지우지 않음 · 서버 쪽 삭제는 U32(계정 삭제 · 365일) | 최성호 | 2026-11-05 |
+| U27 | #1 로그인 전에는 전송 보류 — 앱은 큐에 남기고 토큰이 생기면 보냄 · 서버는 시험용 비밀로 만든 토큰으로 통합 시험만 · 에뮬레이터 왕복(T68)은 #1 머지 뒤 · 시연 날까지 #1 이 늦으면 debug 전용 시드 계정을 그때 검토 | 최성호 | 2026-11-05 |
+| U28 | #4 = 서버 뼈대(설정 · DB · Alembic · 오류 코드 · 로그 마스킹 · `users` 표 · 토큰 검증 `current_user`) · #1 = Pleos 교환(`app/auth/pleos/` · 스텁) · 토큰 발급 · 갱신 · 동의 철회 웹훅 · 토큰 꼴 HS256 · `sub` = `users.id` · `ver` = `token_version` · `exp` · **#1 담당(기보)과 맞춤 필요** — 경계 · 토큰 꼴 · `server/` 첫 판 머지 순서 | 최성호 | 2026-11-05 |
+| U29 | 기기 안 안내 요청 기록 = 서버 전송 대기 큐 · Room(android-architecture 「오프라인」) · 보내면 지움 · 최대 100건 — U20 · U22 의 기록 부분을 고침 · 고정 목록은 DataStore 그대로 | 최성호 | 2026-11-05 |
+| U30 | 전송 = 시작됨 즉시 1회 · 실패하면 연결될 때 · 30초부터 두 배 · 최대 1시간(AppConfig) · 앱이 꺼져 있어도 | 최성호 | 2026-11-05 |
+| U31 | 동의 = #1 로그인 동의(`consents` · policy_version)에 「안내 시작 기록 수집 · 추천 근거 사용」 항목 · 동의 전엔 보내지 않음 · 서버 403 `CONSENT_REQUIRED` 검사는 `consents` 가 생긴 뒤 켬 · **#1 담당(기보)과 맞춤 필요** — 동의 항목 · 문구 · 검사 켜는 때 | 최성호 | 2026-11-05 |
+| U32 | 서버 보관 365일(`Settings`) · 지난 행은 하루 한 번 지움 · 계정 삭제 · 동의 철회면 즉시 전부 삭제(`ON DELETE CASCADE`) | 최성호 | 2026-11-05 |
+| U33 | 집계 = 보관 기간 안 전체 누적 · 응답에 `startCount` · `userCount` 둘 다 · 같은 (계정 · 장소 · 시각) 재전송은 한 행 · 같은 계정의 반복은 `startCount` 에만 | 최성호 | 2026-11-05 |
+| U34 | 실행 · 시연 = 개발 PC 의 Docker PostgreSQL 17 + `uv run uvicorn app.main:app --port 4000` · 에뮬레이터는 debug 빌드 `http://10.0.2.2:4000/` · 시연은 debug 빌드 · 배포는 별도 이슈 · 두 PC 에 Docker 필요 | 최성호 | 2026-11-05 |
 
-## 8. 완료 조건 (수정: 2026-11-05 리뷰 · 미확정 답 반영)
+## 8. 완료 조건 (수정: 2026-11-05 미확정 답 반영 — U27 ~ U34 확정 값)
 
 ### app
 
@@ -324,16 +476,25 @@
 - [ ] 요청 중 · 시작됨 · 실패(이유별 문구)가 홈 상태 · 화면에 반영됨 — T4 ~ T17 · T23
 - [ ] 내비 미연결이면 버튼 비활성 + 「내비 서비스에 연결되지 않았어요」 — T7 · T8 · T9
 - [ ] 정차 · 주행 · 모름 모두 「여기로 안내」 한 번 터치로 동작 · 화면에 스크롤(주행) · 글 입력 · 애니메이션 없음 — T19 ~ T22 · T26(T19 · T20 의 에뮬레이터 확인은 **의존: #2** 해결 뒤 · 그 전엔 보고서에 「#2 대기」로 적음)
-- [ ] 안내 요청 기록이 기기 안에 장소 id · 시각만으로 쌓임 · 시작됨 때만 기록(결정 기록 U21) · 최근 100건 상한(결정 기록 U22) · 재실행 뒤 유지 · 네트워크 호출 없음 — T43 ~ T46
-- [ ] 매니페스트에 `NAVI_ROUTE_SEARCH` 추가 · 다른 NAVI 권한 · 위치 · 네트워크 권한 추가 없음 · `allowBackup="false"` 유지 — T28
-- [ ] 로그에 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용 없음 — T27
-- [ ] 시험 케이스 번호를 이름에 단 단위 테스트(ViewModel · 오류 대응 · 고정 · 기록 저장소) — fake 저장소 · fake 시계 · mock 라이브러리 없음
-- [ ] 센서 녹색: Android Lint · 단위 테스트 · Konsist(ArchitectureTest) · assembleRelease · 매니페스트 검사(`check_manifest.py` — 하네스 이슈 #2 의 ALLOWED 확장 뒤) · 비밀 리터럴 · 저장소 위생
+- [ ] 안내 요청 기록이 Room 전송 대기 큐에 장소 id · 시각만으로 쌓임 · 시작됨 때만 기록(결정 기록 U21) · 보내면 지움 · 못 보낸 것 최대 100건(결정 기록 U29 · U22) · 재실행 뒤 유지 · 고정 목록은 DataStore — T43 ~ T46
+- [ ] 시작된 안내 기록을 4.6 규칙대로 `POST /navigation-starts` 로 보냄(placeId · startedAt 두 칸) · 로그인 · 동의 전에는 보내지 않음(결정 기록 U27 · U31) · 실패 시 큐에 남기고 30초부터 두 배 · 최대 1시간 간격으로 다시 보냄(결정 기록 U30) · 화면 영향 없음 — T61 ~ T67 · T69(에뮬레이터 왕복 T68 은 **#1 대기** · 그 전엔 보고서에 「#1 대기」)
+- [ ] 매니페스트에 `NAVI_ROUTE_SEARCH` 추가 · 다른 NAVI 권한 · 위치 권한 추가 없음 · 네트워크는 `INTERNET`(있음) · 쓰면 `ACCESS_NETWORK_STATE` 만 · `allowBackup="false"` 유지 — T28
+- [ ] 로그에 좌표 · 장소 이름 · 주소 · 고정 목록 · 기록 내용 · 토큰 없음 — T27
+- [ ] 시험 케이스 번호를 이름에 단 단위 테스트(ViewModel · 오류 대응 · 고정 · 기록 저장소 · 전송) — fake 저장소 · fake AppApi · fake 시계 · mock 라이브러리 없음
+- [ ] 센서 녹색: Android Lint · 단위 테스트 · Konsist(ArchitectureTest) · assembleRelease · 매니페스트 검사(`check_manifest.py` — 하네스 이슈 #2 의 ALLOWED 확장 뒤) · API 계약 대조(`check_api_contract.py`) · 비밀 리터럴 · 저장소 위생
 - [ ] 보고서에 에뮬레이터 확인 결과: 콜백 순서(성공 판정 `onRouteStarted` 가 실제로 오는지) · POI 식별자를 비운 채 안내 시작 여부 · 약관 미동의 상태에서의 동작(오류 · 응답 없음 중 어느 쪽인지) · 고정 목록이 앱 강제 종료 뒤 남는지(T38)
-- [ ] 2단계 시작 전 U1 · U24 · U25 답 확인 · U26 은 #6 담당 답(제안: #6 주행 전용 화면에 고정 장소 안내 버튼) 뒤 이 스펙의 해당 절을 맞춤
+- [ ] 2단계 시작 전 U1 · U24 · U25 답 확인 · 결정 기록 U28 · U31 은 #1 담당(기보)과 맞춘 결과를 보고서에 · U26 은 #6 담당 답(제안: #6 주행 전용 화면에 고정 장소 안내 버튼) 뒤 이 스펙의 해당 절을 맞춤
 
 ### server
 
-- 없음(서버 없음 · 결정 기록 U15).
+- [ ] `server/` 를 server-architecture 「폴더」 · 「도구 묶음」대로 만듦 · `uv sync` · `docker compose up -d db` · `uv run alembic upgrade head` · `uv run uvicorn app.main:app --port 4000` 으로 뜸(맥 · 윈도우 같은 명령 · Docker PostgreSQL 17 · 결정 기록 U34) · `.env.example` 만 커밋(비밀 없음)
+- [ ] 첫 Alembic 리비전 = `users` · `navigation_starts`(4.5 — 칸마다 `comment=` · 유일 (user_id · place_id · started_at) · FK `ON DELETE CASCADE` · 좌표 · 이름 · 주소 · VIN 칸 없음)
+- [ ] `POST /navigation-starts` · `GET /navigation-starts/stats` 가 5절 계약대로(성공 · 오류 코드 · 정렬 · 정의 밖 칸 거절) — T48 ~ T56
+- [ ] 토큰 검증(`current_user`)은 결정 기록 U28 의 꼴(HS256 · `sub` · `ver` · `exp`) · user_id 는 토큰에서만 · 시험은 시험용 비밀로 만든 토큰 — T50
+- [ ] 계정 삭제면 기록 전부 삭제 · 보관 365일(결정 기록 U32 · `Settings`) 지난 행 하루 한 번 정리 · 집계에서 빠짐 — T57 · T58
+- [ ] 서버 로그에 계정 id · pleos_user_id · placeId · startedAt · 토큰 없음 — T59
+- [ ] `docs/api/openapi.json` 을 서버에서 내보내 커밋 · 5절과 같음 · 앱 Retrofit 과 1:1 — T60
+- [ ] 센서 녹색: ruff(lint · format) · mypy --strict · import-linter(layers · domains) · pytest(단위 + testcontainers 통합 · 테스트 이름에 T 번호 · 외부 호출 0) · `alembic check` · `check_alembic_heads.py`(1개) · `check_sql_comments.py` · `check_routes.py` · `check_api_contract.py` · 비밀 리터럴 · 저장소 위생
+- [ ] #1 담당(기보)과 결정 기록 U28(서버 경계 · 토큰 꼴 · `server/` 첫 판 머지 순서) · U31(동의 항목 · 403 검사 켜는 때)을 맞춤
 
-읽은 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations · https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/declaring-permissions · https://document.pleos.ai/docs/pleos-only/vehicle-app-planning-guide/driver-distraction-guideline(2026-11-05 다시 읽음 — 주행 중 목록 선택 · 편집에 대한 수치 기준 없음 · 「최소한의 조작 · 메뉴 구조 단순화 · 터치 최소화」 원칙만) · https://developer.android.com/reference/android/car/drivingstate/CarUxRestrictions(`UX_RESTRICTIONS_NO_SETUP` · `UX_RESTRICTIONS_LIMIT_CONTENT` · `getMaxCumulativeContentItems`) · https://developer.android.com/topic/architecture/recommendations(스킬 요약으로 · 직접 열지 않음) · https://developer.android.com/design/ui/cars/guides/foundations/interaction-principles(열리지 않음 · 404) · 저장소 SDK `ai.pleos.playground:navi-data:3.0.4` 의 `NaviErrorCode` 값 이름(Gradle 캐시) · `origin/app-shell/spec` 의 `docs/spec/app-shell/artifacts/app-shell.md`(U26 충돌 확인용) · `app/src/main/AndroidManifest.xml`(`allowBackup`)
+읽은 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations · https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/declaring-permissions · https://document.pleos.ai/docs/pleos-only/vehicle-app-planning-guide/driver-distraction-guideline(2026-11-05 다시 읽음 — 주행 중 목록 선택 · 편집에 대한 수치 기준 없음 · 「최소한의 조작 · 메뉴 구조 단순화 · 터치 최소화」 원칙만) · https://developer.android.com/reference/android/car/drivingstate/CarUxRestrictions(`UX_RESTRICTIONS_NO_SETUP` · `UX_RESTRICTIONS_LIMIT_CONTENT` · `getMaxCumulativeContentItems`) · https://developer.android.com/topic/architecture/recommendations(스킬 요약으로 · 직접 열지 않음) · https://developer.android.com/design/ui/cars/guides/foundations/interaction-principles(열리지 않음 · 404) · 저장소 SDK `ai.pleos.playground:navi-data:3.0.4` 의 `NaviErrorCode` 값 이름(Gradle 캐시) · `origin/app-shell/spec` 의 `docs/spec/app-shell/artifacts/app-shell.md`(U26 충돌 확인용) · `app/src/main/AndroidManifest.xml`(`allowBackup` · `INTERNET`) · `app/build.gradle.kts`(`API_BASE_URL`) · `di/NetworkModule.kt` · `.claude/skills/sensors/scripts/check_api_contract.py` · `check_manifest.py`(`ALLOWED`) · `server-architecture` 스킬(서버 폴더 · 인증 · 데이터 · OpenAPI · 테스트 — FastAPI · Alembic 원문 문서는 직접 열지 않음)
