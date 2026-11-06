@@ -63,3 +63,43 @@
 - 남은 결정: U1(후보 장소 값) · U24(새 문구) · U25(이슈 본문 — 고침 반영 확인) · U39 팀 확인 · U41 #6 담당과 자리 맞춤
 - 막힘: 없음
 - 다음: 사람이 #5 확인 · 머지 → #6 impl 머지 뒤 구현(app 하나)
+
+## 1 스펙 수정(여행 시나리오 확정 — 목적지 = 핀) 끝 — 2026-11-05 · 최성호
+- 산출물: `docs/spec/navigation/artifacts/set-destination.md` 고침 · spec PR #5 에 추가 커밋
+- 계기: 최성호가 제품 시나리오를 분명히 함 — 여행 중 목적지가 핀으로 박히고 · 끝나면 로드맵 · 공유 · 다른 사람 여행지 참고. 지금 스펙의 「핀」(미리 고정하는 즐겨찾기형)과 「안내 시작 기록」(장소별 건수)이 이 시나리오와 어긋났음
+- 에이전트: spec-writer × 1(재호출)
+- 센서: 실행 안 함(스펙 단계)
+- 사람 결정: 용어 — 「가 볼 장소」(앞으로 갈 곳)와 「핀」(진행 중 여행의 목적지 기록: 장소 id · 시각 · 순서)을 나눔 · 안내 시작 = 핀 1건(기록 중일 때만) · Mock 시드를 시드 여행 2~3건으로 · 이에 따라 U20 · U22 · U23 · U29 · U40 의 기록 부분을 뒤집음(U46) · 로드맵 #3 · 공유 업무 4 · 여행 · 기록 상태 #6 몫
+- 남은 결정: U1 · U24(문구 후보: 「담기」 · 「빼기」 · 「가 볼 곳 고르기」) · U42(일시정지 중 핀 — 추천 남기지 않음) · U43(핀 저장 — 추천 Room · 상한 없음 · 삭제는 #3) · U44(후속) · U39 · U41
+- 막힘: 없음
+- 다음: 이슈 #4 본문 반영 · 시나리오를 희주님과 공유(#6 「기록 중」 · 「이 장소 기록」이 같은 핀 흐름) → 사람이 #5 확인 · 머지
+
+## 1 스펙 수정(서버 사용 팀 결정) 끝 — 2026-11-05 · 최성호
+- 산출물: `docs/spec/navigation/artifacts/set-destination.md` 고침(영역 app + server 로 되돌림) · navigation/spec(origin/navigation/main 병합 뒤) 커밋 · 후속 spec PR 은 사람 지시로 미룸
+- 계기: spec PR #5 는 17:35 에 giboJK 가 머지(시나리오 수정 2커밋은 그 뒤 푸시라 빠짐) · 11-05 회의에서 팀이 서버(FastAPI) 사용 · 첫 도입은 #4 로 정함(#6 스펙 D19 · 최성호 확인)
+- 에이전트: spec-writer × 1(재호출)
+- 센서: `check_api_contract.py` 를 계약 초안에 — 위반 0
+- 사람 결정: U39 뒤집음 — (c) 계약만 + Mock → (a) 서버 유지(팀 결정) · U27 · U28 · U31 기보님 합의됨(PR #5 리뷰) · 핀 시나리오 유지(핀은 기기 원본 · 보냄 상태 대기 · 끝 · 거절) · #6 D18(창 2개 영역 전제) 반영
+- 남은 결정: U1 · U24 · U42 · U43 · U44(추천: 순서 · 여행 id 안 보냄) · U47(추천: 시드 여행은 서버 개발용 시드 명령)
+- 막힘: 없음
+- 다음: 사람 지시 — 이슈 · PR 은 미루고 #6 구현(app-shell/impl) 위에서 #4 앱 구현 · 빌드부터
+
+## 2 구현(app) · 6 PR 끝 — 2026-11-06 · 최성호
+- 산출물: navigation/impl `8151f54`(58파일) · impl PR(→ navigation/main · 리뷰어 giboJK) · 보고서 `_workspace/4/02_builder_app_report.md`
+- 브랜치 예외: navigation/impl = navigation/spec(미머지 스펙 포함) + origin/app-shell/impl(#6 · PR #13 머지 전) 병합 — 사람 지시로 #6 위에서 바로 구현
+- 에이전트: builder(app-builder) × 1 · R1 수정으로 재호출 중 · 심사관 · 구조 리뷰는 세션 종료로 중단 → R1 수정 뒤 다시
+- 센서: gradle lint · 단위 143(#4 70) · assembleRelease 녹색 · secrets · hygiene · frontmatter 녹색 · check_manifest 빨강 3(하네스 PR #9 미머지 · #9 판으로 녹색) · check_api_contract 는 openapi.json 없음(초안으로 녹색)
+- 에뮬레이터: U1 5곳 모두 경로 탐색 · 4곳 onRouteStarted · POI 빈 채 시작 됨 · 고정 재실행 유지 · 주행 화면 전환 · 핀 순서 1 ~ 5 · 서버 없을 때 재시도 예약
+- 사람 결정: 범위 = app(서버 칸 다음 단계) · Codex 검증 안 함 · R1 = 내비 상태 대조(2026-11-06)
+- 막힘: R1 — 내비가 앞에 오면 약 11초 뒤 앱이 얼려져 늦은 onRouteStarted 유실 · S1 길안내 대기 한도 30초 임시
+- 다음: R1 수정 커밋 · 리뷰 2관점 · 스펙 반영(U4 넓힘 · S1) → 같은 PR 에 덧붙임
+
+## 4 수정 끝 — 2026-11-06 · 최성호
+- 산출물: navigation/impl 8cb98b6(R1 내비 상태 대조) · 3d23b39(스펙 U4 넓힘 · U48 · JobScheduler) · 9f48c99(리뷰 1회차) · 678bde9(리뷰 2회차) · PR #14 본문 · 리뷰 결과 댓글
+- 에이전트: builder × 3(R1 · 1회차 · 2회차) · pleos-reviewer × 2 · structure-reviewer × 2 · spec-writer × 1
+- 센서: gradle lint · 단위 162 · assembleRelease 녹색 · secrets · hygiene 녹색 · check_manifest 는 하네스 #9 판으로 녹색
+- 리뷰 지적: 1회차 심사 반려 1(TIMEOUT 뒤 늦은 시작) · 확인 6 · 구조 확인 2 → 2회차 심사 반려 0 · 새 확인 2 · 구조 위반 0 · 새 확인 2 · 센서 후보 1(구조 S1 ViewModel 의 android.util.Log — 두 번째 지적)
+- 막힘: 앞 세션 종료로 리뷰 2건 중단 → 다시 돌림 · 앱 얼림(cached app freezer)으로 늦은 onRouteStarted 유실(R1) → 내비 상태 대조로 해결
+- 사람 결정: R1 = 내비 상태 대조 · debug 카드 「안내 건수를 불러오지 못했어요」 그대로 둠 · Codex 검증 안 함
+- 남은 결정: `_workspace/4/05_open_findings.md` — U48(30초) · U1 · 삭제 경로(#1 · #3) · 동의 게이트(#1) · 요청 상태 domain 분리 · S1 하네스
+- 다음: 시연 리허설(U1 5곳 실기 · T96) · #13 · #9 머지 뒤 rebase · 서버 단계

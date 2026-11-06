@@ -6,13 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.travelcrumbs.data.PleosSdkSession
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
-import com.example.travelcrumbs.ui.home.HomeScreen
+import com.example.travelcrumbs.ui.shell.AppShellScreen
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
- * 유일한 액티비티 — setContent 와 수명 · Intent 전달만.
+ * 유일한 액티비티 — setContent 와 수명 · Intent 전달만. 화면은 앱 틀(AppShellScreen)이 주행 판정대로 고름.
  * Gleo Action 해석과 Callback 전송은 [GleoActionRepository] 가 함(여기서는 Intent 를 넘기기만).
  */
 @AndroidEntryPoint
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         sdkSession.start()
         setContent {
             TravelCrumbsTheme {
-                HomeScreen()
+                AppShellScreen()
             }
         }
         // Gleo 는 7초 뒤 Action 을 취소하므로 화면을 띄우자마자 바로 답함.

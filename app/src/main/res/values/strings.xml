@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Travel Crumbs</string>
-    <string name="home_title">Travel Crumbs</string>
-    <string name="home_subtitle">빌드 · 설치 · 실행 확인</string>
 
-    <string name="home_vehicle_label">Vehicle · 기어</string>
+    <!-- 레일 목적지(스펙 app-shell 2-1) — 여행 · 설정 화면 제목도 같은 문자열 -->
+    <string name="nav_home">홈</string>
+    <string name="nav_trips">여행</string>
+    <string name="nav_settings">설정</string>
+
+    <!-- 「이어서 쓰기」 띠 -->
+    <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
+    <string name="draft_banner_action">이어서 쓰기</string>
+
+    <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
+    <string name="recording_status_recording">기록 중</string>
+    <string name="recording_status_paused">일시정지</string>
+    <string name="elapsed_minutes">경과 %1$d분</string>
+    <string name="elapsed_hours_minutes">경과 %1$d시간 %2$d분</string>
+
+    <!-- 버튼 -->
+    <string name="action_record_place">이 장소 기록</string>
+    <string name="action_voice_input">음성 입력</string>
+    <string name="action_pause_recording">기록 일시정지</string>
+    <string name="action_resume_recording">기록 재개</string>
+
+    <!-- 「준비 중」 — 안내 한 줄 · 여행 · 설정 화면 안내 공통 -->
+    <string name="not_ready">준비 중</string>
+
+    <!-- debug 빌드 SDK 확인 카드(스펙 D9) -->
+    <string name="sdk_card_title">SDK 확인 · debug 빌드만</string>
+    <string name="home_vehicle_label">Vehicle · 기어 + 주행 규제</string>
     <string name="home_navi_label">NaviHelper · 경로 상태</string>
     <string name="home_gleo_label">Gleo Interface · 앱 열기</string>
 
-    <string name="driving_state_parked">정차(P)</string>
-    <string name="driving_state_driving">주행(R · N · D)</string>
+    <string name="driving_state_parked">정차</string>
+    <string name="driving_state_driving">주행</string>
     <string name="driving_state_unknown">모름</string>
 
     <string name="status_idle">아직 부르지 않음</string>
@@ -24,6 +48,33 @@
     <string name="gleo_function">function · OPEN_TRAVEL_CRUMBS</string>
     <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
     <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
+
+    <!-- debug 카드 「안내 건수」 한 줄(스펙 navigation 4.6 · U41 · debug 전용 · 사용자 문구 아님) -->
+    <string name="home_stats_label">안내 건수 · 서버 조회</string>
+    <string name="stats_item">%1$s %2$d</string>
+    <string name="stats_none">아직 없음</string>
+    <string name="stats_failed">안내 건수를 불러오지 못했어요</string>
+
+    <!-- 「가 볼 장소」(스펙 navigation 2.1 문구 표 · U9 · E6 은 초안 U24) -->
+    <string name="places_title">가 볼 장소</string>
+    <string name="places_navi_not_connected">내비 서비스에 연결되지 않았어요</string>
+    <string name="places_guide">여기로 안내</string>
+    <string name="places_guide_requesting">안내 요청 중…</string>
+    <string name="places_route_started">%1$s까지 안내를 시작했어요</string>
+    <string name="places_route_failed">안내를 시작하지 못했어요 · %1$s</string>
+    <string name="places_reason_too_close">너무 가까운 곳이에요</string>
+    <string name="places_reason_too_far">너무 먼 곳이에요</string>
+    <string name="places_reason_low_battery">배터리가 부족해요</string>
+    <string name="places_reason_route_not_found">경로를 찾지 못했어요</string>
+    <string name="places_reason_timeout">내비가 응답하지 않아요</string>
+    <string name="places_reason_request_failed">요청을 보내지 못했어요</string>
+    <string name="places_empty">아직 가 볼 장소가 없어요 · 아래에서 장소를 고정해 보세요</string>
+
+    <!-- 「장소 고르기」(스펙 navigation 2.2 · 초안 U24) -->
+    <string name="picker_title">장소 고르기</string>
+    <string name="picker_limit">가 볼 장소는 최대 %1$d곳까지 고정할 수 있어요</string>
+    <string name="picker_pin">고정</string>
+    <string name="picker_unpin">고정 해제</string>
 
     <string name="yes">예</string>
     <string name="no">아니요</string>

@@ -2,146 +2,120 @@ package com.example.travelcrumbs.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.domain.model.DrivingState
-import com.example.travelcrumbs.domain.model.NaviRouteState
-import com.example.travelcrumbs.domain.model.SdkStatus
-import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
+import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.elapsedText
+import com.example.travelcrumbs.ui.components.recordingStatusText
+import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
+import com.example.travelcrumbs.ui.home.components.SdkCheckCard
+import com.example.travelcrumbs.ui.theme.Dimens
 
-/** 환경 확인용 화면 — Pleos SDK 3종이 실제로 불리는지 한눈에. */
+/**
+ * 홈(정차 · 스펙 app-shell 2-2) — 위에서 아래로
+ * 1 맨 위 영역(기록 상태 · 경과 · 「이 장소 기록」) → 2 기능 구역 자리 → 3 debug SDK 확인 카드.
+ * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「기록 일시정지」 · 「음성 입력」은 두지 않음(D10).
+ *
+ * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
+ * [featureSections] 가 null 이면 실제 기능 구역(HomeFeatureSections · #4 「가 볼 장소」 · 「장소 고르기」).
+ */
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
-    val viewModel: HomeViewModel = viewModel()
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
+    showSdkCard: Boolean = BuildConfig.DEBUG,
+    featureSections: (@Composable ColumnScope.() -> Unit)? = null,
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+    // 내비에서 돌아옴 — 놓친 길안내 시작 알림을 내비 상태로 대조(#4 R1)
+    LifecycleResumeEffect(viewModel) {
+        viewModel.onScreenResumed()
+        onPauseOrDispose { }
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(Dimens.ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = stringResource(R.string.home_title),
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = stringResource(R.string.home_subtitle),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            SdkCard(label = stringResource(R.string.home_vehicle_label)) {
+            Column(
+                modifier = Modifier.testTag(TOP_AREA_TAG),
+                verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            ) {
                 Text(
-                    text = stringResource(uiState.drivingState.labelRes()),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-            }
-
-            SdkCard(label = stringResource(R.string.home_navi_label)) {
-                Text(
-                    text = stringResource(
-                        if (uiState.naviReady) R.string.navi_ready else R.string.navi_not_ready,
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = recordingStatusText(uiState.recording),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
                 )
                 Text(
-                    text = naviText(uiState.navi),
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = elapsedText(uiState.elapsedMinutes),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
                 )
-                Button(onClick = viewModel::refreshNavi) {
-                    Text(text = stringResource(R.string.navi_refresh))
+                Button(
+                    onClick = viewModel::onRecordPlace,
+                    modifier = Modifier.height(Dimens.HomeButtonHeight),
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_record_place),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
                 }
             }
 
-            SdkCard(label = stringResource(R.string.home_gleo_label)) {
-                Text(
-                    text = stringResource(R.string.gleo_function),
-                    style = MaterialTheme.typography.bodyLarge,
+            if (featureSections != null) {
+                featureSections()
+            } else {
+                HomeFeatureSections(
+                    state = uiState,
+                    onGuide = viewModel::onGuide,
+                    onPin = viewModel::onPin,
+                    onUnpin = viewModel::onUnpin,
                 )
-                Text(
-                    text = stringResource(
-                        if (uiState.openedByGleoAction) {
-                            R.string.gleo_opened
-                        } else {
-                            R.string.gleo_not_opened
-                        },
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
+            }
+
+            if (showSdkCard) {
+                SdkCheckCard(
+                    drivingState = uiState.drivingState,
+                    naviReady = uiState.naviReady,
+                    navi = uiState.navi,
+                    openedByGleoAction = uiState.openedByGleoAction,
+                    onRefreshNavi = viewModel::refreshNavi,
+                    placeStats = uiState.placeStats,
+                    onRefreshPlaceStats = viewModel::refreshPlaceStats,
                 )
             }
         }
+        NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }
 }
 
-@Composable
-private fun SdkCard(
-    label: String,
-    content: @Composable () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(text = label, style = MaterialTheme.typography.titleMedium)
-            content()
-        }
-    }
-}
-
-@Composable
-private fun naviText(status: SdkStatus<NaviRouteState>): String = when (status) {
-    SdkStatus.Idle -> stringResource(R.string.status_idle)
-    SdkStatus.Loading -> stringResource(R.string.status_loading)
-    is SdkStatus.Failed -> stringResource(R.string.status_failed, status.code)
-    is SdkStatus.Ready -> stringResource(
-        R.string.navi_route_state,
-        stringResource(if (status.value.routing) R.string.yes else R.string.no),
-        status.value.mode,
-        status.value.routeOption,
-    )
-}
-
-private fun DrivingState.labelRes(): Int = when (this) {
-    DrivingState.PARKED -> R.string.driving_state_parked
-    DrivingState.DRIVING -> R.string.driving_state_driving
-    DrivingState.UNKNOWN -> R.string.driving_state_unknown
-}
-
-@Preview(widthDp = 1280, heightDp = 800)
-@Composable
-private fun HomeScreenPreview() {
-    TravelCrumbsTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
-            Text(text = "Travel Crumbs")
-        }
-    }
-}
+/** 맨 위 영역 — 테스트가 위치를 재는 이름표. */
+const val TOP_AREA_TAG = "home_top_area"

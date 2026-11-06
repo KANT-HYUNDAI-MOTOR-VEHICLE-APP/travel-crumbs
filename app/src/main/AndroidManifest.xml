@@ -10,8 +10,12 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
-    <!-- 서버 API 호출(Retrofit 배선) -->
+    <!-- 길안내 요청(requestRoute) — data/navi/NaviInfoDataSource · 스펙 navigation 4.3 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- 서버 API 호출 — 핀의 안내 시작 기록 보내기 · debug 카드 안내 건수(스펙 navigation 4.3 · 4.6) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 연결되면 다시 보내기 — JobScheduler 연결 조건(targetSdk 34 요구) · data/pin(스펙 navigation 4.3 · U30) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".TravelCrumbsApplication"
@@ -22,9 +26,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TravelCrumbs">
 
+        <!--
+          landscape 고정(스펙 app-shell P3 · Pleos 앱 구조 가이드 — landscape 지정 시 창 2개 영역 사용).
+          주행 중에도 이 화면을 쓰므로 DO(distractionOptimized) 선언 — 주행 중 제한은 코드가(주행 전용 화면 · 스펙 P1).
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="landscape">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -38,6 +50,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- 대기 핀 다시 보내기(스펙 navigation 4.6) — 시스템(JobScheduler)만 묶을 수 있음 · 밖에 열지 않음 -->
+        <service
+            android:name=".data.pin.PinUploadJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>
