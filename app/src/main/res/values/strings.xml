@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Travel Crumbs</string>
-    <string name="home_title">Travel Crumbs</string>
-    <string name="home_subtitle">빌드 · 설치 · 실행 확인</string>
 
-    <string name="home_vehicle_label">Vehicle · 기어</string>
+    <!-- 레일 목적지(스펙 app-shell 2-1) — 여행 · 설정 화면 제목도 같은 문자열 -->
+    <string name="nav_home">홈</string>
+    <string name="nav_trips">여행</string>
+    <string name="nav_settings">설정</string>
+
+    <!-- 「이어서 쓰기」 띠 -->
+    <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
+    <string name="draft_banner_action">이어서 쓰기</string>
+
+    <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
+    <string name="recording_status_recording">기록 중</string>
+    <string name="recording_status_paused">일시정지</string>
+    <string name="elapsed_minutes">경과 %1$d분</string>
+    <string name="elapsed_hours_minutes">경과 %1$d시간 %2$d분</string>
+
+    <!-- 버튼 -->
+    <string name="action_record_place">이 장소 기록</string>
+    <string name="action_voice_input">음성 입력</string>
+    <string name="action_pause_recording">기록 일시정지</string>
+    <string name="action_resume_recording">기록 재개</string>
+
+    <!-- 「준비 중」 — 안내 한 줄 · 여행 · 설정 화면 안내 공통 -->
+    <string name="not_ready">준비 중</string>
+
+    <!-- debug 빌드 SDK 확인 카드(스펙 D9) -->
+    <string name="sdk_card_title">SDK 확인 · debug 빌드만</string>
+    <string name="home_vehicle_label">Vehicle · 기어 + 주행 규제</string>
     <string name="home_navi_label">NaviHelper · 경로 상태</string>
     <string name="home_gleo_label">Gleo Interface · 앱 열기</string>
 
-    <string name="driving_state_parked">정차(P)</string>
-    <string name="driving_state_driving">주행(R · N · D)</string>
+    <string name="driving_state_parked">정차</string>
+    <string name="driving_state_driving">주행</string>
     <string name="driving_state_unknown">모름</string>
 
     <string name="status_idle">아직 부르지 않음</string>

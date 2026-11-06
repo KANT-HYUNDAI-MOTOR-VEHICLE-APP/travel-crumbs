@@ -12,6 +12,8 @@ android {
     compileSdk = 36
     compileSdkMinor = 1
     buildToolsVersion = "36.0.0"
+    // 주행 규제(CarUxRestrictionsManager) — 플랫폼의 optional android.car.jar 로 컴파일 · 기기의 car 라이브러리로 실행
+    useLibrary("android.car")
 
     defaultConfig {
         applicationId = "com.example.travelcrumbs"
@@ -37,6 +39,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        // Robolectric 이 문자열 · 드로어블 자원을 읽게 함(Compose UI 테스트)
+        unitTests.isIncludeAndroidResources = true
+    }
+
     buildFeatures {
         buildConfig = true
         compose = true
@@ -59,6 +66,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
+    implementation(libs.androidx.datastore.preferences)
+
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
@@ -74,4 +83,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.konsist)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
