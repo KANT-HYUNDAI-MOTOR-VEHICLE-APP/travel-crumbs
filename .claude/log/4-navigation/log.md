@@ -93,3 +93,13 @@
 - 사람 결정: 범위 = app(서버 칸 다음 단계) · Codex 검증 안 함 · R1 = 내비 상태 대조(2026-11-06)
 - 막힘: R1 — 내비가 앞에 오면 약 11초 뒤 앱이 얼려져 늦은 onRouteStarted 유실 · S1 길안내 대기 한도 30초 임시
 - 다음: R1 수정 커밋 · 리뷰 2관점 · 스펙 반영(U4 넓힘 · S1) → 같은 PR 에 덧붙임
+
+## 4 수정 끝 — 2026-11-06 · 최성호
+- 산출물: navigation/impl 8cb98b6(R1 내비 상태 대조) · 3d23b39(스펙 U4 넓힘 · U48 · JobScheduler) · 9f48c99(리뷰 1회차) · 678bde9(리뷰 2회차) · PR #14 본문 · 리뷰 결과 댓글
+- 에이전트: builder × 3(R1 · 1회차 · 2회차) · pleos-reviewer × 2 · structure-reviewer × 2 · spec-writer × 1
+- 센서: gradle lint · 단위 162 · assembleRelease 녹색 · secrets · hygiene 녹색 · check_manifest 는 하네스 #9 판으로 녹색
+- 리뷰 지적: 1회차 심사 반려 1(TIMEOUT 뒤 늦은 시작) · 확인 6 · 구조 확인 2 → 2회차 심사 반려 0 · 새 확인 2 · 구조 위반 0 · 새 확인 2 · 센서 후보 1(구조 S1 ViewModel 의 android.util.Log — 두 번째 지적)
+- 막힘: 앞 세션 종료로 리뷰 2건 중단 → 다시 돌림 · 앱 얼림(cached app freezer)으로 늦은 onRouteStarted 유실(R1) → 내비 상태 대조로 해결
+- 사람 결정: R1 = 내비 상태 대조 · debug 카드 「안내 건수를 불러오지 못했어요」 그대로 둠 · Codex 검증 안 함
+- 남은 결정: `_workspace/4/05_open_findings.md` — U48(30초) · U1 · 삭제 경로(#1 · #3) · 동의 게이트(#1) · 요청 상태 domain 분리 · S1 하네스
+- 다음: 시연 리허설(U1 5곳 실기 · T96) · #13 · #9 머지 뒤 rebase · 서버 단계
