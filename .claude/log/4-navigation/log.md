@@ -83,3 +83,13 @@
 - 남은 결정: U1 · U24 · U42 · U43 · U44(추천: 순서 · 여행 id 안 보냄) · U47(추천: 시드 여행은 서버 개발용 시드 명령)
 - 막힘: 없음
 - 다음: 사람 지시 — 이슈 · PR 은 미루고 #6 구현(app-shell/impl) 위에서 #4 앱 구현 · 빌드부터
+
+## 2 구현(app) · 6 PR 끝 — 2026-11-06 · 최성호
+- 산출물: navigation/impl `8151f54`(58파일) · impl PR(→ navigation/main · 리뷰어 giboJK) · 보고서 `_workspace/4/02_builder_app_report.md`
+- 브랜치 예외: navigation/impl = navigation/spec(미머지 스펙 포함) + origin/app-shell/impl(#6 · PR #13 머지 전) 병합 — 사람 지시로 #6 위에서 바로 구현
+- 에이전트: builder(app-builder) × 1 · R1 수정으로 재호출 중 · 심사관 · 구조 리뷰는 세션 종료로 중단 → R1 수정 뒤 다시
+- 센서: gradle lint · 단위 143(#4 70) · assembleRelease 녹색 · secrets · hygiene · frontmatter 녹색 · check_manifest 빨강 3(하네스 PR #9 미머지 · #9 판으로 녹색) · check_api_contract 는 openapi.json 없음(초안으로 녹색)
+- 에뮬레이터: U1 5곳 모두 경로 탐색 · 4곳 onRouteStarted · POI 빈 채 시작 됨 · 고정 재실행 유지 · 주행 화면 전환 · 핀 순서 1 ~ 5 · 서버 없을 때 재시도 예약
+- 사람 결정: 범위 = app(서버 칸 다음 단계) · Codex 검증 안 함 · R1 = 내비 상태 대조(2026-11-06)
+- 막힘: R1 — 내비가 앞에 오면 약 11초 뒤 앱이 얼려져 늦은 onRouteStarted 유실 · S1 길안내 대기 한도 30초 임시
+- 다음: R1 수정 커밋 · 리뷰 2관점 · 스펙 반영(U4 넓힘 · S1) → 같은 PR 에 덧붙임
