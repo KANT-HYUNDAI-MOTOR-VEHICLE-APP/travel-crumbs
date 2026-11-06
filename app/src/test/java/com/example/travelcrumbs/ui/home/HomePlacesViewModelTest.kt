@@ -755,16 +755,17 @@ class HomePlacesViewModelTest {
         runCurrent()
         settleNaviQuery()
 
+        f.navi.guidingTo(testPlace("a"))
         f.navi.answerRoute(RouteRequestResult.Started)
         runCurrent()
+        settleNaviQuery() // 늦은 알림도 목적지 대조(심사 N1)
         assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
 
-        f.navi.guidingTo(testPlace("a"))
         f.vm.onScreenResumed()
         settleNaviQuery()
 
         assertEquals(listOf("a"), f.pins.recorded)
-        assertEquals("이미 정해진 요청은 조회하지 않음", 1, f.navi.activeRouteQueries)
+        assertEquals("한도 때 1 · 늦은 알림 때 1 · 정해진 뒤 재개엔 조회 없음", 2, f.navi.activeRouteQueries)
     }
 
     @Test
@@ -791,5 +792,55 @@ class HomePlacesViewModelTest {
         assertEquals(RouteRequestState.Started("b 이름"), f.state.routeRequest)
         assertEquals(listOf("b"), f.pins.recorded)
         assertEquals(listOf("a", "b"), f.navi.routeRequests.map { it.id })
+    }
+
+    @Test
+    fun `T91 N1 TIMEOUT A 뒤 내비가 B 로 시작 알림 — 시작됨 아님 · 핀 0 · 기억도 지움`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a", "b")))
+        f.vm.onGuide("a")
+        runCurrent()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        f.navi.guidingTo(testPlace("b"))
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+
+        val queries = f.navi.activeRouteQueries
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        assertEquals("기억을 지웠으니 재개 대조 없음", queries, f.navi.activeRouteQueries)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+    }
+
+    @Test
+    fun `T91 N1 TIMEOUT 뒤 기억 기한 지남 — 재개 때 조회 안 함 · 늦은 알림도 무시`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+        val queries = f.navi.activeRouteQueries
+
+        advanceTimeBy(AppConfig.TIMED_OUT_REQUEST_MEMORY_MILLIS + 1)
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        settleNaviQuery()
+
+        assertEquals(queries, f.navi.activeRouteQueries)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+        assertTrue(f.state.guideEnabled)
     }
 }

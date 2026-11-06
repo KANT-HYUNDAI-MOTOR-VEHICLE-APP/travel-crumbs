@@ -142,9 +142,10 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * 「요청 중」은 화면 상태([routeRequest])와 이 칸 두 곳에 있음(S2) — 이 칸을 읽고 쓰는 곳은
-     * [onGuide](시작) · [finish](결과 · TIMEOUT 표시) · [markStarted](늦은 시작 · 대조) · [onScreenResumed](읽기) 뿐 —
-     * 경로를 더하면 두 곳을 함께 맞출 것.
+     * 바로 앞 요청 칸 — 「요청 중」 · 「TIMEOUT 뒤 기억」은 화면 상태([routeRequest])와 이 칸이 함께 나타냄(S2).
+     * 이 칸을 쓰는 곳: [onGuide](바꿈) · [finish](비움 · TIMEOUT 표시) · [markStarted](비움) · [forget](비움 — 늦은 알림의
+     * 목적지가 다름 · 기억 기한 지남). 읽는 곳: [onGuide](요청 중 여부) · [onScreenResumed](대조 대상) ·
+     * [naviIsHeadingTo](기다린 뒤 아직 같은 요청인가) — 경로를 더하면 이 목록과 [routeRequest] 를 함께 맞출 것.
      */
     private var lastRequest: GuideRequest? = null
 
@@ -201,7 +202,14 @@ class HomeViewModel @Inject constructor(
                     } catch (_: Exception) {
                         null
                     }
-                    if (late == RouteRequestResult.Started) markStarted(request)
+                    if (late != RouteRequestResult.Started) return@launch
+                    // 늦은 시작 알림도 목적지를 대조 — 사용자가 내비에서 다른 곳을 직접 정해 시작한 알림일 수 있음(심사 N1)
+                    if (naviIsHeadingTo(request)) markStarted(request) else forget(request)
+                }
+                // TIMEOUT 뒤 기억에 기한 — 지나면 늦은 알림 · 재개 대조를 더 받지 않음(리스너 제거)
+                request.jobs += viewModelScope.launch {
+                    delay(AppConfig.TIMED_OUT_REQUEST_MEMORY_MILLIS)
+                    forget(request)
                 }
             }
             result is RouteRequestResult.Failed -> {
@@ -210,6 +218,13 @@ class HomeViewModel @Inject constructor(
                 request.stop()
             }
         }
+    }
+
+    /** TIMEOUT 뒤 기억한 요청을 버림 — 결과(TIMEOUT 문구)는 그대로 · 리스너 · 대기를 거둠. */
+    private fun forget(request: GuideRequest) {
+        if (lastRequest !== request || !request.timedOut) return
+        lastRequest = null
+        request.stop()
     }
 
     /** 바로 앞 요청이 시작됨 — 요청마다 한 번만(결과 문구 · 핀 1건 · 기록 중일 때만은 저장소가 봄 · T92 · T93). */

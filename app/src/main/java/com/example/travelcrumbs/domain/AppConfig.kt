@@ -28,6 +28,12 @@ object AppConfig {
      */
     const val NAVI_QUERY_SETTLE_DELAY_MILLIS: Long = 1_500L
 
+    /**
+     * TIMEOUT 뒤 「바로 앞 요청」을 기억하는 기한(밀리초 · 스펙 3.2 · 심사 N1) — 이 안에 늦은 시작 알림 · 재개 대조가 맞으면 시작됨.
+     * 지나면 리스너를 거두고 더 대조하지 않음.
+     */
+    const val TIMED_OUT_REQUEST_MEMORY_MILLIS: Long = 5 * 60_000L
+
     /** 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소를 같다고 보는 거리(미터 · R1). */
     const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
 
