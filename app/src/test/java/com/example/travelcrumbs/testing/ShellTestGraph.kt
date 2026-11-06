@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
@@ -20,6 +21,8 @@ class ShellTestGraph(
     initialDriving: DrivingState = DrivingState.PARKED,
     pinned: List<String> = emptyList(),
     places: List<com.example.travelcrumbs.domain.model.Place> = TEST_PLACES,
+    /** debug 빌드 흉내(참) · release 흉내(거짓 · T110). */
+    private val dummyRoute: Boolean = true,
 ) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
@@ -58,6 +61,7 @@ class ShellTestGraph(
             pinnedPlacesRepository = pinnedStore.repository,
             pinRepository = pins,
             placeStatsRepository = FakePlaceStatsRepository(),
+            demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

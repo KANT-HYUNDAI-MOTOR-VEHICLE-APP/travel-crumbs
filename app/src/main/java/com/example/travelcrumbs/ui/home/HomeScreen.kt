@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -27,6 +28,7 @@ import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.recordingStatusText
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
+import com.example.travelcrumbs.ui.home.components.PlaceActions
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -93,12 +95,17 @@ fun HomeScreen(
             if (featureSections != null) {
                 featureSections()
             } else {
-                HomeFeatureSections(
-                    state = uiState,
-                    onGuide = viewModel::onGuide,
-                    onPin = viewModel::onPin,
-                    onUnpin = viewModel::onUnpin,
-                )
+                val placeActions = remember(viewModel) {
+                    PlaceActions(
+                        onGuide = viewModel::onGuide,
+                        onPin = viewModel::onPin,
+                        onUnpin = viewModel::onUnpin,
+                        onRetry = viewModel::onRetry,
+                        onShowDummyRoute = viewModel::onShowDummyRoute,
+                        onCloseDummyRoute = viewModel::onCloseDummyRoute,
+                    )
+                }
+                HomeFeatureSections(state = uiState, placeActions = placeActions)
             }
 
             if (showSdkCard) {

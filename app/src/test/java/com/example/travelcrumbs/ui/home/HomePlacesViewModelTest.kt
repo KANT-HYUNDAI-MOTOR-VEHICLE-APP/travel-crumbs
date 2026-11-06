@@ -2,6 +2,7 @@ package com.example.travelcrumbs.ui.home
 
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.combineDrivingState
+import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.Gear
 import com.example.travelcrumbs.domain.model.PlaceStat
@@ -59,6 +60,8 @@ class HomePlacesViewModelTest {
         pinned: List<String> = emptyList(),
         driving: DrivingState = DrivingState.PARKED,
         naviReady: Boolean = true,
+        /** debug 빌드 흉내(참) · release 흉내(거짓 · T110). */
+        dummyRoute: Boolean = true,
     ) {
         val driving = FakeDrivingSignalRepository(driving)
         val navi = FakeNaviRepository(ready = naviReady)
@@ -76,6 +79,7 @@ class HomePlacesViewModelTest {
             pinnedPlacesRepository = pinnedLocal.repository,
             pinRepository = pins,
             placeStatsRepository = stats,
+            demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
         )
         val state: HomeUiState get() = vm.uiState.value
     }
@@ -174,7 +178,7 @@ class HomePlacesViewModelTest {
         f.vm.onGuide("a")
         runCurrent()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, "a"), f.state.routeRequest)
         assertEquals(0, f.navi.routeRequests.size)
     }
 
@@ -191,7 +195,7 @@ class HomePlacesViewModelTest {
             runCurrent()
             f.navi.answerRoute(RouteRequestResult.Failed(reason))
             runCurrent()
-            assertEquals(RouteRequestState.Failed(reason), f.state.routeRequest)
+            assertEquals(RouteRequestState.Failed(reason, "a"), f.state.routeRequest)
         }
     }
 
@@ -208,7 +212,7 @@ class HomePlacesViewModelTest {
         advanceTimeBy(2)
         runCurrent()
         settleNaviQuery() // R1 — 한도 뒤 내비 상태 대조(안내 중 아님)
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.state.guideEnabled)
     }
 
@@ -220,7 +224,7 @@ class HomePlacesViewModelTest {
         f.vm.onGuide("a")
         runCurrent()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.REQUEST_FAILED), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.REQUEST_FAILED, "a"), f.state.routeRequest)
     }
 
     @Test
@@ -232,7 +236,7 @@ class HomePlacesViewModelTest {
         f.navi.setReady(false)
         runCurrent()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, "a"), f.state.routeRequest)
     }
 
     @Test
@@ -487,7 +491,7 @@ class HomePlacesViewModelTest {
         f.vm.onGuide("a")
         runCurrent()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.REQUEST_FAILED), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.REQUEST_FAILED, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
     }
 
@@ -596,7 +600,7 @@ class HomePlacesViewModelTest {
         advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
         runCurrent()
         settleNaviQuery()
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
 
         f.vm.onGuide("a")
         runCurrent()
@@ -605,7 +609,7 @@ class HomePlacesViewModelTest {
         runCurrent()
         settleNaviQuery()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
     }
 
@@ -704,7 +708,7 @@ class HomePlacesViewModelTest {
         runCurrent()
         settleNaviQuery()
 
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
     }
 
@@ -723,7 +727,7 @@ class HomePlacesViewModelTest {
 
         advanceTimeBy(AppConfig.SDK_CALL_TIMEOUT_MS + 1)
         runCurrent()
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
     }
 
@@ -735,7 +739,7 @@ class HomePlacesViewModelTest {
         advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
         runCurrent()
         settleNaviQuery()
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.state.guideEnabled)
 
         f.navi.guidingTo(testPlace("a"))
@@ -807,7 +811,7 @@ class HomePlacesViewModelTest {
         f.navi.answerRoute(RouteRequestResult.Started)
         runCurrent()
         settleNaviQuery()
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
 
         val queries = f.navi.activeRouteQueries
@@ -815,7 +819,7 @@ class HomePlacesViewModelTest {
         f.vm.onScreenResumed()
         settleNaviQuery()
         assertEquals("기억을 지웠으니 재개 대조 없음", queries, f.navi.activeRouteQueries)
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
     }
 
@@ -839,7 +843,7 @@ class HomePlacesViewModelTest {
         settleNaviQuery()
 
         assertEquals(queries, f.navi.activeRouteQueries)
-        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT, "a"), f.state.routeRequest)
         assertTrue(f.pins.recorded.isEmpty())
         assertTrue(f.state.guideEnabled)
     }

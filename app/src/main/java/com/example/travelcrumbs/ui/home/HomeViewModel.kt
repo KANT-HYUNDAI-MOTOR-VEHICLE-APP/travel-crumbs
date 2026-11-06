@@ -16,6 +16,7 @@ import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.awaitRouteResult
 import com.example.travelcrumbs.domain.isHeadingTo
 import com.example.travelcrumbs.domain.model.ActionResult
+import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
@@ -43,7 +44,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 홈(스펙 app-shell 2-2 · navigation 2.1 · 2.2) — 기록 상태는 주행 화면과 같은 출처(RecordingRepository · D1).
- * 「여기로 안내」 · 「고정」 · 「고정 해제」는 정차일 때만(navigation 3.1 · U35 · U18) — 결과는 상태 칸으로.
+ * 「여기로 안내」 · 「고정」 · 「고정 해제」 · 실패 폴백(「다시 시도」 · 「더미 경로」 · 닫기)은 정차일 때만
+ * (navigation 3.1 · U35 · U18 · U51 ~ U56) — 결과는 상태 칸으로.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -56,12 +58,16 @@ class HomeViewModel @Inject constructor(
     private val pinnedPlacesRepository: PinnedPlacesRepository,
     private val pinRepository: PinRepository,
     private val placeStatsRepository: PlaceStatsRepository,
+    private val demoFeatures: DemoFeatures,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
     private val naviState = MutableStateFlow<SdkStatus<NaviRouteState>>(SdkStatus.Idle)
     private val routeRequest = MutableStateFlow<RouteRequestState>(RouteRequestState.Idle)
     private val placeStats = MutableStateFlow<SdkStatus<List<PlaceStatItem>>>(SdkStatus.Idle)
+
+    /** 더미 경로 패널(E13) — 화면 상태뿐 · 기기 저장 · SavedStateHandle 복원 대상 아님(navigation 3.1 · T108). */
+    private val dummyRoute = MutableStateFlow<PlaceItem?>(null)
 
     /** 후보 — 읽기 전 null. 조작 메서드가 바로 찾을 수 있게 값으로 들고 있음. */
     private val candidates = MutableStateFlow<List<Place>?>(null)
@@ -85,8 +91,9 @@ class HomeViewModel @Inject constructor(
         pinnedPlacesRepository.pinnedIds.map<List<String>, List<String>?> { it }.onStart { emit(null) },
         routeRequest,
         placeStats,
-    ) { all, pinnedIds, request, stats ->
-        PlacesPart.of(all, pinnedIds, request, stats)
+        dummyRoute,
+    ) { all, pinnedIds, request, stats, dummy ->
+        PlacesPart.of(all, pinnedIds, request, stats, dummy)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -105,6 +112,8 @@ class HomeViewModel @Inject constructor(
             canPinMore = part.canPinMore,
             routeRequest = part.routeRequest,
             placeStats = part.placeStats,
+            dummyRoute = part.dummyRoute,
+            dummyRouteAvailable = demoFeatures.dummyRoute,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -114,6 +123,13 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { candidates.value = placeCatalogRepository.candidates() }
+        // 주행 · 모름이 되면 더미 경로 패널을 닫음 — 정차로 돌아와도 닫힌 채(U54 · T103).
+        // 주행 중엔 홈 화면이 그려지지 않아 uiState 구독이 멈추므로 따로 받음(주행 판정 출처는 하나 · 공유 흐름).
+        viewModelScope.launch {
+            drivingSignalRepository.drivingState.collect { driving ->
+                if (driving != DrivingState.PARKED) dummyRoute.value = null
+            }
+        }
     }
 
     fun onRecordPlace() {
@@ -156,14 +172,14 @@ class HomeViewModel @Inject constructor(
         val place = candidates.value?.firstOrNull { it.id == placeId } ?: return
         if (!naviRepository.ready.value) {
             // 버튼 비활성과 연결 끊김이 엇갈림 — 내비에 요청하지 않음(T9)
-            routeRequest.value = RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED)
+            showRouteRequest(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, place.id))
             return
         }
         // 다른(또는 같은) 장소를 새로 요청 — 바로 앞 TIMEOUT 요청은 더 대조하지 않음(T94)
         lastRequest?.stop()
         val request = GuideRequest(place, viewModelScope.async { naviRepository.requestRoute(place) })
         lastRequest = request
-        routeRequest.value = RouteRequestState.Requesting(place.id)
+        showRouteRequest(RouteRequestState.Requesting(place.id))
         request.jobs += viewModelScope.launch {
             var result = awaitRouteResult(naviRepository.ready, AppConfig.ROUTE_START_TIMEOUT_MILLIS) {
                 request.answer.await()
@@ -193,7 +209,7 @@ class HomeViewModel @Inject constructor(
             result == TIMEOUT -> {
                 // TIMEOUT 으로 보이되 이 요청을 기억 — 늦은 onRouteStarted 를 받으면 시작됨(스펙 3.2 · T91)
                 request.timedOut = true
-                routeRequest.value = RouteRequestState.Failed(RouteFailReason.TIMEOUT)
+                showRouteRequest(RouteRequestState.Failed(RouteFailReason.TIMEOUT, request.place.id))
                 request.jobs += viewModelScope.launch {
                     val late = try {
                         request.answer.await()
@@ -214,7 +230,7 @@ class HomeViewModel @Inject constructor(
             }
             result is RouteRequestResult.Failed -> {
                 lastRequest = null
-                routeRequest.value = RouteRequestState.Failed(result.reason)
+                showRouteRequest(RouteRequestState.Failed(result.reason, request.place.id))
                 request.stop()
             }
         }
@@ -231,7 +247,7 @@ class HomeViewModel @Inject constructor(
     private fun markStarted(request: GuideRequest) {
         if (lastRequest !== request) return
         lastRequest = null
-        routeRequest.value = RouteRequestState.Started(request.place.name)
+        showRouteRequest(RouteRequestState.Started(request.place.name))
         viewModelScope.launch { recordPin(request.place.id) }
         // 기다리던 응답 · 한도 · 늦은 알림 대기를 거둠(내비 리스너 제거) — 같은 요청이 다시 정해지지 않음
         request.stop()
@@ -252,6 +268,43 @@ class HomeViewModel @Inject constructor(
     } catch (error: Exception) {
         Log.w(TAG, "내비 상태 조회 실패: ${error.javaClass.simpleName}")
         false
+    }
+
+    /**
+     * 「다시 시도」(navigation 3.2 「실패 폴백」 · E11) — 실패한 그 장소로 「여기로 안내」와 같은 길.
+     * 그 장소를 고정 해제했어도 후보에 있으면 요청(T112) · 정차 · 실패가 아니면 무시(T104 · T105).
+     */
+    fun onRetry() {
+        val failed = routeRequest.value as? RouteRequestState.Failed ?: return
+        onGuide(failed.placeId)
+    }
+
+    /**
+     * 「더미 경로」(E12 · E13) — 실패한 장소의 이름 · 주소만 패널에 · 내비 요청 · 핀 · 서버 · 기기 저장 · 로그 없음(U56 · T101).
+     * debug 빌드 · 정차 · 실패 · 패널 닫힘일 때만.
+     */
+    fun onShowDummyRoute() {
+        if (!demoFeatures.dummyRoute || !uiState.value.placesVisible) return
+        val failed = routeRequest.value as? RouteRequestState.Failed ?: return
+        if (dummyRoute.value != null) return
+        val place = candidates.value?.firstOrNull { it.id == failed.placeId } ?: return
+        dummyRoute.value = PlaceItem(place.id, place.name, place.address)
+    }
+
+    /** 더미 경로 「닫기」(E13-4) — 결과 문구 · 두 버튼은 남음(T102). */
+    fun onCloseDummyRoute() {
+        if (!uiState.value.placesVisible) return
+        dummyRoute.value = null
+    }
+
+    /**
+     * 요청 상태를 바꾸는 유일한 길 — 결과가 더미 경로의 장소 실패가 아니게 되면 패널을 닫음
+     * (새 요청 · 늦은 시작 판정 · 다른 장소의 실패 · navigation 3.2 · T106 · T107).
+     */
+    private fun showRouteRequest(state: RouteRequestState) {
+        routeRequest.value = state
+        val shown = dummyRoute.value ?: return
+        if ((state as? RouteRequestState.Failed)?.placeId != shown.id) dummyRoute.value = null
     }
 
     /** 「고정」 — 정차일 때만 · 최대면 저장소가 그대로 둠(T36). */
@@ -316,6 +369,7 @@ class HomeViewModel @Inject constructor(
         val canPinMore: Boolean,
         val routeRequest: RouteRequestState,
         val placeStats: SdkStatus<List<PlaceStatItem>>,
+        val dummyRoute: PlaceItem?,
     ) {
         companion object {
             fun of(
@@ -323,6 +377,7 @@ class HomeViewModel @Inject constructor(
                 pinnedIds: List<String>?,
                 request: RouteRequestState,
                 stats: SdkStatus<List<PlaceStatItem>>,
+                dummy: PlaceItem?,
             ): PlacesPart {
                 val byId = all.orEmpty().associateBy { it.id }
                 val pinned = if (all == null || pinnedIds == null) {
@@ -337,6 +392,7 @@ class HomeViewModel @Inject constructor(
                     canPinMore = pinnedSet.size < AppConfig.PINNED_PLACES_MAX,
                     routeRequest = request,
                     placeStats = stats,
+                    dummyRoute = dummy,
                 )
             }
         }

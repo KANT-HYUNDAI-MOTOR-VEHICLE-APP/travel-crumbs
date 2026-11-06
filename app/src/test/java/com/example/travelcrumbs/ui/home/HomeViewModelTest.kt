@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RecordingStatus
@@ -60,6 +61,7 @@ class HomeViewModelTest {
         pinnedPlacesRepository = pinnedPlacesRepositoryOf(),
         pinRepository = FakePinRepository(),
         placeStatsRepository = FakePlaceStatsRepository(),
+        demoFeatures = DemoFeatures(dummyRoute = true),
     )
 
     @Test

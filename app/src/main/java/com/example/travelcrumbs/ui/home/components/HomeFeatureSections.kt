@@ -14,11 +14,9 @@ import com.example.travelcrumbs.ui.home.HomeUiState
 @Composable
 fun ColumnScope.HomeFeatureSections(
     state: HomeUiState,
-    onGuide: (String) -> Unit,
-    onPin: (String) -> Unit,
-    onUnpin: (String) -> Unit,
+    placeActions: PlaceActions,
 ) {
     if (!state.placesVisible) return
-    PlacesToVisitSection(state = state, onGuide = onGuide)
-    PlacePickerSection(state = state, onPin = onPin, onUnpin = onUnpin)
+    PlacesToVisitSection(state = state, actions = placeActions)
+    PlacePickerSection(state = state, actions = placeActions)
 }
