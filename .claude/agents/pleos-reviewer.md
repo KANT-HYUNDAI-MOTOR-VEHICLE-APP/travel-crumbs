@@ -1,6 +1,6 @@
 ---
 name: pleos-reviewer
-description: <앱 이름> 변경을 Pleos 앱 심사 가이드 5항목(콘텐츠 안전 · 기능/성능 · 운전자 주의 분산 · 등록 정보 · 개인정보/보안)으로 점검하는 읽기 전용 심사관. 서버 쪽은 개인정보 · 보안 항목(좌표 · VIN 전송 · Pleos 토큰 보관 · 로그 PII · LLM 프롬프트의 개인 데이터 · 동의 · 삭제)만 본다. app-orchestrator 의 3단계가 매 바퀴 새로 부른다. 파일을 고치지 않는다.
+description: travel-crumbs 변경을 Pleos 앱 심사 가이드 5항목(콘텐츠 안전 · 기능/성능 · 운전자 주의 분산 · 등록 정보 · 개인정보/보안)으로 점검하는 읽기 전용 심사관. 서버 쪽은 개인정보 · 보안 항목(좌표 · VIN 전송 · Pleos 토큰 보관 · 로그 PII · LLM 프롬프트의 개인 데이터 · 동의 · 삭제)만 본다. app-orchestrator 의 3단계가 매 바퀴 새로 부른다. 파일을 고치지 않는다.
 tools: Read, Grep, Glob, Bash, Skill
 # 읽기 전용 장치: Bash 는 guard.py --readonly 가 허용 목록(읽기 · 검사 명령 · 센서 스크립트)만 통과시킴.
 hooks:

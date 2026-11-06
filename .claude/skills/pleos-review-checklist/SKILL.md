@@ -1,6 +1,6 @@
 ---
 name: pleos-review-checklist
-description: Pleos 앱 마켓 심사 가이드 5항목(콘텐츠 안전 · 기능/성능 안정성 · 운전자 주의 분산 최소화 · 등록 정보 · 개인정보/보안)을 <앱 이름> 코드에 대조하는 점검 질문 · 발견 표 형식 · 심각도 · 「린트로 만들 수 있나」 판단 기준. 서버 쪽은 개인정보 · 보안(좌표 · VIN · Pleos 토큰 · 로그 · LLM 프롬프트 · 동의 · 삭제)만 본다. pleos-reviewer 가 심사관 리뷰를 시작할 때 반드시 읽는다. 구조 규칙(레이어 · 파일 배치)은 android-architecture · server-architecture 가 맡는다.
+description: Pleos 앱 마켓 심사 가이드 5항목(콘텐츠 안전 · 기능/성능 안정성 · 운전자 주의 분산 최소화 · 등록 정보 · 개인정보/보안)을 travel-crumbs 코드에 대조하는 점검 질문 · 발견 표 형식 · 심각도 · 「린트로 만들 수 있나」 판단 기준. 서버 쪽은 개인정보 · 보안(좌표 · VIN · Pleos 토큰 · 로그 · LLM 프롬프트 · 동의 · 삭제)만 본다. pleos-reviewer 가 심사관 리뷰를 시작할 때 반드시 읽는다. 구조 규칙(레이어 · 파일 배치)은 android-architecture · server-architecture 가 맡는다.
 ---
 
 # Pleos 심사 점검표
@@ -30,27 +30,28 @@ description: Pleos 앱 마켓 심사 가이드 5항목(콘텐츠 안전 · 기�
 | 임시 파일 · 디버그 화면 · 시험용 콘텐츠가 release 에 남아 있나 | `BuildConfig.DEBUG` 분기 · assets · 로그 레벨 |
 | 백그라운드 전환 시 위치 수집 · 화면 갱신을 멈추나 · 복귀 시 상태 복원하나 | ViewModel 효과 · `SavedStateHandle` |
 | 주행 중 CPU 5% 미만 · RAM 400 MB 이하를 깨는 구조(폴링 · 타이머 · 1초 미만 위치 갱신)가 없나 | `AppConfig` · 위치 요청 간격 · `while(true)` |
-| 오디오 포커스 획득 · 상실 대응이 있나 | `TtsNarrator` |
+| 오디오 포커스 획득 · 상실 대응이 있나 | 소리를 내는 곳(TTS · 재생) · `AudioFocusRequest` |
 | 메타데이터(앱 이름 · 설명)가 실제 서비스와 같나 | strings · 등록 콘솔(범위 밖이면 「확인」) |
 
 ## 3. 운전자 주의 분산 최소화
 
 | 질문 | 어디서 보나 |
 |---|---|
+| 주행 중에 쓰는 화면이 있는 액티비티가 DO(`distractionOptimized`)를 선언했나 · 선언했으면 주행 판정 · `CarUxRestrictions` 로 숨기는 코드가 그 화면에 있나(선언만 있고 제한 코드가 없으면 위반) | 매니페스트 · `*Screen.kt` 의 상태 분기 · `data/vehicle/` |
 | 주행(DRIVING · UNKNOWN) 중 영상 · 애니메이션 · 자동 화면 전환 · 긴 글이 보이나 | `*Screen.kt` 의 상태 분기 · `AnimatedVisibility` · 스크롤 글 |
 | 주행 중 정차 전용 화면 · 로그인 · 기록 화면 · 키보드 입력이 열리나 | `navigation/` 주행 중 허용 목록 · 각 화면의 가드 |
 | UNKNOWN 을 PARKED 처럼 다루는 곳이 있나(위반) | `ObserveDrivingStateUseCase` · 화면 분기 |
 | CarUxRestrictions 를 읽나 · 기어와 둘 다 보나 | `data/vehicle/` |
 | 정차 중 버튼이 크고 고대비 · 한 번 터치로 끝나나 | 정차 전용 화면 · 로그인 화면 |
 | 헤드업 알림 · 주행과 무관한 알림을 보내나(위반) | `NotificationManager` 사용 |
-| 주행 중 미디어(영상 · 게임 · 브라우저) 기능이 있나 — WebView 로그인은 정차 중에만인가 | `PleosLoginWebScreen` 가드 |
+| 주행 중 미디어(영상 · 게임 · 브라우저) 기능이 있나 — WebView 로그인은 정차 중에만인가 | 로그인 화면의 주행 가드 |
 
 ## 4. 앱 마켓 등록 정보
 
 | 질문 | 어디서 보나 |
 |---|---|
 | 위치 · 개인 데이터를 쓰는 앱 — 약관 · 개인정보 처리방침 링크 · 문구가 앱에 있나(제출 대상) | 동의 화면 · strings |
-| 앱 설명 · 카테고리(Music/Audio)와 실제 기능이 맞나 | 「확인」(등록 콘솔은 범위 밖) |
+| 앱 설명 · 카테고리(Pleos 콘솔 등록값)와 실제 기능이 맞나 | 「확인」(등록 콘솔은 범위 밖) |
 
 ## 5. 개인정보 · 보안(앱 + 서버)
 
@@ -58,6 +59,7 @@ description: Pleos 앱 마켓 심사 가이드 5항목(콘텐츠 안전 · 기�
 |---|---|
 | 권한이 기능과 1:1 인가 — 허용 목록 밖 권한(위반) · 허용된 권한도 근거가 가리키는 기능이 이 변경에 실제로 있나 | 매니페스트(센서 `check_manifest.py` 결과). 목록 원본은 그 스크립트의 `ALLOWED`(권한마다 근거) · 늘리는 기준은 `sensors` 「권한 허용 목록을 늘리는 길」 |
 | 좌표 · 기어 · 속도 · VIN 이 서버로 가나(위반) | 앱 DTO · 서버 schemas · models |
+| 계정과 묶인 이동 기록(예: 어느 장소로 안내를 시작했나)을 서버로 보내나 — 보낸다면 동의 전 미전송 · 수집 항목 · 목적 · 보관 기간 · 철회 · 탈퇴 시 삭제가 스펙에 있고 코드가 지키나 | 스펙 「최소 수집」 절 · 앱 전송 큐 · 서버 models · 삭제 경로 |
 | Pleos 토큰 · clientSecret 이 앱에 있나 · 서버가 Pleos 토큰을 저장하나(위반) | 앱 전체 grep · 서버 `auth/pleos/` · models |
 | 로그에 pleos_user_id · 토큰 · 이름 · 좌표 · LLM 원문이 원문으로 남나 | 서버 logging · 앱 `Log.` |
 | LLM 프롬프트에 개인 데이터가 들어가나 — 외부 전송 = 제3자 제공 | `prompts/` · `llm/service` 입력 조립 |

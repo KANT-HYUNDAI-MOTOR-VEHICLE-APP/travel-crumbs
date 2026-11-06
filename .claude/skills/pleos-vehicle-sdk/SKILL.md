@@ -1,9 +1,9 @@
 ---
 name: pleos-vehicle-sdk
-description: Pleos Connect(AAOS) 앱에서 Pleos Vehicle SDK 로 차량 신호(기어)를 읽고, 주행 규제(CarUxRestrictions) · 오디오 포커스 · 위치 · TTS 를 다루는 방법과 제약. 배포소 · 의존성 · 권한은 쓰는 도메인만 · capability → 읽기 → Callback → callbackFlow · initialize 한 번 · release · Virtual Console 시험 · 알려진 걸림 · 공식 문서 주소. <앱 이름> 앱 코드(app/)를 쓰거나 스펙을 쓰기 전에 builder(app) · spec-writer 가 반드시 읽는다. 서버 코드 · Pleos 계정 로그인 API(서버 쪽)는 server-architecture 가 맡는다.
+description: Pleos Connect(AAOS) 앱에서 Pleos Vehicle SDK 로 차량 신호(기어)를 읽고, 주행 규제(CarUxRestrictions) · 오디오 포커스 · 위치 · TTS 를 다루는 방법과 제약. 배포소 · 의존성 · 권한은 쓰는 도메인만 · capability → 읽기 → Callback → callbackFlow · initialize 한 번 · release · Virtual Console 시험 · 알려진 걸림 · 공식 문서 주소. travel-crumbs 앱 코드(app/)를 쓰거나 스펙을 쓰기 전에 builder(app) · spec-writer 가 반드시 읽는다. 서버 코드 · Pleos 계정 로그인 API(서버 쪽)는 server-architecture 가 맡는다.
 ---
 
-# Pleos Vehicle SDK — <앱 이름> 앱이 지키는 것
+# Pleos Vehicle SDK — travel-crumbs 앱이 지키는 것
 
 설명은 명사형. 「확인」 표시는 builder 가 에뮬레이터 · 문서로 확인해 보고서에 적는 항목.
 
@@ -44,7 +44,8 @@ description: Pleos Connect(AAOS) 앱에서 Pleos Vehicle SDK 로 차량 신호(�
 
 ## 5. 주행 중 화면 규칙(설계 가이드 · 심사 「운전자 주의 분산」)
 
-- 주행 중: 영상 · 애니메이션 · 자동 화면 전환 없음 · 긴 글 없음 · 정차 전용 화면 · 로그인 · 기록 화면 숨김 · 오디오 재생은 카테고리가 허용하면 계속(Music/Audio — 오디오북 재생 허용 예시).
+- 주행 중 사용 선언(DO): 주행 중에 쓰는 화면이 있는 액티비티는 `<meta-data android:name="distractionOptimized" android:value="true"/>` 를 선언함 — Pleos 「지역별 주행 규제 정책」은 DO 를 선언하지 않은 앱을 주행 중 사용 불가로 봄. 선언은 「주행 중에도 열림」일 뿐이고, 무엇을 숨길지는 코드가 4절 판정 · `CarUxRestrictions` 의 `ActiveRestrictions` 를 보고 정함(ADR 0013).
+- 주행 중: 영상 · 애니메이션 · 자동 화면 전환 없음 · 긴 글 없음 · 정차 전용 화면 · 로그인 · 입력 화면 숨김 · 오디오 재생은 앱 카테고리가 허용할 때만 계속(카테고리 문서 참고).
 - 정차: 버튼은 크고 고대비 · 한 번 터치로 끝 · 키보드 입력 최소(로그인은 WebView 한 번).
 - 창: `screenOrientation` 미지정(portrait · 창 1개) · 창 크기 변경에도 핵심 기능 유지.
 - 백그라운드: 화면 갱신 · 위치 수집 정지 · 재생 중인 오디오는 끝까지(필요할 때) · 프로세스 재생성 뒤 상태 복원.
@@ -59,7 +60,8 @@ description: Pleos Connect(AAOS) 앱에서 Pleos Vehicle SDK 로 차량 신호(�
 
 ## 7. 위치
 
-- 프레임워크 `LocationManager` → `callbackFlow`. Google Play 서비스 없다고 전제 → Fused · Geofencing 클라이언트 안 씀. 확인: `adb shell pm list packages com.google.android.gms`.
+- Google Fused(Play 서비스 `FusedLocationProviderClient`) · Geofencing 클라이언트는 안 씀 — Play 서비스 없음 전제. 확인: `adb shell pm list packages com.google.android.gms`.
+- Pleos FusedLocation SDK(권한 `pleos.car.permission.FUSED_LOCATION`)는 Google Fused 와 별개 — `isSupported()` 가 참이면 쓰고, 아니면 프레임워크 `LocationManager` → `callbackFlow`. 어느 쪽을 쓸지는 스펙이 정함. 2026-11 기준 Pleos 콘솔 My Project 에서 FusedLocation 은 「준비 중」 · 에뮬레이터에는 `ai.pleos.playground.service.location.fused` 탑재. 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/FusedLocation/intro
 - 위치 판정(예: 지역 진입 = 하버사인 ≤ 반경)은 도메인 계산. 좌표는 기기 밖으로 안 나감.
 - 시험: 에뮬레이터 확장 컨트롤 → Location → GPX 재생(`docs/test-routes/*.gpx` · 앱이 쓰는 좌표 자료와 같은 좌표).
 

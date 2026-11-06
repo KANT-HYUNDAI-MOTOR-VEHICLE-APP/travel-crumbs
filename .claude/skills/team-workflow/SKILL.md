@@ -1,6 +1,6 @@
 ---
 name: team-workflow
-description: <앱 이름> 저장소(<owner>/<repo> · 앱 + 서버 + 문서 + 하네스 한 저장소)에서 두 사람 이상이 같은 하네스로 작업하고 푸시 · 병합하는 규칙 — GitHub 이슈 티켓 · 브랜치 전략(develop · <기능명>/main · /spec · /impl · bug/) · 커밋 메시지 · 스펙 PR → 구현 PR → develop PR · rebase · squash 머지 · 충돌 핫스팟(버전 카탈로그 · Alembic · openapi.json · uv.lock · 매니페스트 · CI) 해소법 · 머지 뒤 할 일 · 맥 ↔ 윈도우 위생(LF · 대소문자 · 경로 길이 · Python 스크립트) · doctor · main 지키는 약속 · CI 잡 정의. 브랜치를 만들거나 커밋 · 푸시 · PR · rebase · 충돌 해소를 하기 전, 새 사람이 합류할 때, CI 를 쓰거나 고칠 때 반드시 읽는다. 코드 구조 규칙은 android-architecture · server-architecture.
+description: travel-crumbs 저장소(<owner>/<repo> · 앱 + 서버 + 문서 + 하네스 한 저장소)에서 두 사람 이상이 같은 하네스로 작업하고 푸시 · 병합하는 규칙 — GitHub 이슈 티켓 · 브랜치 전략(develop · <기능명>/main · /spec · /impl · bug/) · 커밋 메시지 · 스펙 PR → 구현 PR → develop PR · rebase · squash 머지 · 충돌 핫스팟(버전 카탈로그 · Alembic · openapi.json · uv.lock · 매니페스트 · CI) 해소법 · 머지 뒤 할 일 · 맥 ↔ 윈도우 위생(LF · 대소문자 · 경로 길이 · Python 스크립트) · doctor · main 지키는 약속 · CI 잡 정의. 브랜치를 만들거나 커밋 · 푸시 · PR · rebase · 충돌 해소를 하기 전, 새 사람이 합류할 때, CI 를 쓰거나 고칠 때 반드시 읽는다. 코드 구조 규칙은 android-architecture · server-architecture.
 ---
 
 # 두 사람이 한 저장소에서 — 협업 규칙

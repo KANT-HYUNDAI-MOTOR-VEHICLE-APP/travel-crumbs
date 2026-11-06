@@ -1,6 +1,6 @@
 ---
 name: server-architecture
-description: <앱 이름> 서버(server/ · Python · FastAPI)의 구조 규칙 원본 — 도메인 패키지 배치(router → service → repository → db) · Pydantic 스키마 응답 · UUID · 설정 객체(pydantic-settings) · 로그 마스킹 · Alembic 리비전 · OpenAPI 내보내기 · Pleos 계정 로그인(auth/pleos) · LLM 경계 규칙 7(app/llm) · 테스트(pytest · testcontainers · respx), 그리고 구조 리뷰 점검표와 import-linter 로 재는 법. server/ 코드를 쓰거나 고치기 전(builder) · 스펙의 데이터 · API 계약 절을 쓰기 전(spec-writer) · 서버 구조 리뷰(structure-reviewer) 때 반드시 읽는다. 앱(app/)에는 쓰지 않는다 — android-architecture.
+description: travel-crumbs 서버(server/ · Python · FastAPI)의 구조 규칙 원본 — 도메인 패키지 배치(router → service → repository → db) · Pydantic 스키마 응답 · UUID · 설정 객체(pydantic-settings) · 로그 마스킹 · Alembic 리비전 · OpenAPI 내보내기 · Pleos 계정 로그인(auth/pleos) · LLM 경계 규칙 7(app/llm) · 테스트(pytest · testcontainers · respx), 그리고 구조 리뷰 점검표와 import-linter 로 재는 법. server/ 코드를 쓰거나 고치기 전(builder) · 스펙의 데이터 · API 계약 절을 쓰기 전(spec-writer) · 서버 구조 리뷰(structure-reviewer) 때 반드시 읽는다. 앱(app/)에는 쓰지 않는다 — android-architecture.
 ---
 
 # 서버 구조 — Python · FastAPI
@@ -57,6 +57,7 @@ server/
 
 ## 데이터(최소 수집)
 
+- 서버가 맡는 범위: 여러 사용자 데이터가 있어야 하는 것만 — 로그인(계정 · 토큰) · 추천 근거 집계(예: 장소별 안내 시작 기록). 여행 기록 · 공유는 기기 안(Room)이 원본이고 서버로 오지 않음(ADR 0014). 새 도메인 테이블은 그 기능 스펙의 「최소 수집」 절이 근거.
 - 테이블: `users`(id uuid · pleos_user_id unique · brand · display_name · token_version · created_at) · `<도메인 테이블>`(필요한 칸만) · `consents`(policy_version · agreed_at) · `pleos_login_states`(state · brand · expires_at). FK 전부 `ON DELETE CASCADE`(탈퇴 = 하드 삭제).
 - 서버에 **없는** 것: 좌표 · 기어 · 속도 · VIN · Pleos 토큰 · 비밀번호. 스키마 · 계약에 나타나면 위반.
 - 응답 코드 · 라벨: 서버는 `UPPER_SNAKE` 코드 → 앱이 한글 문구로.

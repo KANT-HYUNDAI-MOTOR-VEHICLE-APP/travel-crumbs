@@ -1,6 +1,6 @@
 ---
 name: android-architecture
-description: <앱 이름> Android 앱(app/)의 구조 규칙 원본 — Google 권장 MVVM(ui → domain → data) · 패키지 배치 · 이름 규칙 · 화면 1개 = 파일 1개 · ViewModel 순수성 · 자료원은 저장소 거쳐 · UDF · 바뀔 값 한 곳 · Vehicle SDK 경계 · Hilt 모듈 경계 · 네트워크(Retrofit) · 토큰 저장 · 오프라인 큐, 그리고 구조 리뷰 점검표와 Konsist 로 재는 법. app/ 코드를 쓰거나 고치기 전(builder) · 스펙의 화면 · 상태 절을 쓰기 전(spec-writer) · 앱 구조 리뷰(structure-reviewer) 때 반드시 읽는다. 서버(server/)에는 쓰지 않는다 — server-architecture.
+description: travel-crumbs Android 앱(app/)의 구조 규칙 원본 — Google 권장 MVVM(ui → domain → data) · 패키지 배치 · 이름 규칙 · 화면 1개 = 파일 1개 · ViewModel 순수성 · 자료원은 저장소 거쳐 · UDF · 바뀔 값 한 곳 · Vehicle SDK 경계 · Hilt 모듈 경계 · 네트워크(Retrofit) · 토큰 저장 · 오프라인 큐, 그리고 구조 리뷰 점검표와 Konsist 로 재는 법. app/ 코드를 쓰거나 고치기 전(builder) · 스펙의 화면 · 상태 절을 쓰기 전(spec-writer) · 앱 구조 리뷰(structure-reviewer) 때 반드시 읽는다. 서버(server/)에는 쓰지 않는다 — server-architecture.
 ---
 
 # Android 앱 구조 — Google 권장 MVVM
@@ -51,7 +51,8 @@ data/auth/                  AuthRepository
 
 - Retrofit + OkHttp + kotlinx.serialization 컨버터. 인터페이스 `AppApi` 는 `docs/api/openapi.json` 과 경로 · 메서드 1:1(센서 `check_api_contract.py`).
 - 토큰: `AuthInterceptor`(헤더) · `TokenAuthenticator`(401 → refresh → 재시도 1회). 저장은 DataStore + Keystore 로 감싼 키 암호화. 비밀번호 · Pleos 토큰은 앱에 없음.
-- 오프라인: 들은 기록은 Room 큐(`PendingListenRecord`)에 먼저 → 네트워크 되면 전송 · 실패는 재시도(지수 백오프) · 사용자에겐 「저장 대기」 상태만.
+- 데이터 원본은 기기 안: 여행 기록 · 공유는 Room · DataStore 가 원본이고 서버로 보내지 않음. 서버로 가는 것은 여러 사용자 데이터가 필요한 것(추천 근거 집계 · 로그인)만 · 스펙의 「최소 수집」 절에 적힌 칸만(ADR 0014).
+- 오프라인: 서버로 보낼 기록(예: 안내 시작 기록)은 Room 전송 대기 큐에 먼저 → 네트워크 되면 전송 · 실패는 재시도(지수 백오프) · 보내면 큐에서 지움. 전송 상태를 화면에 보일지는 스펙이 정함.
 - 타임아웃 · 재시도 수치는 `AppConfig` 또는 `NetworkConfig` 한 곳.
 - debug 빌드만 `10.0.2.2:4000` cleartext(`network_security_config`) · release 는 HTTPS 만.
 

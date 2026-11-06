@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""환경 검사 — 맥 · 윈도우에서 <앱 이름> 개발에 필요한 것이 같게 있나 (JDK · SDK · Pleos 이미지 · AVD · adb · Docker · uv · gh · git 설정)."""
+"""환경 검사 — 맥 · 윈도우에서 travel-crumbs 개발에 필요한 것이 같게 있나 (JDK · SDK · Pleos 이미지 · AVD · adb · Docker · uv · gh · git 설정)."""
 import os
 import platform
 import re
