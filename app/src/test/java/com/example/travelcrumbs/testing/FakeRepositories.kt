@@ -5,6 +5,7 @@ import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteRequestResult
@@ -61,6 +62,21 @@ class FakeNaviRepository(
 
     fun setReady(value: Boolean) {
         readyState.value = value
+    }
+
+    /** 지금 안내 상태(R1 대조) — 기본은 안내 중 아님. */
+    var activeRoute: NaviActiveRoute = NaviActiveRoute(routing = false, destinationName = "", 0.0, 0.0)
+    var activeRouteQueries: Int = 0
+        private set
+
+    override suspend fun activeRoute(): NaviActiveRoute {
+        activeRouteQueries++
+        return activeRoute
+    }
+
+    /** 내비가 [place] 로 안내 중인 상태로 둠. */
+    fun guidingTo(place: Place) {
+        activeRoute = NaviActiveRoute(true, place.name, place.latitude, place.longitude)
     }
 }
 

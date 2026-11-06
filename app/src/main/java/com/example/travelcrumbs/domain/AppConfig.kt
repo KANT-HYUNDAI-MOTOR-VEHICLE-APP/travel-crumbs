@@ -22,6 +22,15 @@ object AppConfig {
      */
     const val ROUTE_START_TIMEOUT_MILLIS: Long = 30_000L
 
+    /**
+     * 대조 조회 전 기다림(밀리초 · R1) — 앱이 얼림에서 풀리면 그동안 쌓인 내비 콜백(진짜 onRouteStarted 나
+     * 다른 앱 조회에 대한 옛 onRouteStateInfo)이 한꺼번에 옴. 에뮬레이터 실측: 그 사이에 조회하면 옛 값(안내 중 아님)을 받음.
+     */
+    const val NAVI_QUERY_SETTLE_DELAY_MILLIS: Long = 1_500L
+
+    /** 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소를 같다고 보는 거리(미터 · R1). */
+    const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
+
     /** 「가 볼 장소」 고정 최대 개수(스펙 navigation 결정 기록 U16). */
     const val PINNED_PLACES_MAX: Int = 3
 

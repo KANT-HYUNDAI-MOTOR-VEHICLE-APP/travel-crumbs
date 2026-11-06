@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.data.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
+import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.RouteInfo
 import ai.pleos.playground.navi.data.RouteStartInfo
 import ai.pleos.playground.navi.data.RouteStateInfo
@@ -8,6 +9,7 @@ import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
 import android.util.Log
+import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
@@ -25,7 +27,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Pleos NaviHelper 를 감싸는 유일한 파일 — `ai.pleos.*` 타입은 이 패키지 밖으로 나가지 않음.
- * 쓰는 범위: 조회 getRouteStateInfo(권한 `NAVI_ROUTE`) · 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
+ * 쓰는 범위: 조회 getRouteStateInfo · getDestinationInfo(권한 `NAVI_ROUTE`) · 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
  * 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations
  */
 @Singleton
@@ -64,11 +66,54 @@ class NaviInfoDataSource @Inject constructor(
     }
 
     /** 경로 상태 한 번 조회 — 결과는 리스너로 돌아옴. */
-    suspend fun routeState(): NaviRouteState = suspendCancellableCoroutine { continuation ->
+    suspend fun routeState(): NaviRouteState = routeStateInfo().toDomain()
+
+    /**
+     * 지금 안내 상태 — 경로 상태(안내 중인가) + 목적지(이름 · 좌표). 시작 알림을 놓쳤을 때의 대조(R1)에만 씀.
+     * 「안내 중」 = naviMode 가 ROUTE_GUIDING · SIMULATION_GUIDING. `isRouting` 은 보지 않음 — 에뮬레이터 실측(2026-11-06)에서
+     * 해운대 안내 중에 isRouting=false · naviMode=ROUTE_GUIDING. 안내 중이 아니면 목적지를 묻지 않음.
+     * 값은 로그에 남기지 않음(좌표 · 스펙 navigation 4.4).
+     */
+    suspend fun activeRoute(): NaviActiveRoute {
+        val routing = routeStateInfo().naviMode.name in GUIDING_MODES
+        if (!routing) return NaviActiveRoute(routing = false, destinationName = "", 0.0, 0.0)
+        val destination = destinationInfo()
+        return NaviActiveRoute(
+            routing = true,
+            destinationName = destination.name,
+            destinationLatitude = destination.latitude,
+            destinationLongitude = destination.longitude,
+        )
+    }
+
+    private suspend fun destinationInfo(): DestinationInfo = suspendCancellableCoroutine { continuation ->
+        val listener = object : NaviHelperEventListener {
+            override fun onDestinationInfo(destinationInfo: DestinationInfo) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) continuation.resume(destinationInfo)
+            }
+
+            override fun onError(errorCode: NaviErrorCode) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) {
+                    continuation.resumeWithException(IllegalStateException(errorCode.name))
+                }
+            }
+        }
+        naviHelper.addListener(listener)
+        continuation.invokeOnCancellation { naviHelper.removeListener(listener) }
+        runCatching { naviHelper.getDestinationInfo() }
+            .onFailure { error ->
+                naviHelper.removeListener(listener)
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
+    }
+
+    private suspend fun routeStateInfo(): RouteStateInfo = suspendCancellableCoroutine { continuation ->
         val listener = object : NaviHelperEventListener {
             override fun onRouteStateInfo(routeStateInfo: RouteStateInfo) {
                 naviHelper.removeListener(this)
-                if (continuation.isActive) continuation.resume(routeStateInfo.toDomain())
+                if (continuation.isActive) continuation.resume(routeStateInfo)
             }
 
             override fun onError(errorCode: NaviErrorCode) {
@@ -138,5 +183,8 @@ class NaviInfoDataSource @Inject constructor(
 
     private companion object {
         const val TAG = "NaviInfoDataSource"
+
+        /** 목적지로 안내 중인 내비 모드(SDK NaviMode 이름 — NOT_WORKING · SAFE_GUIDING 은 안내 아님). */
+        val GUIDING_MODES = setOf("ROUTE_GUIDING", "SIMULATION_GUIDING")
     }
 }

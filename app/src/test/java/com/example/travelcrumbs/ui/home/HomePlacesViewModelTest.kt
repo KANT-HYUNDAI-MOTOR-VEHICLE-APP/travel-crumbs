@@ -19,6 +19,7 @@ import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
 import com.example.travelcrumbs.testing.recordingRepositoryOf
+import com.example.travelcrumbs.testing.testPlace
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -83,6 +84,12 @@ class HomePlacesViewModelTest {
         backgroundScope.launch { fixture.vm.uiState.collect { } }
         runCurrent()
         return fixture
+    }
+
+    /** 대조 조회 전 기다림까지 지남(R1). */
+    private fun TestScope.settleNaviQuery() {
+        advanceTimeBy(AppConfig.NAVI_QUERY_SETTLE_DELAY_MILLIS + 1)
+        runCurrent()
     }
 
     private fun HomeUiState.pinnedIds() = pinnedPlaces?.map { it.id }
@@ -200,6 +207,7 @@ class HomePlacesViewModelTest {
 
         advanceTimeBy(2)
         runCurrent()
+        settleNaviQuery() // R1 — 한도 뒤 내비 상태 대조(안내 중 아님)
         assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
         assertTrue(f.state.guideEnabled)
     }
@@ -466,6 +474,7 @@ class HomePlacesViewModelTest {
         runCurrent()
         advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
         runCurrent()
+        settleNaviQuery()
 
         f.vm.onGuide("a")
         runCurrent()
@@ -561,5 +570,125 @@ class HomePlacesViewModelTest {
         f.vm.refreshPlaceStats()
         runCurrent()
         assertTrue(f.state.placeStats is SdkStatus.Failed)
+    }
+
+    @Test
+    fun `R1 가 한도 지남 · 내비가 그 장소로 안내 중 — 시작됨 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `R1 나 한도 지남 · 내비 목적지가 다른 곳 또는 안내 중 아님 — TIMEOUT · 핀 0`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("b"))
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.activeRoute = f.navi.activeRoute.copy(routing = false, destinationName = "a 이름")
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+    }
+
+    @Test
+    fun `R1 다 재개 대조로 시작됨 뒤 늦은 시작 알림 — 결과 1번 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        f.navi.answerRoute(RouteRequestResult.Started)
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `R1 다 시작 알림이 먼저 오고 재개 대조가 뒤 — 핀 1건 · 대조 안 함`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals(listOf("a"), f.pins.recorded)
+        assertEquals(0, f.navi.activeRouteQueries)
+    }
+
+    @Test
+    fun `R1 다 재개 대조가 기다리는 사이 늦은 시작 알림 — 알림으로 정해지고 대조는 무시 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+
+        f.vm.onScreenResumed()
+        runCurrent()
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `R1 라 재개 때 대조 — 안내 중이면 한도 전에 시작됨 · 아니면 요청 중 그대로`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+        assertFalse(f.state.guideEnabled)
+
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+        assertTrue(f.state.guideEnabled)
+    }
+
+    @Test
+    fun `R1 요청이 없을 때 재개 — 대조하지 않음`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals(0, f.navi.activeRouteQueries)
+        assertEquals(RouteRequestState.Idle, f.state.routeRequest)
     }
 }
