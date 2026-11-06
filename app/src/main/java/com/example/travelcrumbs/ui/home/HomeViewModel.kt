@@ -26,7 +26,9 @@ import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -124,67 +126,112 @@ class HomeViewModel @Inject constructor(
         message.value = null
     }
 
-    /** 지금 진행 중인 길안내 요청 — 결과는 [settle] 이 한 번만 정함(늦은 알림 · 대조가 겹쳐도 결과 문구 · 핀 1번). */
-    private class ActiveRequest(val place: Place) {
-        var job: Job? = null
+    /**
+     * 바로 앞 길안내 요청 — 결과 전(요청 중) 또는 TIMEOUT 뒤(늦은 시작 · 재개 대조를 아직 받음 · 스펙 3.2 「바로 앞 요청 X」).
+     * 내비 응답([answer])은 한도가 지나도 계속 기다림 — 늦은 onRouteStarted 를 받기 위함. 새 요청을 시작하면 버림(T94).
+     */
+    private class GuideRequest(val place: Place, val answer: Deferred<RouteRequestResult>) {
+        /** 한도가 지나 TIMEOUT 으로 보였음 — 이 뒤엔 시작됨으로만 바뀔 수 있음. */
+        var timedOut = false
+        val jobs = mutableListOf<Job>()
+
+        fun stop() {
+            answer.cancel()
+            jobs.forEach { it.cancel() }
+        }
     }
 
-    private var activeRequest: ActiveRequest? = null
+    /**
+     * 「요청 중」은 화면 상태([routeRequest])와 이 칸 두 곳에 있음(S2) — 이 칸을 읽고 쓰는 곳은
+     * [onGuide](시작) · [finish](결과 · TIMEOUT 표시) · [markStarted](늦은 시작 · 대조) · [onScreenResumed](읽기) 뿐 —
+     * 경로를 더하면 두 곳을 함께 맞출 것.
+     */
+    private var lastRequest: GuideRequest? = null
 
     /** 「여기로 안내」(navigation 3.2 「길안내 요청」) — 주행 · 모름 · 요청 중이면 무시. */
     fun onGuide(placeId: String) {
         if (!uiState.value.placesVisible) return
-        if (activeRequest != null) return
+        if (lastRequest?.timedOut == false) return
         val place = candidates.value?.firstOrNull { it.id == placeId } ?: return
         if (!naviRepository.ready.value) {
             // 버튼 비활성과 연결 끊김이 엇갈림 — 내비에 요청하지 않음(T9)
             routeRequest.value = RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED)
             return
         }
-        val request = ActiveRequest(place)
-        activeRequest = request
+        // 다른(또는 같은) 장소를 새로 요청 — 바로 앞 TIMEOUT 요청은 더 대조하지 않음(T94)
+        lastRequest?.stop()
+        val request = GuideRequest(place, viewModelScope.async { naviRepository.requestRoute(place) })
+        lastRequest = request
         routeRequest.value = RouteRequestState.Requesting(place.id)
-        request.job = viewModelScope.launch {
+        request.jobs += viewModelScope.launch {
             var result = awaitRouteResult(naviRepository.ready, AppConfig.ROUTE_START_TIMEOUT_MILLIS) {
-                naviRepository.requestRoute(place)
+                request.answer.await()
             }
             // R1 — 한도가 지남(앱이 얼려져 시작 알림을 놓친 경우 포함): 내비가 지금 그 장소로 안내 중이면 시작됨
-            if (result == RouteRequestResult.Failed(RouteFailReason.TIMEOUT) && naviIsHeadingTo(place)) {
-                result = RouteRequestResult.Started
-            }
-            settle(request, result)
+            if (result == TIMEOUT && naviIsHeadingTo(request)) result = RouteRequestResult.Started
+            finish(request, result)
         }
     }
 
     /**
-     * 화면이 다시 앞으로 옴(시작 · 재개 · R1) — 요청 중인데 시작 알림을 아직 못 받았으면 내비 상태로 대조.
-     * 그 장소로 안내 중이면 시작됨 · 아니면 그대로 기다림(한도가 지나면 위 요청이 끝냄).
+     * 화면이 다시 앞으로 옴(시작 · 재개 · R1) — 바로 앞 요청이 아직 시작 알림을 못 받았으면(요청 중 · TIMEOUT) 내비 상태로 대조.
+     * 그 장소로 안내 중이면 시작됨 · 아니면 그대로(요청 중이면 한도가 끝냄 · T95).
      */
     fun onScreenResumed() {
-        val request = activeRequest ?: return
+        val request = lastRequest ?: return
         viewModelScope.launch {
-            if (naviIsHeadingTo(request.place)) settle(request, RouteRequestResult.Started)
+            if (naviIsHeadingTo(request)) markStarted(request)
         }
     }
 
-    /** 요청 하나의 결과를 정함 — 이미 정해졌으면 무시. 시작됨이면 핀 1건(기록 중일 때만 · 저장소가 봄). */
-    private fun settle(request: ActiveRequest, result: RouteRequestResult) {
-        if (activeRequest !== request) return
-        activeRequest = null
-        routeRequest.value = when (result) {
-            RouteRequestResult.Started -> RouteRequestState.Started(request.place.name)
-            is RouteRequestResult.Failed -> RouteRequestState.Failed(result.reason)
+    /** 요청 중인 요청의 결과(시작 · 오류 · 끊김 · 한도) — 이미 정해졌거나 TIMEOUT 뒤면 무시. */
+    private fun finish(request: GuideRequest, result: RouteRequestResult) {
+        if (lastRequest !== request || request.timedOut) return
+        when {
+            result == RouteRequestResult.Started -> markStarted(request)
+            result == TIMEOUT -> {
+                // TIMEOUT 으로 보이되 이 요청을 기억 — 늦은 onRouteStarted 를 받으면 시작됨(스펙 3.2 · T91)
+                request.timedOut = true
+                routeRequest.value = RouteRequestState.Failed(RouteFailReason.TIMEOUT)
+                request.jobs += viewModelScope.launch {
+                    val late = try {
+                        request.answer.await()
+                    } catch (cancel: CancellationException) {
+                        throw cancel
+                    } catch (_: Exception) {
+                        null
+                    }
+                    if (late == RouteRequestResult.Started) markStarted(request)
+                }
+            }
+            result is RouteRequestResult.Failed -> {
+                lastRequest = null
+                routeRequest.value = RouteRequestState.Failed(result.reason)
+                request.stop()
+            }
         }
-        if (result == RouteRequestResult.Started) viewModelScope.launch { recordPin(request.place.id) }
-        // 대조로 먼저 정해졌으면 기다리던 요청(내비 리스너)을 거둠 — 늦은 알림이 와도 다시 정하지 않음
-        request.job?.cancel()
     }
 
-    /** 내비가 지금 [place] 로 안내 중인가 — 조회 실패 · 한도 지남이면 아님. */
-    private suspend fun naviIsHeadingTo(place: Place): Boolean = try {
-        // 얼림이 풀린 직후 쌓인 콜백이 먼저 지나가게 — 그 사이 조회는 옛 상태를 받을 수 있음
+    /** 바로 앞 요청이 시작됨 — 요청마다 한 번만(결과 문구 · 핀 1건 · 기록 중일 때만은 저장소가 봄 · T92 · T93). */
+    private fun markStarted(request: GuideRequest) {
+        if (lastRequest !== request) return
+        lastRequest = null
+        routeRequest.value = RouteRequestState.Started(request.place.name)
+        viewModelScope.launch { recordPin(request.place.id) }
+        // 기다리던 응답 · 한도 · 늦은 알림 대기를 거둠(내비 리스너 제거) — 같은 요청이 다시 정해지지 않음
+        request.stop()
+    }
+
+    /**
+     * 내비가 지금 [request] 의 장소로 안내 중인가 — 조회 실패 · 한도 지남이면 아님.
+     * 기다리는 사이 그 요청이 이미 정해졌거나 새 요청으로 바뀌었으면 조회하지 않음.
+     */
+    private suspend fun naviIsHeadingTo(request: GuideRequest): Boolean = try {
+        // 얼림이 풀린 직후 쌓인 콜백(늦은 onRouteStarted 포함)이 먼저 지나가게 — 그 사이 조회는 옛 상태를 받을 수 있음
         delay(AppConfig.NAVI_QUERY_SETTLE_DELAY_MILLIS)
-        withTimeoutOrNull(AppConfig.SDK_CALL_TIMEOUT_MS) { naviRepository.activeRoute() }?.isHeadingTo(place) == true
+        lastRequest === request &&
+            withTimeoutOrNull(AppConfig.SDK_CALL_TIMEOUT_MS) { naviRepository.activeRoute() }
+                ?.isHeadingTo(request.place) == true
     } catch (cancel: CancellationException) {
         throw cancel
     } catch (error: Exception) {
@@ -282,5 +329,6 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "HomeViewModel"
+        val TIMEOUT = RouteRequestResult.Failed(RouteFailReason.TIMEOUT)
     }
 }

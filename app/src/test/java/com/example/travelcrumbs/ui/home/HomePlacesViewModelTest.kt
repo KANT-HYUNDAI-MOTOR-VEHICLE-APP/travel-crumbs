@@ -573,7 +573,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 가 한도 지남 · 내비가 그 장소로 안내 중 — 시작됨 · 핀 1건`() = runTest(dispatcher) {
+    fun `T89 R1 한도 지남 · 내비가 그 장소로 안내 중 — 시작됨 · 핀 1건`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -588,7 +588,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 나 한도 지남 · 내비 목적지가 다른 곳 또는 안내 중 아님 — TIMEOUT · 핀 0`() = runTest(dispatcher) {
+    fun `T90 R1 한도 지남 · 내비 목적지가 다른 곳 또는 안내 중 아님 — TIMEOUT · 핀 0`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -610,7 +610,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 다 재개 대조로 시작됨 뒤 늦은 시작 알림 — 결과 1번 · 핀 1건`() = runTest(dispatcher) {
+    fun `T92 R1 재개 대조로 시작됨 뒤 늦은 시작 알림 · 또 대조 — 결과 1번 · 핀 1건`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -630,7 +630,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 다 시작 알림이 먼저 오고 재개 대조가 뒤 — 핀 1건 · 대조 안 함`() = runTest(dispatcher) {
+    fun `T93 R1 시작 알림이 먼저 오고 재개가 뒤 — 핀 1건 · 대조 안 함`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -646,7 +646,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 다 재개 대조가 기다리는 사이 늦은 시작 알림 — 알림으로 정해지고 대조는 무시 · 핀 1건`() = runTest(dispatcher) {
+    fun `T92 R1 재개 대조가 기다리는 사이 늦은 시작 알림 — 한 번만 정해짐 · 핀 1건`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -663,7 +663,7 @@ class HomePlacesViewModelTest {
     }
 
     @Test
-    fun `R1 라 재개 때 대조 — 안내 중이면 한도 전에 시작됨 · 아니면 요청 중 그대로`() = runTest(dispatcher) {
+    fun `T95 R1 재개 때 대조 — 한도 전 안내 중 아니면 요청 중 그대로 · 안내 중이면 시작됨`() = runTest(dispatcher) {
         val f = start(Fixture(pinned = listOf("a")))
         f.vm.onGuide("a")
         runCurrent()
@@ -690,5 +690,106 @@ class HomePlacesViewModelTest {
 
         assertEquals(0, f.navi.activeRouteQueries)
         assertEquals(RouteRequestState.Idle, f.state.routeRequest)
+    }
+
+    @Test
+    fun `T90 R1 한도 지남 · 내비 조회 예외 — TIMEOUT · 핀 0`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.navi.guidingTo(testPlace("a"))
+        f.navi.activeRouteError = IllegalStateException("CAUSE_SEARCH_ROUTE")
+        f.vm.onGuide("a")
+        runCurrent()
+
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+    }
+
+    @Test
+    fun `T90 R1 한도 지남 · 내비 조회가 답하지 않음 — 조회 한도 뒤 TIMEOUT · 핀 0`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.navi.guidingTo(testPlace("a"))
+        f.navi.activeRouteGate = CompletableDeferred()
+        f.vm.onGuide("a")
+        runCurrent()
+
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+
+        advanceTimeBy(AppConfig.SDK_CALL_TIMEOUT_MS + 1)
+        runCurrent()
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+    }
+
+    @Test
+    fun `T91 R1 TIMEOUT 뒤 내비가 A 안내를 시작 · 앱이 다시 앞으로 옴 — 시작됨 A · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+        assertEquals(RouteRequestState.Failed(RouteFailReason.TIMEOUT), f.state.routeRequest)
+        assertTrue(f.state.guideEnabled)
+
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `T91 R1 TIMEOUT 뒤 늦은 onRouteStarted — 시작됨 A · 핀 1건 · 뒤 재개 대조로 다시 정하지 않음`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a")))
+        f.vm.onGuide("a")
+        runCurrent()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals(listOf("a"), f.pins.recorded)
+        assertEquals("이미 정해진 요청은 조회하지 않음", 1, f.navi.activeRouteQueries)
+    }
+
+    @Test
+    fun `T94 R1 TIMEOUT A 뒤 B 를 새로 요청 — A 는 대조하지 않고 늦은 A 알림도 무시 · B 흐름만`() = runTest(dispatcher) {
+        val f = start(Fixture(pinned = listOf("a", "b")))
+        f.vm.onGuide("a")
+        runCurrent()
+        advanceTimeBy(AppConfig.ROUTE_START_TIMEOUT_MILLIS + 1)
+        runCurrent()
+        settleNaviQuery()
+
+        f.vm.onGuide("b")
+        runCurrent()
+        assertEquals(RouteRequestState.Requesting("b"), f.state.routeRequest)
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals(RouteRequestState.Requesting("b"), f.state.routeRequest)
+        assertTrue(f.pins.recorded.isEmpty())
+
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        assertEquals(RouteRequestState.Started("b 이름"), f.state.routeRequest)
+        assertEquals(listOf("b"), f.pins.recorded)
+        assertEquals(listOf("a", "b"), f.navi.routeRequests.map { it.id })
     }
 }

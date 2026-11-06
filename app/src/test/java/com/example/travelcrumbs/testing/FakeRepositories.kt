@@ -69,8 +69,16 @@ class FakeNaviRepository(
     var activeRouteQueries: Int = 0
         private set
 
+    /** 조회가 던질 예외(T90) — null 이면 [activeRoute] 를 돌려줌. */
+    var activeRouteError: Throwable? = null
+
+    /** 조회 응답을 늦춤(T90 조회 한도) — 완료되기 전엔 답하지 않음. */
+    var activeRouteGate: CompletableDeferred<Unit>? = null
+
     override suspend fun activeRoute(): NaviActiveRoute {
         activeRouteQueries++
+        activeRouteGate?.await()
+        activeRouteError?.let { throw it }
         return activeRoute
     }
 

@@ -37,6 +37,7 @@ class NaviInfoDataSource @Inject constructor(
     private val naviHelper = NaviHelper(context.applicationContext)
     private val initialized = AtomicBoolean(false)
     private val _ready = MutableStateFlow(false)
+    private val queryWindow = NaviQueryWindow()
 
     /** 내비 서비스에 붙었는지. */
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
@@ -86,7 +87,9 @@ class NaviInfoDataSource @Inject constructor(
         )
     }
 
-    private suspend fun destinationInfo(): DestinationInfo = suspendCancellableCoroutine { continuation ->
+    private suspend fun destinationInfo(): DestinationInfo = queryWindow.around { destinationInfoOnce() }
+
+    private suspend fun destinationInfoOnce(): DestinationInfo = suspendCancellableCoroutine { continuation ->
         val listener = object : NaviHelperEventListener {
             override fun onDestinationInfo(destinationInfo: DestinationInfo) {
                 naviHelper.removeListener(this)
@@ -109,7 +112,9 @@ class NaviInfoDataSource @Inject constructor(
             }
     }
 
-    private suspend fun routeStateInfo(): RouteStateInfo = suspendCancellableCoroutine { continuation ->
+    private suspend fun routeStateInfo(): RouteStateInfo = queryWindow.around { routeStateInfoOnce() }
+
+    private suspend fun routeStateInfoOnce(): RouteStateInfo = suspendCancellableCoroutine { continuation ->
         val listener = object : NaviHelperEventListener {
             override fun onRouteStateInfo(routeStateInfo: RouteStateInfo) {
                 naviHelper.removeListener(this)
@@ -146,6 +151,11 @@ class NaviInfoDataSource @Inject constructor(
             }
 
             override fun onError(errorCode: NaviErrorCode) {
+                if (queryWindow.open) {
+                    // 상태 조회 중 — 그 조회의 오류일 수 있어 요청 결과로 쓰지 않음(리뷰 P3 · 계속 기다림)
+                    Log.w(TAG, "onError ${errorCode.name} — 조회 중이라 무시")
+                    return
+                }
                 Log.w(TAG, "onError ${errorCode.name}")
                 naviHelper.removeListener(this)
                 if (continuation.isActive) continuation.resume(RouteRequestResult.Failed(errorCode.toFailReason()))
