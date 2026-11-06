@@ -414,6 +414,29 @@ class HomeRouteFallbackViewModelTest {
     }
 
     @Test
+    fun `T107 R3-3 새 요청으로 패널이 닫히는 동안 「요청 중 + 패널 열림」 사이값이 화면 상태에 없음`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        failWith(f, "a")
+        f.vm.onShowDummyRoute()
+        runCurrent()
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch { f.vm.uiState.collect { seen += it } }
+        runCurrent()
+
+        f.vm.onGuide("b")
+        runCurrent()
+        f.vm.onShowDummyRoute()
+        f.vm.onRetry()
+        runCurrent()
+
+        assertTrue(seen.any { it.routeRequest is RouteRequestState.Requesting })
+        assertTrue(
+            "요청 중인데 패널이 열린 상태는 없음",
+            seen.none { it.routeRequest is RouteRequestState.Requesting && it.dummyRoute != null },
+        )
+    }
+
+    @Test
     fun `T107 보충 실패 A · 패널 열림 → B 여기로 안내가 미연결로 실패 — 실패 B · 패널 닫힘(장소가 바뀜)`() = runTest(dispatcher) {
         val f = start(Fixture())
         failWith(f, "a")

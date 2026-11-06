@@ -302,9 +302,10 @@ class HomeViewModel @Inject constructor(
      * (새 요청 · 늦은 시작 판정 · 다른 장소의 실패 · navigation 3.2 · T106 · T107).
      */
     private fun showRouteRequest(state: RouteRequestState) {
+        // 패널을 먼저 닫고 요청 상태를 씀 — 「요청 중 + 패널 열림」 같은 사이값이 생기지 않게(UDF)
+        val shown = dummyRoute.value
+        if (shown != null && (state as? RouteRequestState.Failed)?.placeId != shown.id) dummyRoute.value = null
         routeRequest.value = state
-        val shown = dummyRoute.value ?: return
-        if ((state as? RouteRequestState.Failed)?.placeId != shown.id) dummyRoute.value = null
     }
 
     /** 「고정」 — 정차일 때만 · 최대면 저장소가 그대로 둠(T36). */

@@ -78,12 +78,11 @@ fun DummyRoutePanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
             ) {
+                // 시연용 표시는 잘리지 않게 줄바꿈 허용 — 「실제 길안내가 아니에요」가 늘 보여야 함(심사 1 · 2)
                 Text(
                     text = stringResource(R.string.dummy_route_notice),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 FallbackButton(text = stringResource(R.string.dummy_route_close), enabled = true, onClick = onClose)
