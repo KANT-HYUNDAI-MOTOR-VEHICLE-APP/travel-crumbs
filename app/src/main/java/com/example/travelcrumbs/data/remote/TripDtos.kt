@@ -172,3 +172,25 @@ data class TripListItemDto(
     @SerialName("dist") val dist: Int? = null,
     @SerialName("place_cnt") val placeCnt: Int = 0,
 )
+
+/** 서버 `GET /trips/{trip_uuid}/route` 응답 — 경로 그림(간소화 경로점 + 장소 좌표). */
+@Serializable
+data class TripRouteResponse(
+    @SerialName("points") val points: List<RouteCoordDto> = emptyList(),
+    @SerialName("places") val places: List<RoutePlaceDto> = emptyList(),
+)
+
+@Serializable
+data class RouteCoordDto(
+    @SerialName("lat") val lat: Double,
+    @SerialName("lng") val lng: Double,
+)
+
+@Serializable
+data class RoutePlaceDto(
+    @SerialName("trip_place_no") val tripPlaceNo: Long,
+    @SerialName("lat") val lat: Double,
+    @SerialName("lng") val lng: Double,
+    @SerialName("draft_yn") val draftYn: String,
+    @SerialName("user_place_nm") val userPlaceNm: String? = null,
+)

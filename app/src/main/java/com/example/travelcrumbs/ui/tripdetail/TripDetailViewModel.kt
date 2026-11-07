@@ -41,6 +41,10 @@ class TripDetailViewModel @Inject constructor(
                 },
             )
         }
+        // 경로 그림은 따로 — 실패해도 상세는 보임
+        viewModelScope.launch {
+            tripRepository.route(uuid).onSuccess { drawn -> state.update { it.copy(route = drawn) } }
+        }
     }
 
     fun onRetry() {

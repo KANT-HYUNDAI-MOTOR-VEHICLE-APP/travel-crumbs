@@ -4,6 +4,8 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RecordingStatus
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.domain.model.TripRoute
+import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.ui.components.UiMessage
 
 /** 홈이 그릴 것 — 맨 위 영역(기록 상태 · 경과 · 안내) + debug SDK 확인 카드 값. 불변. */
@@ -28,6 +30,14 @@ data class HomeUiState(
     val showPlaceInput: Boolean = false,
     /** 여행 시작 설정(A-04)을 홈 자리에 띄웠는지. */
     val showTripSetup: Boolean = false,
+    /** 경로 그림(지도 자리 · 지시서 17장) — 기록 중인 여행 또는 최근 여행. 없으면 null. */
+    val route: TripRoute? = null,
+    /** 경로 그림이 기록 중인 여행인지(아니면 최근 여행). */
+    val routeIsActive: Boolean = false,
+    /** 경로 그림이 최근 여행이면 그 여행명. */
+    val routeTripName: String? = null,
+    /** 최근 여행 카드(완료된 여행 · 최신순). */
+    val recentTrips: List<TripSummary> = emptyList(),
     val recording: RecordingStatus = RecordingStatus.RECORDING,
     val elapsedMinutes: Long = 0L,
     val message: UiMessage? = null,

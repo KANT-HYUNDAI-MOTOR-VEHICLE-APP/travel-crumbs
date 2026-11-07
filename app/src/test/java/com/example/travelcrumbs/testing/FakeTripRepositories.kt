@@ -11,6 +11,7 @@ import com.example.travelcrumbs.domain.model.Tag
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
 import com.example.travelcrumbs.domain.model.TripDetail
+import com.example.travelcrumbs.domain.model.TripRoute
 import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.domain.model.TripPlace
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,6 +75,12 @@ class FakeTripRepository(
         active.value = trip
         return Result.success(trip)
     }
+
+    /** 경로 그림 — 여행 구분 없이 같은 값. */
+    var route: TripRoute = TripRoute()
+
+    override suspend fun route(tripUuid: String): Result<TripRoute> =
+        failWith?.let { Result.failure(it) } ?: Result.success(route)
 
     var trips: List<TripSummary> = emptyList()
 

@@ -2,9 +2,10 @@
 <resources>
     <string name="app_name">Travel Crumbs</string>
 
-    <!-- 레일 목적지(스펙 app-shell 2-1) — 여행 · 설정 화면 제목도 같은 문자열 -->
-    <string name="nav_home">홈</string>
-    <string name="nav_trips">여행</string>
+    <!-- 레일 목적지(스펙 app-shell 2-1 · 디자인 시스템 지시서 10장) — 화면 제목도 같은 문자열 -->
+    <string name="nav_home">여행 기록</string>
+    <string name="nav_trips">여행 목록</string>
+    <string name="nav_places">찍힌 장소</string>
     <string name="nav_settings">설정</string>
 
     <!-- 「이어서 쓰기」 띠 -->
@@ -54,6 +55,13 @@
     <string name="trips_paused">%1$s · 일시정지 · 장소 %2$d개</string>
     <string name="trips_recording">%1$s · 기록 중 · 장소 %2$d개</string>
     <string name="home_place_input">장소 경험 입력 · 남은 기록 %1$d</string>
+
+    <!-- 경로 그림(지도 자리 · 디자인 시스템 지시서 17장) · 최근 여행(23장) -->
+    <string name="home_route_empty">여행을 시작하면 지나온 길이 여기에 그려져요</string>
+    <string name="home_route_active">지금 여행</string>
+    <string name="home_route_recent">최근 여행 · %1$s</string>
+    <string name="home_recent_title">최근 여행</string>
+    <string name="trip_detail_route_empty">기록한 경로가 없어요</string>
 
     <!-- 장소 경험 입력(A-06) -->
     <string name="place_input_title">장소 경험 입력 · 남은 기록 %1$d</string>

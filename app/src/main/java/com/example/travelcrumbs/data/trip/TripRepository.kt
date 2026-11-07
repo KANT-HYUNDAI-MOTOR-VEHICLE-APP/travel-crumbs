@@ -7,12 +7,16 @@ import com.example.travelcrumbs.data.remote.TripCreateRequest
 import com.example.travelcrumbs.data.remote.TripDetailResponse
 import com.example.travelcrumbs.data.remote.TripPlaceCreateRequest
 import com.example.travelcrumbs.data.remote.TripResponse
+import com.example.travelcrumbs.data.remote.TripRouteResponse
 import com.example.travelcrumbs.data.remote.TripUpdateRequest
+import com.example.travelcrumbs.domain.model.GeoPoint
+import com.example.travelcrumbs.domain.model.RoutePin
 import com.example.travelcrumbs.domain.model.TimelinePlace
 import com.example.travelcrumbs.domain.model.RoutePoint
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
 import com.example.travelcrumbs.domain.model.TripDetail
+import com.example.travelcrumbs.domain.model.TripRoute
 import com.example.travelcrumbs.domain.model.TripSummary
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -61,6 +65,9 @@ interface TripRepository {
 
     /** 「제목 수정」(A-08). */
     suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail>
+
+    /** 경로 그림(홈 · 여행 상세) — 기록 중이면 지금까지의 경로. */
+    suspend fun route(tripUuid: String): Result<TripRoute>
 }
 
 @Singleton
@@ -119,6 +126,23 @@ class DefaultTripRepository @Inject constructor(
     override suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail> = runCatching {
         api.updateTrip(tripUuid, TripUpdateRequest(tripNm = tripName)).toDomain()
     }
+
+    override suspend fun route(tripUuid: String): Result<TripRoute> = runCatching {
+        api.getTripRoute(tripUuid).toDomain()
+    }
+
+    private fun TripRouteResponse.toDomain(): TripRoute = TripRoute(
+        points = points.map { GeoPoint(lat = it.lat, lng = it.lng) },
+        places = places.map {
+            RoutePin(
+                tripPlaceNo = it.tripPlaceNo,
+                lat = it.lat,
+                lng = it.lng,
+                isDraft = it.draftYn == "Y",
+                name = it.userPlaceNm,
+            )
+        },
+    )
 
     private fun TripDetailResponse.toDomain(): TripDetail = TripDetail(
         tripUuid = tripUuid,

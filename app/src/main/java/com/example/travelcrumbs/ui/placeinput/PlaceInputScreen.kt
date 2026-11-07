@@ -6,27 +6,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.FieldLabel
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.TcChip
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
@@ -62,10 +61,10 @@ fun PlaceInputScreen(
             Text(
                 text = stringResource(R.string.place_input_title, uiState.draftCount),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             if (uiState.loadFailed) {
-                Button(onClick = viewModel::onRetry) { Text(text = stringResource(R.string.retry)) }
+                TcButton(text = stringResource(R.string.retry), onClick = viewModel::onRetry)
                 return@Column
             }
 
@@ -74,11 +73,10 @@ fun PlaceInputScreen(
             if (uiState.candidates.isNotEmpty()) {
                 ChipRow {
                     uiState.candidates.forEach { place ->
-                        FilterChip(
+                        TcChip(
+                            label = place.name,
                             selected = uiState.selectedCandidate == place,
                             onClick = { viewModel.onSelectCandidate(place) },
-                            label = { Text(text = place.name, style = MaterialTheme.typography.titleMedium) },
-                            modifier = Modifier.height(Dimens.HomeButtonHeight),
                         )
                     }
                 }
@@ -96,22 +94,20 @@ fun PlaceInputScreen(
             Label(R.string.place_input_type_label)
             ChipRow {
                 uiState.categories.forEach { category ->
-                    FilterChip(
+                    TcChip(
+                        label = category.label,
                         selected = uiState.selectedCategory == category.code,
                         onClick = { viewModel.onSelectCategory(category.code) },
-                        label = { Text(text = category.label, style = MaterialTheme.typography.titleMedium) },
-                        modifier = Modifier.height(Dimens.HomeButtonHeight),
                     )
                 }
             }
             if (uiState.visibleTypes.isNotEmpty()) {
                 ChipRow {
                     uiState.visibleTypes.forEach { type ->
-                        FilterChip(
+                        TcChip(
+                            label = type.label,
                             selected = uiState.selectedType == type.code,
                             onClick = { viewModel.onSelectType(type.code) },
-                            label = { Text(text = type.label, style = MaterialTheme.typography.titleMedium) },
-                            modifier = Modifier.height(Dimens.HomeButtonHeight),
                         )
                     }
                 }
@@ -121,11 +117,10 @@ fun PlaceInputScreen(
             Label(R.string.place_input_polarity_label)
             ChipRow {
                 uiState.polarities.forEach { polarity ->
-                    FilterChip(
+                    TcChip(
+                        label = polarity.label,
                         selected = uiState.selectedPolarity == polarity.code,
                         onClick = { viewModel.onSelectPolarity(polarity.code) },
-                        label = { Text(text = polarity.label, style = MaterialTheme.typography.titleMedium) },
-                        modifier = Modifier.height(Dimens.HomeButtonHeight),
                     )
                 }
             }
@@ -134,11 +129,10 @@ fun PlaceInputScreen(
             Label(R.string.place_input_tag_label)
             ChipRow {
                 uiState.tags.forEach { tag ->
-                    FilterChip(
+                    TcChip(
+                        label = tag.name,
                         selected = tag.tagNo in uiState.selectedTags,
                         onClick = { viewModel.onToggleTag(tag.tagNo) },
-                        label = { Text(text = tag.name, style = MaterialTheme.typography.titleMedium) },
-                        modifier = Modifier.height(Dimens.HomeButtonHeight),
                     )
                 }
             }
@@ -153,16 +147,16 @@ fun PlaceInputScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                TextButton(onClick = viewModel::onLater, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
-                    Text(text = stringResource(R.string.place_input_later), style = MaterialTheme.typography.titleLarge)
-                }
-                Button(
+                TcButton(text = stringResource(R.string.place_input_later), onClick = viewModel::onLater)
+                // 이 화면의 주요 행동 — 저장
+                TcButton(
+                    text = stringResource(R.string.place_input_save),
                     onClick = viewModel::onSave,
-                    enabled = uiState.canSave,
-                    modifier = Modifier.height(Dimens.HomeButtonHeight),
-                ) {
-                    Text(text = stringResource(R.string.place_input_save), style = MaterialTheme.typography.titleLarge)
-                }
+                    kind = TcButtonKind.PRIMARY,
+                    iconRes = R.drawable.ic_check,
+                    enabled = uiState.canSave || uiState.saving,
+                    loading = uiState.saving,
+                )
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
@@ -173,12 +167,14 @@ fun PlaceInputScreen(
             onDismissRequest = viewModel::onContinueInput,
             text = { Text(text = stringResource(R.string.place_input_leave_body), style = MaterialTheme.typography.bodyLarge) },
             confirmButton = {
-                Button(onClick = viewModel::onKeepDraft) { Text(text = stringResource(R.string.place_input_keep_draft)) }
+                TcButton(
+                    text = stringResource(R.string.place_input_keep_draft),
+                    onClick = viewModel::onKeepDraft,
+                    kind = TcButtonKind.PRIMARY,
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::onContinueInput) {
-                    Text(text = stringResource(R.string.place_input_continue))
-                }
+                TcButton(text = stringResource(R.string.place_input_continue), onClick = viewModel::onContinueInput)
             },
         )
     }
@@ -186,13 +182,13 @@ fun PlaceInputScreen(
 
 @Composable
 private fun Label(textRes: Int) {
-    Text(text = stringResource(textRes), style = MaterialTheme.typography.titleMedium)
+    FieldLabel(text = stringResource(textRes))
 }
 
 @Composable
 private fun ChipRow(content: @Composable () -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall),
     ) { content() }
 }

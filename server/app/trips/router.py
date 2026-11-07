@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.trips import service
 from app.trips.schemas import (
+    TripRouteResponse,
     CurrentTripResponse,
     RoutePointsCreateRequest,
     RoutePointsCreateResponse,
@@ -112,6 +113,15 @@ async def end(
     session: AsyncSession = Depends(get_session),
 ) -> TripDetailResponse:
     return await service.end_trip(session, user.user_no, trip_uuid)
+
+
+@router.get("/{trip_uuid}/route", response_model=TripRouteResponse)
+async def read_route(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripRouteResponse:
+    return await service.route(session, user.user_no, trip_uuid)
 
 
 @router.get("/{trip_uuid}", response_model=TripDetailResponse)

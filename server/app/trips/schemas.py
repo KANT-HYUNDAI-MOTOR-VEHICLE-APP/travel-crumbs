@@ -182,3 +182,27 @@ class TripListItem(BaseModel):
     start_at: datetime = Field(description="시작일시")
     dist: int | None = Field(description="거리(m) — 종료 전이면 null")
     place_cnt: int = Field(description="장소개수")
+
+
+class RouteCoord(BaseModel):
+    """경로 그림의 점 하나."""
+
+    lat: float = Field(description="위도")
+    lng: float = Field(description="경도")
+
+
+class RoutePlace(BaseModel):
+    """경로 그림 위 장소 핀 — 기록 순서."""
+
+    trip_place_no: int = Field(description="여행장소번호")
+    lat: float = Field(description="위도")
+    lng: float = Field(description="경도")
+    draft_yn: str = Field(description="임시저장여부")
+    user_place_nm: str | None = Field(description="사용자장소명")
+
+
+class TripRouteResponse(BaseModel):
+    """경로 그림(홈 · 여행 상세) — 지도 없이 점 · 선으로 그릴 값. 기록 중이어도 지금까지의 경로."""
+
+    points: list[RouteCoord] = Field(description="간소화한 경로점(기록 순서)")
+    places: list[RoutePlace] = Field(description="기록한 장소")

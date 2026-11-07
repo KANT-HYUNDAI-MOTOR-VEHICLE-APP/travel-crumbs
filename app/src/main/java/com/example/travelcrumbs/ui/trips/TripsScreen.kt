@@ -1,6 +1,5 @@
 package com.example.travelcrumbs.ui.trips
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,17 +14,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TripCard
+import com.example.travelcrumbs.ui.components.tripSummaryText
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.tripdetail.TripDetailScreen
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
  * 여행(레일 「여행」 · A-07 간단판) — 내 여행 목록(여행명 · 날짜 · 거리 · 장소 수).
@@ -59,43 +54,26 @@ fun TripsScreen(
             Text(
                 text = stringResource(R.string.trips_title),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             when {
-                uiState.loadFailed -> Button(onClick = viewModel::load) { Text(text = stringResource(R.string.retry)) }
+                uiState.loadFailed -> TcButton(text = stringResource(R.string.retry), onClick = viewModel::load)
                 !uiState.loading && uiState.trips.isEmpty() ->
-                    Text(text = stringResource(R.string.trips_empty), style = MaterialTheme.typography.bodyLarge)
-                else -> uiState.trips.forEach { trip -> TripRow(trip, onClick = { viewModel.onSelect(trip.tripUuid) }) }
+                    Text(
+                        text = stringResource(R.string.trips_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                // 여행 카드(지시서 15장) — 카드 전체가 한 터치 영역
+                else -> uiState.trips.forEach { trip ->
+                    TripCard(
+                        title = trip.tripName,
+                        summary = tripSummaryText(trip),
+                        onClick = { viewModel.onSelect(trip.tripUuid) },
+                    )
+                }
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }
 }
-
-@Composable
-private fun TripRow(trip: TripSummary, onClick: () -> Unit) {
-    val date = runCatching {
-        OffsetDateTime.parse(trip.startAt).atZoneSameInstant(ZoneId.systemDefault()).format(DATE)
-    }.getOrDefault("")
-    val summary = if (trip.statusCode == RECORDING) {
-        stringResource(R.string.trips_recording, date, trip.placeCount)
-    } else if (trip.statusCode == PAUSED) {
-        stringResource(R.string.trips_paused, date, trip.placeCount)
-    } else {
-        stringResource(R.string.trips_summary, date, (trip.distanceMeters ?: 0) / 1000.0, trip.placeCount)
-    }
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-    ) {
-        Column(modifier = Modifier.padding(Dimens.ItemSpacing)) {
-            Text(text = trip.tripName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(text = summary, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
-}
-
-private const val RECORDING = "RECORDING"
-private const val PAUSED = "PAUSED"
-private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")

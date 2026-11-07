@@ -28,6 +28,9 @@ from app.trips import repository
 from app.trips import route as route_calc
 from app.trips.models import TripMst, TripPlaceDtl, TripStatus
 from app.trips.schemas import (
+    RouteCoord,
+    RoutePlace,
+    TripRouteResponse,
     CurrentTripResponse,
     RoutePointsCreateRequest,
     RoutePointsCreateResponse,
@@ -279,6 +282,30 @@ async def my_trips(session: AsyncSession, user_no: int) -> list[TripListItem]:
         )
         for t in await repository.find_my_trips(session, user_no)
     ]
+
+
+async def route(
+    session: AsyncSession, user_no: int, trip_uuid: str
+) -> TripRouteResponse:
+    """경로 그림 — 원본 경로점을 간소화(기록 중이면 지금까지) + 장소 좌표."""
+    trip = await _my_trip(session, user_no, trip_uuid)
+    coords = route_calc.simplify(
+        await repository.find_route_coords(session, trip.trip_no)
+    )
+    rows = await repository.find_places(session, trip.trip_no, None)
+    return TripRouteResponse(
+        points=[RouteCoord(lat=lat, lng=lng) for lat, lng in coords],
+        places=[
+            RoutePlace(
+                trip_place_no=r.trip_place_no,
+                lat=float(r.lat),
+                lng=float(r.lng),
+                draft_yn=r.draft_yn,
+                user_place_nm=r.user_place_nm,
+            )
+            for r in rows
+        ],
+    )
 
 
 async def _my_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:

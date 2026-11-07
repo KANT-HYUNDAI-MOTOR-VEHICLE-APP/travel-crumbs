@@ -15,8 +15,10 @@ enum class AppDestination(
     @param:DrawableRes val iconRes: Int,
     val allowedWhileDriving: Boolean,
 ) {
-    HOME(id = "home", labelRes = R.string.nav_home, iconRes = R.drawable.ic_nav_home, allowedWhileDriving = false),
+    // 레일 메뉴(디자인 시스템 지시서 10장) — 여행 기록 · 여행 목록 · 찍힌 장소 · 설정. id 는 딥링크 이름이라 그대로 둠
+    HOME(id = "home", labelRes = R.string.nav_home, iconRes = R.drawable.ic_record, allowedWhileDriving = false),
     TRIPS(id = "trips", labelRes = R.string.nav_trips, iconRes = R.drawable.ic_nav_trips, allowedWhileDriving = false),
+    PLACES(id = "places", labelRes = R.string.nav_places, iconRes = R.drawable.ic_place, allowedWhileDriving = false),
     SETTINGS(
         id = "settings",
         labelRes = R.string.nav_settings,

@@ -16,9 +16,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.driving.DrivingScreen
 import com.example.travelcrumbs.ui.home.HomeScreen
 import com.example.travelcrumbs.ui.navigation.AppDestination
+import com.example.travelcrumbs.ui.places.PlacesScreen
 import com.example.travelcrumbs.ui.settings.SettingsScreen
 import com.example.travelcrumbs.ui.shell.components.AppNavigationRail
 import com.example.travelcrumbs.ui.shell.components.DraftBanner
+import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.trips.TripsScreen
 
 /**
@@ -46,13 +48,15 @@ fun AppShellScreen(
                 viewModel.onBack()
             }
             Row(modifier = Modifier.fillMaxSize()) {
+                // 레일 12% · 나머지 88%(디자인 시스템 지시서 8장)
                 AppNavigationRail(
                     selected = uiState.selectedDestination,
                     onSelect = viewModel::selectDestination,
+                    modifier = Modifier.weight(Dimens.RailWeight),
                 )
                 Column(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(Dimens.MapWeight + Dimens.InfoWeight)
                         .fillMaxHeight(),
                 ) {
                     if (uiState.draftAvailable) {
@@ -73,6 +77,7 @@ private fun DestinationContent(destination: AppDestination) {
     when (destination) {
         AppDestination.HOME -> HomeScreen()
         AppDestination.TRIPS -> TripsScreen()
+        AppDestination.PLACES -> PlacesScreen()
         AppDestination.SETTINGS -> SettingsScreen()
     }
 }

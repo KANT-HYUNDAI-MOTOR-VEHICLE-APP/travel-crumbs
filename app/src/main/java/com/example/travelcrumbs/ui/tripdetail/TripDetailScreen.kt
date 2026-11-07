@@ -3,30 +3,31 @@ package com.example.travelcrumbs.ui.tripdetail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.TimelinePlace
+import com.example.travelcrumbs.ui.components.CrumbRoute
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.PlaceCard
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
 import com.example.travelcrumbs.ui.theme.Dimens
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -34,7 +35,7 @@ import java.time.format.DateTimeFormatter
 
 /**
  * 여행 상세(A-08 · 정차) — 여행명 · 「제목 수정」 · 요약(총 거리 · 소요시간 · 장소 수) · 장소 타임라인.
- * 지도 · 공유는 시나리오 1 밖(공유 제외 · 결정 로그 D10). 「닫기」는 [onClose].
+ * 지도 대신 점 · 선 경로 그림(지도는 나중에) · 공유는 시나리오 1 밖(결정 로그 D10). 「닫기」는 [onClose].
  */
 @Composable
 fun TripDetailScreen(
@@ -51,31 +52,38 @@ fun TripDetailScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
                 .padding(Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
             val detail = uiState.detail
             if (uiState.loadFailed) {
-                Button(onClick = viewModel::onRetry) { Text(text = stringResource(R.string.retry)) }
+                TcButton(text = stringResource(R.string.retry), onClick = viewModel::onRetry)
             } else if (detail != null) {
                 // 여행명 — trip_mst.trip_nm · 수정하면 data_change_hist 1행
                 if (uiState.editingTitle) {
-                    OutlinedTextField(
-                        value = uiState.titleInput,
-                        onValueChange = viewModel::onTitleChange,
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                        TextButton(onClick = viewModel::onCancelTitle) {
-                            Text(text = stringResource(R.string.trip_setup_cancel))
-                        }
-                        Button(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall),
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.titleInput,
+                            onValueChange = viewModel::onTitleChange,
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TcButton(
+                            text = stringResource(R.string.trip_setup_cancel),
+                            onClick = viewModel::onCancelTitle,
+                            kind = TcButtonKind.TEXT,
+                        )
+                        TcButton(
+                            text = stringResource(R.string.place_input_save),
                             onClick = viewModel::onSaveTitle,
-                            enabled = !uiState.busy && uiState.titleInput.isNotBlank(),
-                        ) { Text(text = stringResource(R.string.place_input_save)) }
+                            kind = TcButtonKind.PRIMARY,
+                            enabled = uiState.titleInput.isNotBlank(),
+                            loading = uiState.busy,
+                        )
                     }
                 } else {
                     Row(
@@ -85,13 +93,17 @@ fun TripDetailScreen(
                         Text(
                             text = detail.tripName,
                             style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
-                        OutlinedButton(onClick = viewModel::onEditTitle, enabled = !uiState.busy) {
-                            Text(text = stringResource(R.string.trip_detail_edit_title))
-                        }
+                        TcButton(
+                            text = stringResource(R.string.trip_detail_edit_title),
+                            onClick = viewModel::onEditTitle,
+                            iconRes = R.drawable.ic_edit,
+                            loading = uiState.busy,
+                        )
                     }
                 }
 
@@ -104,31 +116,60 @@ fun TripDetailScreen(
                         (detail.durationSeconds ?: 0) % 3600 / 60,
                         detail.placeCount,
                     ),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                // 장소 타임라인 — trip_place_dtl(기록 순서)
-                if (detail.places.isEmpty()) {
-                    Text(text = stringResource(R.string.trip_detail_no_place), style = MaterialTheme.typography.bodyLarge)
+                // 왼쪽 경로 그림 · 오른쪽 장소 타임라인(지시서 8장 비율)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
+                ) {
+                    CrumbRoute(
+                        route = uiState.route,
+                        emptyText = stringResource(R.string.trip_detail_route_empty),
+                        modifier = Modifier
+                            .weight(Dimens.MapWeight)
+                            .fillMaxHeight(),
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(Dimens.InfoWeight)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall),
+                    ) {
+                        // 장소 타임라인 — trip_place_dtl(기록 순서) · 장소 경험 카드(지시서 16장)
+                        if (detail.places.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.trip_detail_no_place),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        detail.places.forEach { place -> TimelineCard(place) }
+                    }
                 }
-                detail.places.forEach { place -> TimelineRow(place) }
             }
         }
         Row(modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)) {
-            Button(onClick = onClose, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
-                Text(text = stringResource(R.string.trip_detail_close), style = MaterialTheme.typography.titleLarge)
-            }
+            TcButton(
+                text = stringResource(R.string.trip_detail_close),
+                onClick = onClose,
+                iconRes = R.drawable.ic_close,
+            )
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }
 }
 
 @Composable
-private fun TimelineRow(place: TimelinePlace) {
+private fun TimelineCard(place: TimelinePlace) {
     val time = runCatching {
         OffsetDateTime.parse(place.recordedAt).atZoneSameInstant(ZoneId.systemDefault()).format(TIME)
     }.getOrDefault("")
-    val name = place.userPlaceName ?: stringResource(R.string.trip_detail_draft_place)
     val details = listOfNotNull(
         place.placeTypeName,
         when (place.reviewPolarityCode) {
@@ -136,15 +177,15 @@ private fun TimelineRow(place: TimelinePlace) {
             "NEGATIVE" -> stringResource(R.string.trip_detail_negative)
             else -> null
         },
-        place.tagNames.takeIf { it.isNotEmpty() }?.joinToString(" · "),
-        place.memo,
     ).joinToString(" · ")
-    Column {
-        Text(text = "$time  $name", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        if (details.isNotEmpty()) {
-            Text(text = details, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
+    PlaceCard(
+        time = time,
+        name = place.userPlaceName ?: stringResource(R.string.trip_detail_draft_place),
+        details = details,
+        tags = place.tagNames,
+        memo = place.memo,
+        isDraft = place.isDraft,
+    )
 }
 
 private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

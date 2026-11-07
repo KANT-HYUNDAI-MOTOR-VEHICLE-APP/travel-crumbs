@@ -88,6 +88,10 @@ interface AppApi {
     suspend fun getTrips(): List<TripListItemDto>
 
     /** 여행 상세(A-08). 서버 `GET /trips/{trip_uuid}`. */
+    /** 경로 그림(홈 · 여행 상세) — 기록 중이면 지금까지. 서버 `GET /trips/{trip_uuid}/route`. */
+    @GET("trips/{trip_uuid}/route")
+    suspend fun getTripRoute(@Path("trip_uuid") tripUuid: String): TripRouteResponse
+
     @GET("trips/{trip_uuid}")
     suspend fun getTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse
 

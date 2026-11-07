@@ -18,6 +18,8 @@ import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.Trip
+import com.example.travelcrumbs.domain.model.TripRoute
+import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.domain.model.UserProfile
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,6 +61,12 @@ class HomeViewModel @Inject constructor(
     /** 홈 위에 띄운 것 — 위치정보 동의 창(A-03-1) 또는 여행 시작 설정(A-04). 둘은 동시에 뜨지 않음. */
     private val overlay = MutableStateFlow(Overlay.NONE)
 
+    /** 경로 그림(지도 자리) — 기록 중이면 그 여행, 아니면 최근 여행. */
+    private val route = MutableStateFlow<RouteView?>(null)
+
+    /** 최근 여행 카드(디자인 시스템 지시서 23장) — 최대 [RECENT_COUNT]개. */
+    private val recentTrips = MutableStateFlow<List<TripSummary>>(emptyList())
+
     init {
         loadProfile()
         // 기록 중인 여행이 바뀌거나 장소가 늘면(홈 · 주행 화면의 「이 장소 기록」) 임시 기록을 다시 읽음
@@ -68,7 +76,26 @@ class HomeViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collect { key ->
                     if (key == null) placeRepository.clearDrafts() else placeRepository.refreshDrafts(key.first)
+                    refreshRoute()
                 }
+        }
+    }
+
+    /**
+     * 경로 그림 · 최근 여행 다시 읽기 — 기록 중인 여행이 바뀌거나 장소가 늘 때, 홈이 다시 보일 때.
+     * 실패해도 홈은 그대로(그림 자리에 「경로가 아직 없어요」).
+     */
+    fun refreshRoute() {
+        viewModelScope.launch {
+            val trips = tripRepository.myTrips().getOrDefault(emptyList())
+            recentTrips.value = trips.filter { it.statusCode == COMPLETED }.take(RECENT_COUNT)
+            val active = tripRepository.activeTrip.value
+            val shown = active?.tripUuid ?: recentTrips.value.firstOrNull()?.tripUuid
+            route.value = shown?.let { uuid ->
+                tripRepository.route(uuid).getOrNull()?.let { drawn ->
+                    RouteView(drawn, isActive = active != null, tripName = if (active == null) recentTrips.value.first().tripName else null)
+                }
+            }
         }
     }
 
@@ -86,13 +113,16 @@ class HomeViewModel @Inject constructor(
         )
     }
 
-    /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역) + 입력 안 한 임시 기록(A-06). */
+    private val mapState = combine(route, recentTrips) { drawn, recent -> drawn to recent }
+
+    /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역) + 입력 안 한 임시 기록(A-06) + 경로 그림 · 최근 여행. */
     private val tripState = combine(
         overlay,
         tripRepository.activeTrip,
         placeRepository.drafts,
         endedTripUuid,
-    ) { open, trip, drafts, ended -> TripState(open, trip, drafts.size, ended) }
+        mapState,
+    ) { open, trip, drafts, ended, (drawn, recent) -> TripState(open, trip, drafts.size, ended, drawn, recent) }
 
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
@@ -100,7 +130,7 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
         profile,
         tripState,
-    ) { progress, shown, sdk, user, (open, trip, draftCount, ended) ->
+    ) { progress, shown, sdk, user, (open, trip, draftCount, ended, drawn, recent) ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
@@ -115,6 +145,10 @@ class HomeViewModel @Inject constructor(
             showPlaceInput = open == Overlay.PLACE_INPUT,
             showEndConfirm = open == Overlay.END_CONFIRM,
             tripDetailUuid = if (open == Overlay.TRIP_DETAIL) ended else null,
+            route = drawn?.route,
+            routeIsActive = drawn?.isActive == true,
+            routeTripName = drawn?.tripName,
+            recentTrips = recent,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -195,10 +229,17 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** 여행 상세 「닫기」. */
+    /** 여행 상세 「닫기」 — 방금 끝낸 여행이 최근 여행에 들어가도록 다시 읽음. */
     fun onTripDetailClosed() {
         overlay.value = Overlay.NONE
         endedTripUuid.value = null
+        refreshRoute()
+    }
+
+    /** 최근 여행 카드 — 여행 상세(A-08)를 홈 자리에 엶. */
+    fun onOpenTrip(tripUuid: String) {
+        endedTripUuid.value = tripUuid
+        overlay.value = Overlay.TRIP_DETAIL
     }
 
     /** 「장소 경험 입력」 — 임시 기록이 있을 때만 A-06. */
@@ -257,7 +298,20 @@ class HomeViewModel @Inject constructor(
         val trip: Trip?,
         val draftCount: Int,
         val ended: String?,
+        val route: RouteView?,
+        val recent: List<TripSummary>,
     )
+
+    private data class RouteView(
+        val route: TripRoute,
+        val isActive: Boolean,
+        val tripName: String?,
+    )
+
+    private companion object {
+        const val COMPLETED = "COMPLETED"
+        const val RECENT_COUNT = 2
+    }
 
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName

@@ -11,24 +11,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.FieldLabel
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.TcChip
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
@@ -64,11 +63,11 @@ fun TripSetupScreen(
             Text(
                 text = stringResource(R.string.trip_setup_title),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
             )
 
             // 여행명 — trip_mst.trip_nm
-            Text(text = stringResource(R.string.trip_setup_name_label), style = MaterialTheme.typography.titleMedium)
+            FieldLabel(text = stringResource(R.string.trip_setup_name_label))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
@@ -88,13 +87,12 @@ fun TripSetupScreen(
                         maxLines = 1,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedButton(
+                    TcButton(
+                        text = stringResource(R.string.trip_setup_name_edit),
                         onClick = viewModel::onEditName,
-                        enabled = !uiState.suggesting,
-                        modifier = Modifier.height(Dimens.HomeButtonHeight),
-                    ) {
-                        Text(text = stringResource(R.string.trip_setup_name_edit))
-                    }
+                        iconRes = R.drawable.ic_edit,
+                        loading = uiState.suggesting,
+                    )
                 }
             }
             Text(
@@ -104,20 +102,19 @@ fun TripSetupScreen(
             )
 
             // 동행자 — trip_companion_dtl.companion_type_cd (버튼 글자 = cd_dtl.cd_nm)
-            Text(text = stringResource(R.string.trip_setup_companion_label), style = MaterialTheme.typography.titleMedium)
+            FieldLabel(text = stringResource(R.string.trip_setup_companion_label))
             if (uiState.loadFailed) {
-                Button(onClick = viewModel::onRetry) { Text(text = stringResource(R.string.retry)) }
+                TcButton(text = stringResource(R.string.retry), onClick = viewModel::onRetry)
             } else {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 ) {
                     uiState.companions.forEach { companion ->
-                        FilterChip(
+                        TcChip(
+                            label = companion.label,
                             selected = companion.code in uiState.selectedCompanions,
                             onClick = { viewModel.onToggleCompanion(companion.code) },
-                            label = { Text(text = companion.label, style = MaterialTheme.typography.titleMedium) },
-                            modifier = Modifier.height(Dimens.HomeButtonHeight),
                         )
                     }
                 }
@@ -125,22 +122,22 @@ fun TripSetupScreen(
 
             Spacer(modifier = Modifier.height(Dimens.ItemSpacing))
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                TextButton(
+                TcButton(
+                    text = stringResource(R.string.trip_setup_cancel),
                     onClick = {
                         viewModel.reset()
                         onCancel()
                     },
-                    modifier = Modifier.height(Dimens.HomeButtonHeight),
-                ) {
-                    Text(text = stringResource(R.string.trip_setup_cancel), style = MaterialTheme.typography.titleLarge)
-                }
-                Button(
+                )
+                // 이 화면의 주요 행동 — 여행 기록 시작
+                TcButton(
+                    text = stringResource(R.string.trip_setup_start),
                     onClick = viewModel::onStart,
-                    enabled = uiState.canStart,
-                    modifier = Modifier.height(Dimens.HomeButtonHeight),
-                ) {
-                    Text(text = stringResource(R.string.trip_setup_start), style = MaterialTheme.typography.titleLarge)
-                }
+                    kind = TcButtonKind.PRIMARY,
+                    iconRes = R.drawable.ic_record,
+                    enabled = uiState.canStart || uiState.starting,
+                    loading = uiState.starting,
+                )
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
