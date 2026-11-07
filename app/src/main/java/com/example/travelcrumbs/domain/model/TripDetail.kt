@@ -28,3 +28,14 @@ data class TimelinePlace(
     val memo: String?,
     val tagNames: List<String>,
 )
+
+/** 여행 목록 한 줄(A-07 간단판). */
+data class TripSummary(
+    val tripUuid: String,
+    val tripName: String,
+    val statusCode: String,
+    /** 시작일시 — 서버가 준 ISO-8601 문자열. */
+    val startAt: String,
+    val distanceMeters: Int?,
+    val placeCount: Int,
+)

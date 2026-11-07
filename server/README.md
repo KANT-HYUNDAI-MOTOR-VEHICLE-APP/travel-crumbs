@@ -11,6 +11,7 @@ docker compose up -d db         # PostgreSQL 17 띄우기
 uv sync                         # Python 도구 설치
 uv run alembic upgrade head     # 테이블 만들기
 uv run python -m app.tools.seed_dev   # 샘플 사용자 넣기
+uv run python -m app.tools.seed_demo  # 시연 데이터(가안) — 페르소나 · 장소 · 완료된 여행 2건
 ```
 
 ## 앱을 테스트할 때마다

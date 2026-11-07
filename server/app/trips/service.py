@@ -33,6 +33,7 @@ from app.trips.schemas import (
     TimelinePlace,
     TripCreateRequest,
     TripDetailResponse,
+    TripListItem,
     TripPlaceCreateRequest,
     TripPlaceItem,
     TripPlaceResponse,
@@ -259,6 +260,21 @@ async def rename(
         trip.updated_user_no = user_no
         await session.commit()
     return await detail(session, user_no, trip_uuid)
+
+
+async def my_trips(session: AsyncSession, user_no: int) -> list[TripListItem]:
+    """여행 목록(A-07 간단판) — 취소한 여행은 뺌."""
+    return [
+        TripListItem(
+            trip_uuid=t.trip_uuid,
+            trip_nm=t.trip_nm,
+            trip_status_cd=t.trip_status_cd,
+            start_at=t.start_at,
+            dist=t.dist,
+            place_cnt=t.place_cnt,
+        )
+        for t in await repository.find_my_trips(session, user_no)
+    ]
 
 
 async def _my_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:

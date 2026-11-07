@@ -310,3 +310,17 @@ async def find_timeline_extras(
         )
         type_names = {cd: nm for cd, nm in (await session.execute(stmt2)).all()}
     return tag_names, type_names
+
+
+async def find_my_trips(session: AsyncSession, user_no: int) -> list[TripMst]:
+    """내 여행 — 취소한 여행은 빼고 최근 시작 순."""
+    stmt = (
+        select(TripMst)
+        .where(
+            TripMst.user_no == user_no,
+            TripMst.deleted_yn == "N",
+            TripMst.trip_status_cd != TripStatus.CANCELED,
+        )
+        .order_by(TripMst.start_at.desc())
+    )
+    return list((await session.execute(stmt)).scalars())

@@ -75,6 +75,10 @@ interface AppApi {
     @POST("trips/{trip_uuid}/end")
     suspend fun endTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse
 
+    /** 내 여행 목록(취소 제외 · 최근 순). 서버 `GET /trips`. */
+    @GET("trips")
+    suspend fun getTrips(): List<TripListItemDto>
+
     /** 여행 상세(A-08). 서버 `GET /trips/{trip_uuid}`. */
     @GET("trips/{trip_uuid}")
     suspend fun getTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse

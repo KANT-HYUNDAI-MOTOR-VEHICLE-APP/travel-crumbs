@@ -11,6 +11,7 @@ import com.example.travelcrumbs.domain.model.Tag
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
 import com.example.travelcrumbs.domain.model.TripDetail
+import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.domain.model.TripPlace
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,11 @@ class FakeTripRepository(
         active.value = null
         return Result.success(detailOf(trip.tripUuid, trip.tripName))
     }
+
+    var trips: List<TripSummary> = emptyList()
+
+    override suspend fun myTrips(): Result<List<TripSummary>> =
+        failWith?.let { Result.failure(it) } ?: Result.success(trips)
 
     override suspend fun detail(tripUuid: String): Result<TripDetail> =
         failWith?.let { Result.failure(it) } ?: Result.success(detailOf(tripUuid, renamed.lastOrNull() ?: "2026.11.07 여행"))

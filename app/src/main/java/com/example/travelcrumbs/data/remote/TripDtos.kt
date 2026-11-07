@@ -161,3 +161,14 @@ data class TripDetailResponse(
     @SerialName("route_data") val routeData: String? = null,
     @SerialName("places") val places: List<TimelinePlaceDto> = emptyList(),
 )
+
+/** 서버 `GET /trips` 응답 한 줄 — 여행 목록(A-07 간단판). */
+@Serializable
+data class TripListItemDto(
+    @SerialName("trip_uuid") val tripUuid: String,
+    @SerialName("trip_nm") val tripNm: String,
+    @SerialName("trip_status_cd") val tripStatusCd: String,
+    @SerialName("start_at") val startAt: String,
+    @SerialName("dist") val dist: Int? = null,
+    @SerialName("place_cnt") val placeCnt: Int = 0,
+)

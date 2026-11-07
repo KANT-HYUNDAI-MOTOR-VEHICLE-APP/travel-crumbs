@@ -13,6 +13,7 @@ from app.trips.schemas import (
     RoutePointsCreateResponse,
     TripCreateRequest,
     TripDetailResponse,
+    TripListItem,
     TripPlaceCreateRequest,
     TripPlaceItem,
     TripPlaceResponse,
@@ -24,6 +25,14 @@ from app.users.models import UserMst
 from app.users.service import current_user
 
 router = APIRouter(prefix="/trips", tags=["trips"])
+
+
+@router.get("", response_model=list[TripListItem])
+async def read_my_trips(
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[TripListItem]:
+    return await service.my_trips(session, user.user_no)
 
 
 @router.get("/current", response_model=CurrentTripResponse)

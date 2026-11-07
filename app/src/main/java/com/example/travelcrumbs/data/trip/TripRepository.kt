@@ -13,6 +13,7 @@ import com.example.travelcrumbs.domain.model.RoutePoint
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
 import com.example.travelcrumbs.domain.model.TripDetail
+import com.example.travelcrumbs.domain.model.TripSummary
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -49,6 +50,9 @@ interface TripRepository {
 
     /** 여행 상세(A-08). */
     suspend fun detail(tripUuid: String): Result<TripDetail>
+
+    /** 내 여행 목록(A-07 간단판). */
+    suspend fun myTrips(): Result<List<TripSummary>>
 
     /** 「제목 수정」(A-08). */
     suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail>
@@ -90,6 +94,12 @@ class DefaultTripRepository @Inject constructor(
     override suspend fun endTrip(tripUuid: String): Result<TripDetail> = runCatching {
         api.endTrip(tripUuid).toDomain()
     }.onSuccess { active.update { trip -> if (trip?.tripUuid == tripUuid) null else trip } }
+
+    override suspend fun myTrips(): Result<List<TripSummary>> = runCatching {
+        api.getTrips().map {
+            TripSummary(it.tripUuid, it.tripNm, it.tripStatusCd, it.startAt, it.dist, it.placeCnt)
+        }
+    }
 
     override suspend fun detail(tripUuid: String): Result<TripDetail> = runCatching {
         api.getTrip(tripUuid).toDomain()

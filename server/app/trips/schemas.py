@@ -171,3 +171,14 @@ class TripDetailResponse(BaseModel):
         description="간소화 경로(인코딩 폴리라인) — 종료 전이면 null"
     )
     places: list[TimelinePlace] = Field(description="장소 타임라인")
+
+
+class TripListItem(BaseModel):
+    """여행 목록(A-07 간단판) 한 줄."""
+
+    trip_uuid: str = Field(description="여행UUID")
+    trip_nm: str = Field(description="여행명")
+    trip_status_cd: str = Field(description="여행상태코드")
+    start_at: datetime = Field(description="시작일시")
+    dist: int | None = Field(description="거리(m) — 종료 전이면 null")
+    place_cnt: int = Field(description="장소개수")

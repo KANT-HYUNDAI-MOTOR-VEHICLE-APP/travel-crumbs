@@ -85,13 +85,14 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `T2 여행 누르면 준비 중 · 여행 강조`() {
+    fun `T2 여행 누르면 여행 목록 · 여행 강조`() {
         show()
 
         compose.onNodeWithText(text(R.string.nav_trips)).performClick()
 
         compose.onNode(hasText(text(R.string.nav_trips)) and isSelected()).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        // 여행 목록(A-07 간단판) — 테스트 그래프에는 여행이 없음
+        compose.onNodeWithText(text(R.string.trips_empty)).assertIsDisplayed()
     }
 
     @Test
