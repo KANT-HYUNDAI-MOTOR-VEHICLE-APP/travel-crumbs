@@ -29,6 +29,7 @@ import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
 import com.example.travelcrumbs.ui.home.components.LocationConsentDialog
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.tripsetup.TripSetupScreen
 
 /**
  * 홈(정차 · 스펙 app-shell 2-2) — 위에서 아래로
@@ -47,6 +48,16 @@ fun HomeScreen(
     },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 여행 시작 설정(A-04) — 홈 자리를 그대로 씀(레일 항목이 아니라 홈에서 들어가는 단계)
+    if (uiState.showTripSetup) {
+        TripSetupScreen(
+            onCancel = viewModel::onTripSetupCancel,
+            onStarted = viewModel::onTripStarted,
+            modifier = modifier,
+        )
+        return
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(

@@ -6,6 +6,7 @@ import com.example.travelcrumbs.data.consent.ConsentRepository
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.UserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
@@ -36,6 +37,7 @@ class HomeViewModel @Inject constructor(
     private val naviRepository: NaviRepository,
     private val userRepository: UserRepository,
     private val consentRepository: ConsentRepository,
+    private val tripRepository: TripRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -44,8 +46,8 @@ class HomeViewModel @Inject constructor(
     /** 로그인된 사용자 — 화면이 열리면 한 번 부름(홈 A-03 인사말). */
     private val profile = MutableStateFlow<SdkStatus<UserProfile>>(SdkStatus.Idle)
 
-    /** 위치정보 동의 창(A-03-1)을 띄웠는지. */
-    private val locationConsentDialog = MutableStateFlow(false)
+    /** 홈 위에 띄운 것 — 위치정보 동의 창(A-03-1) 또는 여행 시작 설정(A-04). 둘은 동시에 뜨지 않음. */
+    private val overlay = MutableStateFlow(Overlay.NONE)
 
     init {
         loadProfile()
@@ -70,15 +72,16 @@ class HomeViewModel @Inject constructor(
         message,
         sdkCheck,
         profile,
-        locationConsentDialog,
-    ) { progress, shown, sdk, user, consentDialog ->
+        overlay,
+    ) { progress, shown, sdk, user, open ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             message = shown,
             nickname = if (user is SdkStatus.Ready) user.value.nickname else null,
             userUnavailable = user is SdkStatus.Failed,
-            showLocationConsent = consentDialog,
+            showLocationConsent = open == Overlay.LOCATION_CONSENT,
+            showTripSetup = open == Overlay.TRIP_SETUP,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -106,14 +109,11 @@ class HomeViewModel @Inject constructor(
 
     /**
      * 「새 여행 시작」(A-03) — 위치정보 동의가 있으면 여행 시작 설정(A-04)으로, 없으면 동의 창(A-03-1).
-     * A-04 는 다음 묶음 — 지금은 「준비 중」 안내.
      */
     fun onStartNewTrip() {
         viewModelScope.launch {
             consentRepository.isAgreed(ConsentType.LOCATION_COLLECT).fold(
-                onSuccess = { agreed ->
-                    if (agreed) message.value = UiMessage.NOT_READY else locationConsentDialog.value = true
-                },
+                onSuccess = { agreed -> if (agreed) openTripSetup() else overlay.value = Overlay.LOCATION_CONSENT },
                 onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
             )
         }
@@ -124,8 +124,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             consentRepository.agree(ConsentType.LOCATION_COLLECT).fold(
                 onSuccess = {
-                    locationConsentDialog.value = false
-                    message.value = UiMessage.NOT_READY
+                    overlay.value = Overlay.NONE
+                    openTripSetup()
                 },
                 onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
             )
@@ -134,7 +134,28 @@ class HomeViewModel @Inject constructor(
 
     /** 동의 창 「동의 안 함」 — 아무것도 저장하지 않고 홈 유지. */
     fun onDeclineLocationConsent() {
-        locationConsentDialog.value = false
+        overlay.value = Overlay.NONE
+    }
+
+    /** 여행 시작 설정 「취소」 — 저장 없이 홈. */
+    fun onTripSetupCancel() {
+        overlay.value = Overlay.NONE
+    }
+
+    /** 여행 시작 저장 완료 — 홈으로 돌아와 안내. 여행 기록 중 화면(A-05)은 묶음 4. */
+    fun onTripStarted() {
+        overlay.value = Overlay.NONE
+        message.value = UiMessage.TRIP_STARTED
+    }
+
+    /** 기록 중인 여행이 있으면 새로 시작하지 않음(서버도 409 로 막음) — 없을 때만 A-04. */
+    private suspend fun openTripSetup() {
+        tripRepository.currentTrip().fold(
+            onSuccess = { trip ->
+                if (trip != null) message.value = UiMessage.TRIP_ALREADY_RECORDING else overlay.value = Overlay.TRIP_SETUP
+            },
+            onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
+        )
     }
 
     fun onMessageShown() {
@@ -154,6 +175,8 @@ class HomeViewModel @Inject constructor(
             )
         }
     }
+
+    private enum class Overlay { NONE, LOCATION_CONSENT, TRIP_SETUP }
 
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName

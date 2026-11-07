@@ -22,6 +22,18 @@
     <string name="consent_agree">동의하고 시작</string>
     <string name="consent_decline">동의 안 함</string>
     <string name="server_unavailable">로컬 서버에 연결하지 못했어요</string>
+    <string name="trip_already_recording">이미 기록 중인 여행이 있어요</string>
+    <string name="trip_started">여행 기록을 시작했어요</string>
+
+    <!-- 여행 시작 설정(A-04) -->
+    <string name="trip_setup_title">새 여행</string>
+    <string name="trip_setup_name_label">여행명</string>
+    <string name="trip_setup_name_edit">수정</string>
+    <string name="trip_setup_name_help">여행명은 날짜로 자동 생성되며 시작 전 수정할 수 있습니다.</string>
+    <string name="trip_setup_companion_label">동행자</string>
+    <string name="trip_setup_cancel">취소</string>
+    <string name="trip_setup_start">여행 시작</string>
+    <string name="retry">다시 시도</string>
 
     <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
     <string name="recording_status_recording">기록 중</string>

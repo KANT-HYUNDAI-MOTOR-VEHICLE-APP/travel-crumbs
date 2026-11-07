@@ -5,12 +5,14 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RecordingStatus
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.testing.FakeConsentRepository
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.FakeTripRepository
 import com.example.travelcrumbs.testing.FakeUserRepository
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
@@ -48,6 +50,8 @@ class HomeViewModelTest {
         recording: RecordingRepository = recordingRepositoryOf(FakeTimeSource()),
         navi: FakeNaviRepository = FakeNaviRepository(),
         gleo: FakeGleoActionRepository = FakeGleoActionRepository(),
+        consent: FakeConsentRepository = FakeConsentRepository(),
+        trips: FakeTripRepository = FakeTripRepository(),
     ) = HomeViewModel(
         recordingRepository = recording,
         recordPlace = FakeRecordPlaceUseCase(),
@@ -55,7 +59,8 @@ class HomeViewModelTest {
         gleoActionRepository = gleo,
         naviRepository = navi,
         userRepository = FakeUserRepository(),
-        consentRepository = FakeConsentRepository(),
+        consentRepository = consent,
+        tripRepository = trips,
     )
 
     @Test
@@ -100,6 +105,48 @@ class HomeViewModelTest {
         assertEquals(DrivingState.PARKED, state.drivingState)
         assertTrue(state.navi is SdkStatus.Ready)
         assertTrue(state.openedByGleoAction)
+    }
+
+    @Test
+    fun `새 여행 시작 — 동의 없으면 동의 창, 동의하면 여행 시작 설정`() = runTest(dispatcher) {
+        val vm = viewModel(consent = FakeConsentRepository(agreed = false))
+        subscribe(vm)
+
+        vm.onStartNewTrip()
+        runCurrent()
+        assertTrue(vm.uiState.value.showLocationConsent)
+
+        vm.onAgreeLocationConsent()
+        runCurrent()
+        assertEquals(false, vm.uiState.value.showLocationConsent)
+        assertTrue(vm.uiState.value.showTripSetup)
+    }
+
+    @Test
+    fun `새 여행 시작 — 기록 중인 여행이 있으면 설정 화면 대신 안내`() = runTest(dispatcher) {
+        val trips = FakeTripRepository(current = Trip(1L, "2026.11.07 강릉 여행", "RECORDING", listOf("SOLO")))
+        val vm = viewModel(consent = FakeConsentRepository(agreed = true), trips = trips)
+        subscribe(vm)
+
+        vm.onStartNewTrip()
+        runCurrent()
+
+        assertEquals(false, vm.uiState.value.showTripSetup)
+        assertEquals(UiMessage.TRIP_ALREADY_RECORDING, vm.uiState.value.message)
+    }
+
+    @Test
+    fun `여행 시작 완료 — 설정 화면을 닫고 시작 안내`() = runTest(dispatcher) {
+        val vm = viewModel(consent = FakeConsentRepository(agreed = true))
+        subscribe(vm)
+        vm.onStartNewTrip()
+        runCurrent()
+
+        vm.onTripStarted()
+        runCurrent()
+
+        assertEquals(false, vm.uiState.value.showTripSetup)
+        assertEquals(UiMessage.TRIP_STARTED, vm.uiState.value.message)
     }
 
     private fun TestScope.subscribe(vm: HomeViewModel) {

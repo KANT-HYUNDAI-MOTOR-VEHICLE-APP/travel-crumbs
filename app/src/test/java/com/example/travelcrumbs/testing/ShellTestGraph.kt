@@ -11,6 +11,7 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
+import com.example.travelcrumbs.ui.tripsetup.TripSetupViewModel
 
 /**
  * Compose UI 테스트용 조립 — Hilt 없이 fake 저장소로 화면의 ViewModel 을 만듦.
@@ -22,6 +23,7 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     val recording = recordingRepositoryOf(time)
     val drafts = draftRepositoryOf(time)
     val savedState = SavedStateHandle()
+    val trips = FakeTripRepository()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -48,6 +50,13 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             naviRepository = FakeNaviRepository(),
             userRepository = FakeUserRepository(),
             consentRepository = FakeConsentRepository(),
+            tripRepository = trips,
+        )
+        TripSetupViewModel::class.java -> TripSetupViewModel(
+            tripRepository = trips,
+            codeRepository = FakeCodeRepository(),
+            nameSuggester = { it },
+            timeSource = time,
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

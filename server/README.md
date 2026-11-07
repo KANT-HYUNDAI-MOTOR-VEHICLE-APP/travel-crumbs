@@ -27,3 +27,12 @@ uv run uvicorn app.main:app --reload --port 4000
 1. `app/<도메인>/models.py` 에 테이블 모델 작성(ERD v0.3 · 표준정의서 v0.35)
 2. `uv run alembic revision --autogenerate -m "<테이블명>"` → 생성된 파일 검토
 3. `uv run alembic upgrade head`
+
+## 여행 시작(A-04)을 다시 테스트하려면
+
+기록 중인 여행이 있으면 새 여행을 시작할 수 없음(여행 종료 화면 A-08 은 시나리오 1 묶음 6).
+그 전까지는 아래 명령으로 기록 중인 여행을 「취소」 상태로 바꿈 — 상태 이력도 함께 남김.
+
+```
+docker exec -i travel-crumbs-db psql -U travel -d travel_crumbs -c "WITH t AS (UPDATE trip_mst SET trip_status_cd = 'CANCELED', end_at = now(), updated_at = now(), updated_user_no = user_no WHERE trip_status_cd = 'RECORDING' AND deleted_yn = 'N' RETURNING trip_no, user_no) INSERT INTO trip_status_hist (trip_no, trip_status_cd, created_user_no) SELECT trip_no, 'CANCELED', user_no FROM t"
+```
