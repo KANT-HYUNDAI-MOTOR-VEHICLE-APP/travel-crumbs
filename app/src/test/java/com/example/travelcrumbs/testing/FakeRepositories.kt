@@ -3,9 +3,11 @@ package com.example.travelcrumbs.testing
 import android.content.Intent
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
+import com.example.travelcrumbs.data.user.UserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
+import com.example.travelcrumbs.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,4 +51,11 @@ class FakeGleoActionRepository(
     override fun handleActionIntent(intent: Intent?) {
         handledCount++
     }
+}
+
+class FakeUserRepository(
+    private val result: Result<UserProfile> = Result.success(UserProfile(userNo = 2L, nickname = "샘플여행자1")),
+) : UserRepository {
+
+    override suspend fun myProfile(): Result<UserProfile> = result
 }

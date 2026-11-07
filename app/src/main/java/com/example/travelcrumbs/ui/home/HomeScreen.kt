@@ -58,6 +58,23 @@ fun HomeScreen(
                 modifier = Modifier.testTag(TOP_AREA_TAG),
                 verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
             ) {
+                // 인사말(A-03) — user_mst.nickname_nm · 서버 GET /me
+                val nickname = uiState.nickname
+                if (nickname != null) {
+                    Text(
+                        text = stringResource(R.string.home_greeting, nickname),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                    )
+                } else if (uiState.userUnavailable) {
+                    Text(
+                        text = stringResource(R.string.home_user_unavailable),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 1,
+                    )
+                }
                 Text(
                     text = recordingStatusText(uiState.recording),
                     style = MaterialTheme.typography.headlineLarge,

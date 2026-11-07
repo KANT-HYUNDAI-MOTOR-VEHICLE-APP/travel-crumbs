@@ -8,6 +8,10 @@ import com.example.travelcrumbs.ui.components.UiMessage
 
 /** 홈이 그릴 것 — 맨 위 영역(기록 상태 · 경과 · 안내) + debug SDK 확인 카드 값. 불변. */
 data class HomeUiState(
+    /** 로그인된 사용자 닉네임(user_mst.nickname_nm) — 아직 못 불렀으면 null. */
+    val nickname: String? = null,
+    /** 사용자 정보를 불러오지 못함(서버 꺼짐 등). */
+    val userUnavailable: Boolean = false,
     val recording: RecordingStatus = RecordingStatus.RECORDING,
     val elapsedMinutes: Long = 0L,
     val message: UiMessage? = null,

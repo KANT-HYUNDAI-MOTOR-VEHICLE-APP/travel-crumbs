@@ -46,6 +46,7 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             drivingSignalRepository = driving,
             gleoActionRepository = FakeGleoActionRepository(),
             naviRepository = FakeNaviRepository(),
+            userRepository = FakeUserRepository(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

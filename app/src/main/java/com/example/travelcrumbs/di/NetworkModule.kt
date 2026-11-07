@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.di
 
 import com.example.travelcrumbs.BuildConfig
+import com.example.travelcrumbs.data.remote.AppApi
 import com.example.travelcrumbs.domain.AppConfig
 import dagger.Module
 import dagger.Provides
@@ -15,10 +16,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-/**
- * 네트워크 배선만 — Retrofit API 인터페이스는 아직 만들지 않음.
- * 계약(`docs/api/openapi.json`)이 생기기 전에는 엔드포인트를 정하지 않음(서버 이슈 몫).
- */
+/** 네트워크 배선 — Retrofit · 로컬 서버 API(AppApi). */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -51,4 +49,8 @@ object NetworkModule {
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
+
+    @Provides
+    @Singleton
+    fun provideAppApi(retrofit: Retrofit): AppApi = retrofit.create(AppApi::class.java)
 }

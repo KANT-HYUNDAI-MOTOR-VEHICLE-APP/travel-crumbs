@@ -11,6 +11,10 @@
     <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
     <string name="draft_banner_action">이어서 쓰기</string>
 
+    <!-- 홈 인사말(A-03) — 닉네임은 user_mst.nickname_nm -->
+    <string name="home_greeting">안녕하세요, %1$s님</string>
+    <string name="home_user_unavailable">사용자 정보를 불러오지 못했어요 · 로컬 서버 실행 확인</string>
+
     <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
     <string name="recording_status_recording">기록 중</string>
     <string name="recording_status_paused">일시정지</string>
