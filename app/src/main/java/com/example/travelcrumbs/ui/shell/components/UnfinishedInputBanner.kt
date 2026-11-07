@@ -15,9 +15,9 @@ import androidx.compose.ui.res.stringResource
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.theme.Dimens
 
-/** 「작성 중이던 내용이 있어요」 + 「이어서 쓰기」 — 띠를 지우는 길은 이 버튼 하나(스펙 D13). */
+/** 「작성 중이던 내용이 있어요」 + 「이어서 쓰기」 — 띠를 지우는 길은 이 버튼 하나(#6 D13 · 작성 중 내용 D27). */
 @Composable
-fun DraftBanner(
+fun UnfinishedInputBanner(
     onResume: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -31,14 +31,14 @@ fun DraftBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.draft_banner_text),
+                text = stringResource(R.string.unfinished_input_banner_text),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
             )
             Button(onClick = onResume) {
-                Text(text = stringResource(R.string.draft_banner_action))
+                Text(text = stringResource(R.string.unfinished_input_banner_action))
             }
         }
     }

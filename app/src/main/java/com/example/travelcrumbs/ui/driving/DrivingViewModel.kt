@@ -1,12 +1,15 @@
 package com.example.travelcrumbs.ui.driving
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
+import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -17,23 +20,32 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** 주행 전용 화면 — 기록 상태 · 경과 · 버튼 3개(스펙 app-shell 2-5). */
+/**
+ * 주행 전용 화면 — 여행명 · 상태 · 경과 · 장소 수 · 버튼 3개 · 여행 종료 확인 팝업(스펙 app-shell-v5 2-5 · 2-6).
+ * 팝업 표시는 SavedStateHandle 에 둬 프로세스 재생성 뒤 다시 보임(V32).
+ */
 @HiltViewModel
 class DrivingViewModel @Inject constructor(
     private val recordingRepository: RecordingRepository,
     private val recordPlace: RecordPlaceUseCase,
     private val startVoiceInput: StartVoiceInputUseCase,
+    drivingSignalRepository: DrivingSignalRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
 
     val uiState: StateFlow<DrivingUiState> = combine(
         recordingRepository.progress,
+        savedStateHandle.getStateFlow(KEY_END_CONFIRM, false),
         message,
-    ) { progress, shown ->
+    ) { progress, endConfirm, shown ->
         DrivingUiState(
-            recording = progress.status,
+            tripName = progress.tripName,
+            tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
+            placeCount = progress.placeCount,
+            endConfirmVisible = endConfirm,
             message = shown,
         )
     }.stateIn(
@@ -42,12 +54,33 @@ class DrivingViewModel @Inject constructor(
         initialValue = DrivingUiState(),
     )
 
+    init {
+        // 팝업 열린 채 정차로 바뀌면 팝업 닫힘 · 상태 그대로(N11) — 다시 주행이 돼도 저절로 열리지 않음.
+        viewModelScope.launch {
+            drivingSignalRepository.drivingState.collect { state ->
+                if (state == DrivingState.PARKED) savedStateHandle[KEY_END_CONFIRM] = false
+            }
+        }
+    }
+
     fun onRecordPlace() = runAction { recordPlace() }
 
-    fun onVoiceInput() = runAction { startVoiceInput() }
+    fun onVoice() = runAction { startVoiceInput() }
 
-    fun onTogglePause() {
-        viewModelScope.launch { recordingRepository.togglePause() }
+    /** 「여행 종료」 — 확인 팝업만 엶 · 상태는 그대로(D22). */
+    fun onEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = true
+    }
+
+    /** 「계속 기록」 · 시스템 뒤로 · 팝업 바깥 누름(레일 칸 포함) — 팝업만 닫음. */
+    fun onContinueRecording() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+    }
+
+    /** 「종료」 — COMPLETED · 종료 시각 = 지금 · 팝업 닫음 · 화면은 주행 화면 그대로. */
+    fun onConfirmEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+        viewModelScope.launch { recordingRepository.endTrip() }
     }
 
     fun onMessageShown() {
@@ -58,5 +91,9 @@ class DrivingViewModel @Inject constructor(
         viewModelScope.launch {
             if (action() == ActionResult.NOT_READY) message.value = UiMessage.NOT_READY
         }
+    }
+
+    private companion object {
+        const val KEY_END_CONFIRM = "end_confirm_visible"
     }
 }

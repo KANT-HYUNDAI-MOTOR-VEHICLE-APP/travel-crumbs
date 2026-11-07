@@ -22,10 +22,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-/** 홈(스펙 app-shell 2-2) — 기록 상태는 주행 화면과 같은 출처(RecordingRepository · D1). */
+/** 홈(스펙 app-shell-v5 2-2) — 여행 상태는 주행 화면과 같은 출처(RecordingRepository · #6 D1). */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    recordingRepository: RecordingRepository,
+    private val recordingRepository: RecordingRepository,
     private val recordPlace: RecordPlaceUseCase,
     drivingSignalRepository: DrivingSignalRepository,
     gleoActionRepository: GleoActionRepository,
@@ -55,7 +55,7 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
     ) { progress, shown, sdk ->
         sdk.copy(
-            recording = progress.status,
+            tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             message = shown,
         )
@@ -69,6 +69,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (recordPlace() == ActionResult.NOT_READY) message.value = UiMessage.NOT_READY
         }
+    }
+
+    /** 임시 「새 여행 시작」(D26) — 확인 없이 바로 새 여행 RECORDING · 기록 중이면 저장소가 아무 일도 안 함(N19). */
+    fun onStartNewTrip() {
+        viewModelScope.launch { recordingRepository.startNewTrip() }
     }
 
     fun onMessageShown() {

@@ -1,19 +1,19 @@
 package com.example.travelcrumbs.ui.shell
 
 import androidx.lifecycle.SavedStateHandle
-import com.example.travelcrumbs.data.draft.DraftRepository
+import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeTimeSource
-import com.example.travelcrumbs.testing.draftRepositoryOf
+import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -30,7 +30,7 @@ class AppShellViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val driving = FakeDrivingSignalRepository(DrivingState.PARKED)
-    private val drafts: DraftRepository = draftRepositoryOf(FakeTimeSource(now = 7L))
+    private val inputs: UnfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource(now = 7L))
 
     @Before
     fun setUp() {
@@ -43,110 +43,203 @@ class AppShellViewModelTest {
     }
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()) =
-        AppShellViewModel(driving, drafts, handle)
+        AppShellViewModel(driving, inputs, handle)
+
+    private val AppShellViewModel.state get() = uiState.value
 
     @Test
-    fun `T1 정차로 시작하면 레일 화면 · 홈 선택`() = runTest(dispatcher) {
+    fun `V1 정차로 시작하면 정차 · 홈 선택 · 홈 강조 · 레일 5칸 순서`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
 
-        assertFalse(vm.uiState.value.showDrivingScreen)
-        assertEquals(AppDestination.HOME, vm.uiState.value.selectedDestination)
+        assertFalse(vm.state.isDrivingMode)
+        assertEquals(AppDestination.HOME, vm.state.selectedDestination)
+        assertEquals(AppDestination.HOME, vm.state.highlightedRailItem)
+        assertEquals(
+            listOf("home", "records", "trips", "inbox", "recommendations"),
+            AppDestination.railItems.map { it.id },
+        )
+        assertEquals(6, AppDestination.entries.size)
+        assertEquals(listOf(AppDestination.RECORDS), AppDestination.entries.filter { it.allowedWhileDriving })
     }
 
     @Test
-    fun `T2 T3 레일 이동은 바꿔치기 · 뒤로는 홈`() = runTest(dispatcher) {
+    fun `V2 V7 T2 레일 이동은 바꿔치기 · 뒤로는 홈`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
 
-        vm.selectDestination(AppDestination.TRIPS)
-        vm.selectDestination(AppDestination.SETTINGS)
+        vm.selectDestination(AppDestination.RECORDS)
+        vm.selectDestination(AppDestination.RECOMMENDATIONS)
         advanceUntilIdle()
-        assertEquals(AppDestination.SETTINGS, vm.uiState.value.selectedDestination)
+        assertEquals(AppDestination.RECOMMENDATIONS, vm.state.highlightedRailItem)
 
         vm.onBack()
         advanceUntilIdle()
-        assertEquals(AppDestination.HOME, vm.uiState.value.selectedDestination)
+        assertEquals(AppDestination.HOME, vm.state.selectedDestination)
     }
 
     @Test
-    fun `T5 T8 주행이면 주행 화면 · 정차로 오면 직전 목적지`() = runTest(dispatcher) {
+    fun `V5 V6 홈의 설정 버튼 — 설정 · 강조 홈 · 뒤로는 홈`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
-        vm.selectDestination(AppDestination.SETTINGS)
+
+        vm.openSettings()
+        advanceUntilIdle()
+        assertEquals(AppDestination.SETTINGS, vm.state.selectedDestination)
+        assertEquals(AppDestination.HOME, vm.state.highlightedRailItem)
+
+        vm.onBack()
+        advanceUntilIdle()
+        assertEquals(AppDestination.HOME, vm.state.selectedDestination)
+    }
+
+    @Test
+    fun `V9 설정에서 주행 — 기록 칸 · 강조 기록 → 정차하면 설정으로 · 강조 홈`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.openSettings()
 
         driving.emit(DrivingState.DRIVING)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.showDrivingScreen)
-        assertEquals(AppDestination.SETTINGS, vm.uiState.value.selectedDestination)
+        assertTrue(vm.state.isDrivingMode)
+        assertEquals(AppDestination.RECORDS, vm.state.drivingDestination)
+        assertEquals(AppDestination.RECORDS, vm.state.highlightedRailItem)
+        assertEquals(AppDestination.SETTINGS, vm.state.selectedDestination)
 
         driving.emit(DrivingState.PARKED)
         advanceUntilIdle()
-        assertFalse(vm.uiState.value.showDrivingScreen)
-        assertEquals(AppDestination.SETTINGS, vm.uiState.value.selectedDestination)
+        assertFalse(vm.state.isDrivingMode)
+        assertEquals(AppDestination.SETTINGS, vm.state.selectedDestination)
+        assertEquals(AppDestination.HOME, vm.state.highlightedRailItem)
     }
 
     @Test
-    fun `T9 T12 판정 모름이면 주행 화면`() = runTest(dispatcher) {
+    fun `V12 T9 판정 모름이면 주행과 같음`() = runTest(dispatcher) {
         driving.emit(DrivingState.UNKNOWN)
         val vm = viewModel()
         subscribe(vm)
 
-        assertTrue(vm.uiState.value.showDrivingScreen)
+        assertTrue(vm.state.isDrivingMode)
+        assertEquals(AppDestination.RECORDS, vm.state.highlightedRailItem)
     }
 
     @Test
-    fun `D12 첫 값 전에는 주행 화면`() {
-        assertTrue(viewModel().uiState.value.showDrivingScreen)
+    fun `D12 첫 값 전에는 주행처럼`() {
+        assertTrue(viewModel().state.isDrivingMode)
     }
 
     @Test
-    fun `T21 T22 주행으로 바뀌는 순간 입력 중 내용 저장 · 정차로 오면 띠`() = runTest(dispatcher) {
+    fun `V39 V42 주행 중 레일 이동 — 정차 목적지는 그대로 · 기록으로 돌아옴`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+
+        vm.selectDestination(AppDestination.TRIPS)
+        advanceUntilIdle()
+        assertEquals(AppDestination.TRIPS, vm.state.drivingDestination)
+        assertEquals(AppDestination.TRIPS, vm.state.highlightedRailItem)
+        assertEquals(AppDestination.HOME, vm.state.selectedDestination)
+
+        vm.selectDestination(AppDestination.RECORDS)
+        advanceUntilIdle()
+        assertEquals(AppDestination.RECORDS, vm.state.highlightedRailItem)
+    }
+
+    @Test
+    fun `V43 주행 중 여행 칸에서 정차 — 여행 정차 화면 · 강조 여행`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+        vm.selectDestination(AppDestination.TRIPS)
+
+        driving.emit(DrivingState.PARKED)
+        advanceUntilIdle()
+
+        assertEquals(AppDestination.TRIPS, vm.state.selectedDestination)
+        assertEquals(AppDestination.TRIPS, vm.state.highlightedRailItem)
+    }
+
+    @Test
+    fun `V10 받은함에서 기어 R(주행) → P — 받은함으로`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.selectDestination(AppDestination.INBOX)
+
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+        assertEquals(AppDestination.RECORDS, vm.state.highlightedRailItem)
+
+        driving.emit(DrivingState.PARKED)
+        advanceUntilIdle()
+        assertEquals(AppDestination.INBOX, vm.state.selectedDestination)
+    }
+
+    @Test
+    fun `2-7 주행이 다시 시작되면 늘 기록 칸`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+        vm.selectDestination(AppDestination.INBOX)
+        driving.emit(DrivingState.PARKED)
+        advanceUntilIdle()
+
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+
+        assertEquals(AppDestination.RECORDS, vm.state.drivingDestination)
+    }
+
+    @Test
+    fun `T21 T22 V27 주행으로 바뀌는 순간 입력 중 내용 저장 · 정차로 오면 띠`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
         vm.selectDestination(AppDestination.TRIPS)
-        drafts.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "바다"))
+        inputs.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "바다"))
 
         driving.emit(DrivingState.DRIVING)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.draftAvailable)
+        assertTrue(vm.state.unfinishedInputAvailable)
 
         driving.emit(DrivingState.PARKED)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value.draftAvailable)
-        assertEquals(AppDestination.TRIPS, vm.uiState.value.selectedDestination)
+        assertTrue(vm.state.unfinishedInputAvailable)
+        assertEquals(AppDestination.TRIPS, vm.state.selectedDestination)
     }
 
     @Test
-    fun `T23 이어서 쓰기 — 저장 당시 목적지로 · 띠 사라짐 · 복원 상태`() = runTest(dispatcher) {
+    fun `T23 V27 이어서 쓰기 — 저장 당시 목적지로 · 띠 사라짐 · 복원 상태`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
-        drafts.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "바다"))
+        inputs.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "바다"))
         driving.emit(DrivingState.DRIVING)
         advanceUntilIdle()
         driving.emit(DrivingState.PARKED)
+        advanceUntilIdle()
         vm.selectDestination(AppDestination.HOME)
         advanceUntilIdle()
 
-        vm.resumeDraft()
+        vm.resumeUnfinishedInput()
         advanceUntilIdle()
 
-        assertEquals(AppDestination.TRIPS, vm.uiState.value.selectedDestination)
-        assertFalse(vm.uiState.value.draftAvailable)
-        assertEquals("바다", drafts.pendingRestore.value?.fields?.get("memo"))
+        assertEquals(AppDestination.TRIPS, vm.state.selectedDestination)
+        assertFalse(vm.state.unfinishedInputAvailable)
+        assertEquals("바다", inputs.pendingRestore.value?.fields?.get("memo"))
     }
 
     @Test
-    fun `T21 화면이 안 보이는 사이(구독 없음) 주행으로 바뀌어도 임시 저장`() = runTest(dispatcher) {
+    fun `T21 화면이 안 보이는 사이(구독 없음) 주행으로 바뀌어도 작성 중 내용 보존`() = runTest(dispatcher) {
         // uiState 를 구독하지 않음 — 화면이 안 보이는 상태
         viewModel()
         advanceUntilIdle()
-        drafts.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "백그라운드"))
+        inputs.updateActiveInput(AppDestination.TRIPS.id, mapOf("memo" to "백그라운드"))
 
         driving.emit(DrivingState.DRIVING)
         advanceUntilIdle()
 
-        assertEquals("백그라운드", drafts.savedDraft.first()?.fields?.get("memo"))
+        assertEquals("백그라운드", inputs.savedInput.first()?.fields?.get("memo"))
     }
 
     @Test
@@ -159,20 +252,39 @@ class AppShellViewModelTest {
         driving.emit(DrivingState.PARKED)
         advanceUntilIdle()
 
-        assertFalse(vm.uiState.value.draftAvailable)
-        assertNull(drafts.savedDraft.first())
+        assertFalse(vm.state.unfinishedInputAvailable)
+        assertNull(inputs.savedInput.first())
     }
 
     @Test
-    fun `T30 프로세스 재생성 뒤 선택된 목적지 복원`() = runTest(dispatcher) {
+    fun `V31 프로세스 재생성 뒤 설정 목적지 · 강조 홈 복원`() = runTest(dispatcher) {
         val handle = SavedStateHandle()
-        viewModel(handle).selectDestination(AppDestination.TRIPS)
+        viewModel(handle).openSettings()
 
-        val recreated = viewModel(SavedStateHandle(mapOf("selected_destination" to handle.get<String>("selected_destination"))))
+        val recreated = viewModel(copyOf(handle))
         subscribe(recreated)
 
-        assertEquals(AppDestination.TRIPS, recreated.uiState.value.selectedDestination)
+        assertEquals(AppDestination.SETTINGS, recreated.state.selectedDestination)
+        assertEquals(AppDestination.HOME, recreated.state.highlightedRailItem)
     }
+
+    @Test
+    fun `3-5 주행 중 여행 칸에서 프로세스 재생성 — 주행 중 칸 그대로(기록으로 되돌리지 않음)`() = runTest(dispatcher) {
+        driving.emit(DrivingState.DRIVING)
+        val handle = SavedStateHandle()
+        val first = viewModel(handle)
+        subscribe(first)
+        first.selectDestination(AppDestination.TRIPS)
+        advanceUntilIdle()
+
+        val recreated = viewModel(copyOf(handle))
+        subscribe(recreated)
+
+        assertEquals(AppDestination.TRIPS, recreated.state.drivingDestination)
+    }
+
+    private fun copyOf(handle: SavedStateHandle) =
+        SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
 
     private fun TestScope.subscribe(vm: AppShellViewModel) {
         backgroundScope.launch { vm.uiState.collect { } }
