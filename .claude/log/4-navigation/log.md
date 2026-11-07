@@ -115,3 +115,15 @@
 - 남은 결정: `_workspace/4/05_open_findings_a14.md` — A1 · A3 · R3-2 · N2 · R4-1 · S1 · U58 ~ U62(팀) · 이슈 본문
 - 막힘: 없음(에뮬레이터에서 실패를 만들려고 요청 직후 기본 내비 앱 강제 종료 → TIMEOUT)
 - 다음: 푸시(PR #14 에 반영) · 이슈 #4 본문 고침 · 팀 결정 U58 ~ U62
+
+## 입구 분리(구조 정리) · 4 수정 끝 — 2026-11-07 · 최성호
+- 계기: 와이어프레임 v5 가 같은 길안내 동작을 음성 · A-13 「다시 가기」 · B-09 「이 장소만 추가」 에서도 부르게 함 + 구조 리뷰가 두 바퀴 연속 지적한 N2(HomeViewModel 비대) · R4-1 — 사람 선택 「안내 입구 분리」 · 동작 변화 0 · 스펙 문서 변경 없음
+- 산출물: navigation-guide/impl 5756e10(`domain/GuideRequestTracker` · `GuidePorts` · `di/GuideModule` · HomeViewModel 406 → 275줄) · 2f5cd83(리뷰 1회차) — 로컬 커밋 · 푸시 전 · navigation-a14/impl(PR #20) 위에 쌓음
+- 에이전트: builder(app) × 2 · pleos-reviewer × 1 · structure-reviewer × 2
+- 센서: gradle lint · 단위 198 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest develop 판 녹색
+- 에뮬레이터: T113 통과 · Activity 만 끝냈다 다시 열기(요청 중 · TIMEOUT 뒤 5분 안) 크래시 없음 · 핀 중복 없음
+- 리뷰 지적: 1회차 심사 반려 0 · 확인 1(P1 Activity 수명 → 에뮬레이터로 닫음) · 구조 위반 0 · 확인 4(G1 ~ G4) → 2회차 구조 해소 G3 · G4 · 새 확인 0 · 이전 N2 · R4-1 · S1 해소 · 센서 후보 1(ViewModel Log import 금지 · 재발 방지)
+- 사람 결정: 안내 입구 분리(2026-11-07)
+- 남은 결정: `_workspace/4/05_open_findings_guide.md` — G1 · G2=R3-2(하네스 규칙 문장) · 스펙 3.1 · 3.2(요청 상태 출처 · Activity 재진입 때 결과 문구 유지) · 정차 거르기(음성 · 다시 가기 붙일 때)
+- 막힘: 없음 · BACK 키가 이 플랫폼에서 MainActivity 를 끝내지 않아 `am start --activity-clear-task` 로 Activity 만 끝냄
+- 다음: 푸시 · PR(PR #20 머지 순서 확인) · 음성 · 「다시 가기」 · 장소 여러 곳 안내가 이 입구를 쓰도록
