@@ -11,7 +11,6 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,14 +38,12 @@ class GuideRequestTrackerTest {
         f.tracker.guide(a)
         runCurrent()
         assertEquals(GuideRequestState.Requesting(a), f.tracker.state.value)
-        assertTrue(f.tracker.isRequesting)
 
         f.navi.answerRoute(RouteRequestResult.Started)
         runCurrent()
 
         assertEquals(GuideRequestState.Started(a), f.tracker.state.value)
         assertEquals(listOf("a"), f.pins.recorded)
-        assertFalse(f.tracker.isRequesting)
     }
 
     @Test

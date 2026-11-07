@@ -64,12 +64,20 @@ class HomeRouteFallbackViewModelTest {
         val catalog = FakePlaceCatalogRepository()
         val pinnedLocal = FakePinnedPlacesStore(pinned, catalog)
         val pins = FakePinRepository()
+        var guide = guideTrackerOf(navi, pins)
+            private set
         var vm = create()
             private set
         val state: HomeUiState get() = vm.uiState.value
 
         /** 같은 저장소로 ViewModel · 입구를 새로 만듦 — 프로세스 재생성 흉내(T108 · SavedStateHandle 없음). */
         fun recreate() {
+            guide = guideTrackerOf(navi, pins)
+            vm = create()
+        }
+
+        /** 같은 입구(앱 수명)에 ViewModel 만 새로 — Activity 만 끝났다 다시 열림(프로세스는 삶). */
+        fun recreateScreenOnly() {
             vm = create()
         }
 
@@ -81,7 +89,7 @@ class HomeRouteFallbackViewModelTest {
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedLocal.repository,
-            guideRequests = guideTrackerOf(navi, pins),
+            guideRequests = guide,
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
         )
@@ -467,6 +475,36 @@ class HomeRouteFallbackViewModelTest {
         assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, "b"), f.state.routeRequest)
         assertNull(f.state.dummyRoute)
     }
+
+    @Test
+    fun `T108 보충 Activity 만 다시 열림(같은 입구) — 실패 · 시작됨 · 요청 중은 이어지고 패널은 닫힌 채 · 실패 문구 · 두 버튼 남음`() =
+        runTest(dispatcher) {
+            val f = start(Fixture())
+            failWith(f, "a")
+            f.vm.onShowDummyRoute()
+            runCurrent()
+            assertEquals("a", f.state.dummyRoute?.id)
+
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
+            assertNull(f.state.dummyRoute)
+            f.state.assertFallbackShownAndPressable()
+
+            f.vm.onRetry()
+            runCurrent()
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+            assertFalse(f.state.guideEnabled)
+
+            f.navi.answerRoute(RouteRequestResult.Started)
+            runCurrent()
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+            assertEquals("핀 1건 — 화면을 다시 만들어도 늘지 않음", listOf("a"), f.pins.recorded)
+        }
 
     @Test
     fun `T108 실패 A · 패널 열림 → 프로세스 재생성 — 대기 · 패널 없음 · 고정 목록 그대로`() = runTest(dispatcher) {

@@ -38,6 +38,7 @@ sealed interface GuideRequestState {
  * 앱 하나에 하나(di 에서 Singleton) · [scope] 는 앱 수명 — 홈이 그려지지 않는 동안(주행 전용 화면 · 앱 얼림)에도
  * 내비 응답 · 한도 · 늦은 알림을 이어 받음. 주행 · 정차 판정은 부르는 쪽 몫(여기서 막지 않음).
  * 동시에 하나의 요청만 — 요청 중이면 새 [guide] 는 무시.
+ * 메인 스레드에서만 부름(공개 함수 · [scope] 모두 Main) — 잠금 없는 가변 칸(바로 앞 요청 · 시도 번호)을 씀.
  */
 class GuideRequestTracker(
     private val navi: NaviGuidance,
@@ -48,9 +49,6 @@ class GuideRequestTracker(
 
     /** 마지막 길안내 요청 상태 — 결과는 다음 요청을 시작할 때까지 남음(U7). */
     val state: StateFlow<GuideRequestState> = _state.asStateFlow()
-
-    /** 내비 서비스에 붙었는지(요청할 수 있는지의 절반 — 나머지는 요청 중이 아님). */
-    val naviReady: StateFlow<Boolean> get() = navi.ready
 
     private var attempts = 0L
 
@@ -77,10 +75,10 @@ class GuideRequestTracker(
     private var lastRequest: GuideRequest? = null
 
     /** 지금 요청 중인가(결과 전) — TIMEOUT 뒤 기억 중은 요청 중이 아님. */
-    val isRequesting: Boolean get() = lastRequest?.timedOut == false
+    private val isRequesting: Boolean get() = lastRequest?.timedOut == false
 
     /**
-     * [place] 로 길안내 요청(스펙 3.2 「길안내 요청」) — 요청 중이면 무시.
+     * [place] 로 길안내 요청(스펙 3.2 「길안내 요청」) — 요청 중이면 무시. 주행 · 모름 거르기는 부르는 쪽 몫.
      * 그 순간 내비 연결이 없으면 요청하지 않고 실패(NOT_CONNECTED · T9).
      */
     fun guide(place: Place) {
@@ -111,7 +109,7 @@ class GuideRequestTracker(
         }
     }
 
-    /** 「다시 시도」(E11) — 실패한 그 장소로 [guide] 와 같은 길. 실패가 아니면 무시(T104 · T105). */
+    /** 「다시 시도」(E11) — 실패한 그 장소로 [guide] 와 같은 길. 실패가 아니면 무시(T104 · T105). 주행 · 모름 거르기는 부르는 쪽 몫. */
     fun retry() {
         val failed = _state.value as? GuideRequestState.Failed ?: return
         guide(failed.place)
