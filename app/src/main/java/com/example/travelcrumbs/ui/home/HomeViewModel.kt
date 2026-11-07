@@ -72,8 +72,16 @@ class HomeViewModel @Inject constructor(
      */
     private val guideScreenFrom = MutableStateFlow<Long?>(null)
 
-    /** 화면이 고른 두 보기(길안내 연결 화면 · 더미 경로)의 열림 번호 — combine 인자 수를 줄이려고 하나로 묶음. */
-    private val screenMarks = combine(guideScreenFrom, dummyRouteAttempt) { from, dummy -> from to dummy }
+    /** 화면이 고른 두 보기의 열림 번호 — combine 인자 수를 줄이려고 하나로 묶음. */
+    private val openMarks = combine(guideScreenFrom, dummyRouteAttempt) { from, dummy ->
+        OpenMarks(guideScreenFrom = from, dummyRouteAttempt = dummy)
+    }
+
+    /**
+     * [guideScreenFrom] = 길안내 연결 화면을 연 입구 변경 번호(null = 닫힘) ·
+     * [dummyRouteAttempt] = 더미 경로를 켠 실패의 시도 번호(null = 꺼짐).
+     */
+    private data class OpenMarks(val guideScreenFrom: Long?, val dummyRouteAttempt: Long?)
 
     /** 후보 — 읽기 전 null. 조작 메서드가 바로 찾을 수 있게 값으로 들고 있음. */
     private val candidates = MutableStateFlow<List<Place>?>(null)
@@ -97,9 +105,9 @@ class HomeViewModel @Inject constructor(
         pinnedPlacesRepository.pinnedIds.map<List<String>, List<String>?> { it }.onStart { emit(null) },
         guideRequests.state,
         placeStats,
-        screenMarks,
-    ) { all, pinnedIds, request, stats, (screenFrom, dummyAttempt) ->
-        PlacesPart.of(all, pinnedIds, request, stats, screenFrom, dummyAttempt)
+        openMarks,
+    ) { all, pinnedIds, request, stats, marks ->
+        PlacesPart.of(all, pinnedIds, request, stats, marks.guideScreenFrom, marks.dummyRouteAttempt)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(

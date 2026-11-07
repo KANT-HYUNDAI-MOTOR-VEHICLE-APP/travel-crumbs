@@ -85,12 +85,12 @@ private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifie
     OutlinedCard(modifier = modifier.testTag(GUIDE_MAP_TAG)) {
         Box(modifier = Modifier.fillMaxSize()) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val radius = Dimens.DummyRouteDotRadius.toPx()
+                val radius = Dimens.GuideMapDotRadius.toPx()
                 val inset = Dimens.GuideMapDotInset.toPx()
                 val destination = Offset(size.width - inset, inset)
                 val origin = Offset(inset, size.height - inset)
                 if (dummyRoute) {
-                    drawLine(color, origin, destination, strokeWidth = Dimens.DummyRouteLineWidth.toPx())
+                    drawLine(color, origin, destination, strokeWidth = Dimens.GuideMapLineWidth.toPx())
                 }
                 drawCircle(color = color, radius = radius, center = destination)
                 drawCircle(color = color, radius = radius, center = origin)
@@ -209,7 +209,7 @@ private fun GuideFailureBox(state: HomeUiState, actions: GuideScreenActions) {
 
 /** 「다시 시도」 · 「더미 경로」 · 「닫기」 — 「여기로 안내」(E5)와 같은 크기 · 한 번 터치. */
 @Composable
-fun GuideActionButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+internal fun GuideActionButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
