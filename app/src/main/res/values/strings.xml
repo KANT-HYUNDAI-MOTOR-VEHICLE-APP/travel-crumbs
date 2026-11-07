@@ -51,6 +51,7 @@
     <string name="trips_title">내 여행</string>
     <string name="trips_empty">아직 여행이 없어요</string>
     <string name="trips_summary">%1$s · %2$.1fkm · 장소 %3$d개</string>
+    <string name="trips_paused">%1$s · 일시정지 · 장소 %2$d개</string>
     <string name="trips_recording">%1$s · 기록 중 · 장소 %2$d개</string>
     <string name="home_place_input">장소 경험 입력 · 남은 기록 %1$d</string>
 

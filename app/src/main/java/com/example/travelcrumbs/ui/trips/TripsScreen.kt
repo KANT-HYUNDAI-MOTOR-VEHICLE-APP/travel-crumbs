@@ -79,6 +79,8 @@ private fun TripRow(trip: TripSummary, onClick: () -> Unit) {
     }.getOrDefault("")
     val summary = if (trip.statusCode == RECORDING) {
         stringResource(R.string.trips_recording, date, trip.placeCount)
+    } else if (trip.statusCode == PAUSED) {
+        stringResource(R.string.trips_paused, date, trip.placeCount)
     } else {
         stringResource(R.string.trips_summary, date, (trip.distanceMeters ?: 0) / 1000.0, trip.placeCount)
     }
@@ -95,4 +97,5 @@ private fun TripRow(trip: TripSummary, onClick: () -> Unit) {
 }
 
 private const val RECORDING = "RECORDING"
+private const val PAUSED = "PAUSED"
 private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")

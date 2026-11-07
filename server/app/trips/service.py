@@ -6,7 +6,8 @@
 
 여행 기록 중 규칙(A-05).
 
-- 경로점 · 장소는 내 여행이고 기록 중(RECORDING)일 때만 저장(아니면 404 · 409)
+- 경로점은 기록 중(RECORDING)일 때만 · 장소는 기록 중 또는 일시정지일 때 저장(아니면 404 · 409)
+- 일시정지(PAUSED) ↔ 기록 중 전환마다 상태 이력 1행
 - 장소는 위치 · 시각만 임시 저장(draft_yn = Y) + trip_mst.place_cnt +1
 
 장소 경험 입력 규칙(A-06).
@@ -89,7 +90,7 @@ async def add_route_points(
 async def record_place(
     session: AsyncSession, user_no: int, trip_uuid: str, req: TripPlaceCreateRequest
 ) -> TripPlaceResponse:
-    trip = await _recording_trip(session, user_no, trip_uuid)
+    trip = await _active_trip(session, user_no, trip_uuid)
     row = await repository.add_place(
         session, trip.trip_no, user_no, req.lat, req.lng, req.recorded_at
     )
@@ -177,14 +178,17 @@ async def end_trip(
     """여행 종료(A-08) — 완료 · 종료 시각 · 거리 · 소요시간 · 간소화 경로 · 상태 이력을 한 번에.
 
     입력 안 한 임시 기록(draft_yn = Y)은 지우지 않고 남김(나중에 입력 가능).
+    소요시간 = 기록한 시간(일시정지 제외 · 결정 로그 D27). 전체 경과는 end_at - start_at.
     """
-    trip = await _recording_trip(session, user_no, trip_uuid)
+    trip = await _active_trip(session, user_no, trip_uuid)
     coords = await repository.find_route_coords(session, trip.trip_no)
     now = datetime.now(UTC)
     trip.trip_status_cd = TripStatus.COMPLETED
     trip.end_at = now
     trip.dist = route_calc.total_distance_m(coords)
-    trip.duration = int((now - trip.start_at).total_seconds())
+    trip.duration = recorded_seconds(
+        await repository.find_status_hist(session, trip.trip_no), now
+    )
     trip.updated_at = now
     trip.updated_user_no = user_no
     if coords:
@@ -298,6 +302,56 @@ def _to_place_item(row: TripPlaceDtl, tag_nos: list[int]) -> TripPlaceItem:
         memo=row.memo,
         tag_nos=tag_nos,
     )
+
+
+async def pause(session: AsyncSession, user_no: int, trip_uuid: str) -> TripResponse:
+    """일시정지 — 기록 중 → 일시정지 + 상태 이력. 이미 일시정지면 그대로."""
+    trip = await _active_trip(session, user_no, trip_uuid)
+    if trip.trip_status_cd == TripStatus.RECORDING:
+        await _change_status(session, trip, user_no, TripStatus.PAUSED)
+    return await _to_response(session, trip)
+
+
+async def resume(session: AsyncSession, user_no: int, trip_uuid: str) -> TripResponse:
+    """다시 기록 — 일시정지 → 기록 중 + 상태 이력. 이미 기록 중이면 그대로."""
+    trip = await _active_trip(session, user_no, trip_uuid)
+    if trip.trip_status_cd == TripStatus.PAUSED:
+        await _change_status(session, trip, user_no, TripStatus.RECORDING)
+    return await _to_response(session, trip)
+
+
+def recorded_seconds(history: list[tuple[str, datetime]], until: datetime) -> int:
+    """기록 중(RECORDING)이었던 구간의 합(초) — 일시정지 구간은 뺌."""
+    total = 0.0
+    started: datetime | None = None
+    for status_cd, at in history:
+        if status_cd == TripStatus.RECORDING:
+            started = started or at
+        elif started is not None:
+            total += (at - started).total_seconds()
+            started = None
+    if started is not None:
+        total += (until - started).total_seconds()
+    return int(total)
+
+
+async def _change_status(
+    session: AsyncSession, trip: TripMst, user_no: int, status_cd: str
+) -> None:
+    trip.trip_status_cd = status_cd
+    trip.updated_at = datetime.now(UTC)
+    trip.updated_user_no = user_no
+    await repository.add_status_hist(session, trip.trip_no, user_no, status_cd)
+    await session.commit()
+    await session.refresh(trip)
+
+
+async def _active_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:
+    """진행 중(기록 중 또는 일시정지)인 내 여행."""
+    trip = await _my_trip(session, user_no, trip_uuid)
+    if trip.trip_status_cd not in (TripStatus.RECORDING, TripStatus.PAUSED):
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="TRIP_NOT_RECORDING")
+    return trip
 
 
 async def _recording_trip(

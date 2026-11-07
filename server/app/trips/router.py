@@ -131,3 +131,21 @@ async def update(
     session: AsyncSession = Depends(get_session),
 ) -> TripDetailResponse:
     return await service.rename(session, user.user_no, trip_uuid, req)
+
+
+@router.post("/{trip_uuid}/pause", response_model=TripResponse)
+async def pause(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripResponse:
+    return await service.pause(session, user.user_no, trip_uuid)
+
+
+@router.post("/{trip_uuid}/resume", response_model=TripResponse)
+async def resume(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripResponse:
+    return await service.resume(session, user.user_no, trip_uuid)

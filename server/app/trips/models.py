@@ -25,6 +25,7 @@ class TripStatus:
     """TRIP_STATUS 코드 — 앱 로직과 묶인 상태 코드는 상수로도 둠(표준정의서 R10)."""
 
     RECORDING = "RECORDING"
+    PAUSED = "PAUSED"
     COMPLETED = "COMPLETED"
     INTERRUPTED = "INTERRUPTED"
     CANCELED = "CANCELED"

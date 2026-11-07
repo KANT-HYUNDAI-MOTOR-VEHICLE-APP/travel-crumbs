@@ -36,6 +36,7 @@ class RouteRecorder @Inject constructor(
     private val tripRepository: TripRepository,
     private val naviRepository: NaviRepository,
     private val timeSource: TimeSource,
+    private val pauseSync: TripPauseSync,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
@@ -47,6 +48,7 @@ class RouteRecorder @Inject constructor(
 
     fun start() {
         if (job?.isActive == true) return
+        pauseSync.start(scope)
         job = scope.launch {
             // 앱을 다시 켰을 때 기록 중이던 여행을 이어서 기록
             tripRepository.currentTrip()
@@ -77,7 +79,9 @@ class RouteRecorder @Inject constructor(
         var lastFlush = timeSource.nowMillis()
         try {
             while (currentCoroutineContext().isActive) {
-                val location = if (naviRepository.ready.value) {
+                // 일시정지 중에는 경로점을 남기지 않음(결정 로그 D27)
+                val paused = tripRepository.activeTrip.value?.statusCode == PAUSED
+                val location = if (naviRepository.ready.value && !paused) {
                     runCatching { withTimeout(AppConfig.SDK_CALL_TIMEOUT_MS) { naviRepository.currentLocation() } }
                         .onFailure { Log.d(TAG, "위치 조회 실패: ${it.message}") }
                         .getOrNull()
@@ -118,5 +122,6 @@ class RouteRecorder @Inject constructor(
 
     private companion object {
         const val TAG = "RouteRecorder"
+        const val PAUSED = "PAUSED"
     }
 }

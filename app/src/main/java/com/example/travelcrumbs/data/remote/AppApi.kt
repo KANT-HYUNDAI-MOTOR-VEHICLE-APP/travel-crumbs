@@ -75,6 +75,14 @@ interface AppApi {
     @POST("trips/{trip_uuid}/end")
     suspend fun endTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse
 
+    /** 일시정지(RECORDING → PAUSED · 상태 이력). 서버 `POST /trips/{trip_uuid}/pause`. */
+    @POST("trips/{trip_uuid}/pause")
+    suspend fun pauseTrip(@Path("trip_uuid") tripUuid: String): TripResponse
+
+    /** 다시 기록(PAUSED → RECORDING · 상태 이력). 서버 `POST /trips/{trip_uuid}/resume`. */
+    @POST("trips/{trip_uuid}/resume")
+    suspend fun resumeTrip(@Path("trip_uuid") tripUuid: String): TripResponse
+
     /** 내 여행 목록(취소 제외 · 최근 순). 서버 `GET /trips`. */
     @GET("trips")
     suspend fun getTrips(): List<TripListItemDto>

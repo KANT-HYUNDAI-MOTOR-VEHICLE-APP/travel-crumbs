@@ -61,6 +61,20 @@ class FakeTripRepository(
         return Result.success(detailOf(trip.tripUuid, trip.tripName))
     }
 
+    val pauseCalls = mutableListOf<String>()
+
+    override suspend fun pause(tripUuid: String): Result<Trip> = changeStatus("PAUSED")
+
+    override suspend fun resume(tripUuid: String): Result<Trip> = changeStatus("RECORDING")
+
+    private fun changeStatus(status: String): Result<Trip> {
+        failWith?.let { return Result.failure(it) }
+        val trip = active.value?.copy(statusCode = status) ?: return Result.failure(IllegalStateException("no trip"))
+        pauseCalls += status
+        active.value = trip
+        return Result.success(trip)
+    }
+
     var trips: List<TripSummary> = emptyList()
 
     override suspend fun myTrips(): Result<List<TripSummary>> =

@@ -23,12 +23,13 @@ from app.trips.models import (
 
 
 async def find_recording(session: AsyncSession, user_no: int) -> TripMst | None:
+    """기록 중 또는 일시정지인 여행 — 진행 중인 여행은 한 사용자에 1건."""
     """기록 중인 여행 — 한 사용자에 1건만 있도록 서비스가 지킴."""
     stmt = (
         select(TripMst)
         .where(
             TripMst.user_no == user_no,
-            TripMst.trip_status_cd == TripStatus.RECORDING,
+            TripMst.trip_status_cd.in_([TripStatus.RECORDING, TripStatus.PAUSED]),
             TripMst.deleted_yn == "N",
         )
         .order_by(TripMst.trip_no.desc())
@@ -324,3 +325,15 @@ async def find_my_trips(session: AsyncSession, user_no: int) -> list[TripMst]:
         .order_by(TripMst.start_at.desc())
     )
     return list((await session.execute(stmt)).scalars())
+
+
+async def find_status_hist(
+    session: AsyncSession, trip_no: int
+) -> list[tuple[str, datetime]]:
+    """상태 이력 — 바뀐 순서대로 (상태, 바뀐 시각)."""
+    stmt = (
+        select(TripStatusHist.trip_status_cd, TripStatusHist.created_at)
+        .where(TripStatusHist.trip_no == trip_no, TripStatusHist.deleted_yn == "N")
+        .order_by(TripStatusHist.created_at, TripStatusHist.trip_status_hist_no)
+    )
+    return [(cd, at) for cd, at in (await session.execute(stmt)).all()]

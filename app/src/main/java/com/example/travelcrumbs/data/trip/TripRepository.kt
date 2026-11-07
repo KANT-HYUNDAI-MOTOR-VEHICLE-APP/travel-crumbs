@@ -54,6 +54,11 @@ interface TripRepository {
     /** 내 여행 목록(A-07 간단판). */
     suspend fun myTrips(): Result<List<TripSummary>>
 
+    /** 일시정지 · 다시 기록 — 성공하면 기록 중인 여행의 상태가 바뀜. */
+    suspend fun pause(tripUuid: String): Result<Trip>
+
+    suspend fun resume(tripUuid: String): Result<Trip>
+
     /** 「제목 수정」(A-08). */
     suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail>
 }
@@ -94,6 +99,12 @@ class DefaultTripRepository @Inject constructor(
     override suspend fun endTrip(tripUuid: String): Result<TripDetail> = runCatching {
         api.endTrip(tripUuid).toDomain()
     }.onSuccess { active.update { trip -> if (trip?.tripUuid == tripUuid) null else trip } }
+
+    override suspend fun pause(tripUuid: String): Result<Trip> =
+        runCatching { api.pauseTrip(tripUuid).toDomain() }.onSuccess { active.value = it }
+
+    override suspend fun resume(tripUuid: String): Result<Trip> =
+        runCatching { api.resumeTrip(tripUuid).toDomain() }.onSuccess { active.value = it }
 
     override suspend fun myTrips(): Result<List<TripSummary>> = runCatching {
         api.getTrips().map {
