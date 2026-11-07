@@ -2,6 +2,8 @@ package com.example.travelcrumbs.ui.shell.components
 
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +20,7 @@ import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
  * 좌측 레일 — 목적지 목록의 레일 칸 5개 그대로(스펙 app-shell-v5 2-1). 정차 · 주행 · 모름 모두 보이고 눌림(D29).
- * 칸마다 한 번 터치 · 길게 누르기 없음 · 터치 영역은 [Dimens.MinTouchTarget] 이상.
+ * 칸마다 한 번 터치 · 길게 누르기 없음 · 터치 영역은 [Dimens.MinTouchTarget] 이상 · 글자 5 mm 이상 · 한 줄(줄바꿈 · 잘림 없음).
  */
 @Composable
 fun AppNavigationRail(
@@ -26,16 +28,28 @@ fun AppNavigationRail(
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationRail(modifier = modifier.fillMaxHeight()) {
+    NavigationRail(modifier = modifier.fillMaxHeight().width(Dimens.RailWidth)) {
         AppDestination.railItems.forEach { destination ->
             NavigationRailItem(
                 selected = destination == highlighted,
                 onClick = { onSelect(destination) },
-                icon = { Icon(painter = painterResource(destination.iconRes), contentDescription = null) },
+                icon = {
+                    Icon(
+                        painter = painterResource(destination.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.RailIconSize),
+                    )
+                },
                 label = {
                     Text(
                         text = stringResource(destination.labelRes),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = Dimens.RailLabelFontSize,
+                            lineHeight = Dimens.RailLabelLineHeight,
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.testTag(railLabelTag(destination)),
                     )
                 },
                 modifier = Modifier
@@ -47,5 +61,7 @@ fun AppNavigationRail(
     }
 }
 
-/** 레일 칸 이름표 — 테스트가 칸 크기를 잴 때 씀. */
+/** 레일 칸 · 글자 이름표 — 테스트가 칸 · 글자 크기를 잴 때 씀. */
 fun railItemTag(destination: AppDestination): String = "rail_${destination.id}"
+
+fun railLabelTag(destination: AppDestination): String = "rail_label_${destination.id}"

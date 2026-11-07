@@ -20,8 +20,10 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -33,6 +35,7 @@ import com.example.travelcrumbs.testing.FakeInputContent
 import com.example.travelcrumbs.testing.ShellTestGraph
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.shell.components.railItemTag
+import com.example.travelcrumbs.ui.shell.components.railLabelTag
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import org.junit.Assert.assertEquals
@@ -454,6 +457,30 @@ class AppShellScreenTest {
         assertRailTouchTargets()
     }
 
+    @Test
+    fun `V46 레일 글자 5 mm 이상(160 dpi 기준) · 한 줄 · 칸 안에 들어감 · 5칸이 화면 높이 안 — 주행 · 정차 같음`() {
+        show()
+        assertRailLabels()
+
+        drive(DrivingState.DRIVING)
+        assertRailLabels()
+    }
+
+    private fun assertRailLabels() {
+        val railBottoms = AppDestination.railItems.map { destination ->
+            val item = rail(destination).getBoundsInRoot()
+            val label = compose.onNodeWithTag(railLabelTag(destination), useUnmergedTree = true)
+                .assertIsDisplayed()
+                .getBoundsInRoot()
+            assertTrue("${destination.id} 글자 높이 ${label.height}", label.height >= FIVE_MM_AT_160_DPI)
+            assertTrue("${destination.id} 한 줄", label.height < FIVE_MM_AT_160_DPI * 2)
+            assertTrue("${destination.id} 글자가 칸 폭 안", label.left >= item.left && label.right <= item.right)
+            item.bottom
+        }
+        val root = compose.onRoot().getBoundsInRoot()
+        assertTrue("레일 5칸이 화면 높이 안 · ${railBottoms.max()}", railBottoms.max() <= root.bottom)
+    }
+
     private fun assertRailTouchTargets() {
         AppDestination.railItems.forEach { destination ->
             val bounds = rail(destination).getBoundsInRoot()
@@ -464,5 +491,8 @@ class AppShellScreenTest {
 
     private companion object {
         const val FRAME_MILLIS = 32L
+
+        /** 5 mm · 160 dpi(에뮬레이터 Pleos_Connect_v2.1.0 · 1dp = 1px) = 5 / 25.4 × 160 ≈ 31.5dp. */
+        val FIVE_MM_AT_160_DPI = (5f / 25.4f * 160f).dp
     }
 }
