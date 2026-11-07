@@ -103,3 +103,15 @@
 - 사람 결정: R1 = 내비 상태 대조 · debug 카드 「안내 건수를 불러오지 못했어요」 그대로 둠 · Codex 검증 안 함
 - 남은 결정: `_workspace/4/05_open_findings.md` — U48(30초) · U1 · 삭제 경로(#1 · #3) · 동의 게이트(#1) · 요청 상태 domain 분리 · S1 하네스
 - 다음: 시연 리허설(U1 5곳 실기 · T96) · #13 · #9 머지 뒤 rebase · 서버 단계
+
+## A-14 실패 폴백(범위 넓힘) · 1 스펙 · 2 구현 · 4 수정 끝 — 2026-11-07 · 최성호
+- 계기: 2026-11-06 팀 미팅 데이터 표준 v0.3 · ERD v0.3 · 와이어프레임 v5(A-14 길안내 연결과 실패 폴백 · 담당 성호) — 사람 결정으로 #4 범위 넓힘(결정 기록 U50) · 이슈 본문 고침은 초안만(미게시)
+- 산출물: navigation/impl a1ec9dd(스펙 · U50 ~ U62 · T97 ~ T114) · f8775b4(「다시 시도」 · 「더미 경로」(debug) · NAVI_REQ_STATUS 앱 상수) · bfe770e(리뷰 1회차) — 로컬 커밋 · 푸시 전
+- 에이전트: spec-writer × 1 · builder(app) × 2(구현 · 1회차 수정) · pleos-reviewer × 2 · structure-reviewer × 2
+- 센서: gradle lint · 단위 191 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest 이 브랜치 판 빨강 3 / develop(#9) 판 녹색
+- 에뮬레이터: T113(실패 → 더미 경로 → 닫기 → 다시 시도 → 안내 시작) · T103(주행 전환 뒤 패널 닫힘) 통과 · T109 일부 · T108 미실시
+- 리뷰 지적: 1회차 심사 반려 0 · 확인 3 · 구조 위반 0 · 확인 4 → 2회차 심사 해소 1 · 남은 확인 2 · 구조 해소 2 · 새 확인 1 · 센서 후보 3(심사 A1 release 잔존 2회 · 구조 N2 ViewModel 비대 2회 · S1 ViewModel Log 3회)
+- 사람 결정: U55 더미 경로 debug 빌드에만 · U57 와이어프레임 문구 그대로 · U51 ~ U54 · U56 추천대로
+- 남은 결정: `_workspace/4/05_open_findings_a14.md` — A1 · A3 · R3-2 · N2 · R4-1 · S1 · U58 ~ U62(팀) · 이슈 본문
+- 막힘: 없음(에뮬레이터에서 실패를 만들려고 요청 직후 기본 내비 앱 강제 종료 → TIMEOUT)
+- 다음: 푸시(PR #14 에 반영) · 이슈 #4 본문 고침 · 팀 결정 U58 ~ U62

@@ -27,13 +27,13 @@ import com.example.travelcrumbs.ui.home.RouteRequestState
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * 「가 볼 장소」(스펙 navigation 2.1 · E1 ~ E6) — 정차 홈에서만 · 글 입력 · 애니메이션 · 회전 표시 없음.
- * 요청 중도 글자로만 알림.
+ * 「가 볼 장소」(스펙 navigation 2.1 · E1 ~ E6 · E11 ~ E13) — 정차 홈에서만 · 글 입력 · 애니메이션 · 회전 표시 없음.
+ * 요청 중도 글자로만 알림. 실패면 결과 문구 아래 폴백 버튼 줄 · 그 아래 더미 경로 패널(E4 · E6 위 · U52).
  */
 @Composable
 fun PlacesToVisitSection(
     state: HomeUiState,
-    onGuide: (String) -> Unit,
+    actions: PlaceActions,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -47,6 +47,8 @@ fun PlacesToVisitSection(
             BodyLine(stringResource(R.string.places_navi_not_connected))
         }
         routeResultText(state.routeRequest)?.let { BodyLine(it) }
+        RouteFallbackButtons(state = state, onRetry = actions.onRetry, onShowDummyRoute = actions.onShowDummyRoute)
+        state.dummyRoute?.let { DummyRoutePanel(place = it, onClose = actions.onCloseDummyRoute) }
         // 읽기 전(null)엔 E4 · E6 둘 다 그리지 않음 — 빈 안내가 깜빡이지 않게
         val pinned = state.pinnedPlaces
         if (pinned != null && pinned.isEmpty()) {
@@ -54,7 +56,7 @@ fun PlacesToVisitSection(
         }
         pinned.orEmpty().forEach { place ->
             PlaceRow(name = place.name, address = place.address) {
-                GuideButton(place = place, state = state, onGuide = onGuide)
+                GuideButton(place = place, state = state, onGuide = actions.onGuide)
             }
         }
     }
@@ -64,8 +66,7 @@ fun PlacesToVisitSection(
 @Composable
 fun PlacePickerSection(
     state: HomeUiState,
-    onPin: (String) -> Unit,
-    onUnpin: (String) -> Unit,
+    actions: PlaceActions,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -80,7 +81,12 @@ fun PlacePickerSection(
         }
         state.candidates.forEach { candidate ->
             PlaceRow(name = candidate.name, address = candidate.address) {
-                PinButton(candidate = candidate, canPinMore = state.canPinMore, onPin = onPin, onUnpin = onUnpin)
+                PinButton(
+                    candidate = candidate,
+                    canPinMore = state.canPinMore,
+                    onPin = actions.onPin,
+                    onUnpin = actions.onUnpin,
+                )
             }
         }
     }
@@ -197,6 +203,16 @@ private fun RouteFailReason.textRes(): Int = when (this) {
     RouteFailReason.TIMEOUT -> R.string.places_reason_timeout
     RouteFailReason.REQUEST_FAILED -> R.string.places_reason_request_failed
 }
+
+/** #4 구역 사용자 행동 — 모두 ViewModel 메서드(navigation 3.1 · 결과는 상태 칸으로). */
+data class PlaceActions(
+    val onGuide: (String) -> Unit,
+    val onPin: (String) -> Unit,
+    val onUnpin: (String) -> Unit,
+    val onRetry: () -> Unit,
+    val onShowDummyRoute: () -> Unit,
+    val onCloseDummyRoute: () -> Unit,
+)
 
 /** 테스트가 구역 위치를 재는 이름표. */
 const val PLACES_SECTION_TAG = "home_places_section"
