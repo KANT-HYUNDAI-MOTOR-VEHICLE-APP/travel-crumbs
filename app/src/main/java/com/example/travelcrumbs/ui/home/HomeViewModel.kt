@@ -2,6 +2,7 @@ package com.example.travelcrumbs.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.consent.ConsentRepository
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
@@ -10,6 +11,7 @@ import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
+import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.UserProfile
@@ -33,6 +35,7 @@ class HomeViewModel @Inject constructor(
     gleoActionRepository: GleoActionRepository,
     private val naviRepository: NaviRepository,
     private val userRepository: UserRepository,
+    private val consentRepository: ConsentRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -40,6 +43,9 @@ class HomeViewModel @Inject constructor(
 
     /** 로그인된 사용자 — 화면이 열리면 한 번 부름(홈 A-03 인사말). */
     private val profile = MutableStateFlow<SdkStatus<UserProfile>>(SdkStatus.Idle)
+
+    /** 위치정보 동의 창(A-03-1)을 띄웠는지. */
+    private val locationConsentDialog = MutableStateFlow(false)
 
     init {
         loadProfile()
@@ -64,13 +70,15 @@ class HomeViewModel @Inject constructor(
         message,
         sdkCheck,
         profile,
-    ) { progress, shown, sdk, user ->
+        locationConsentDialog,
+    ) { progress, shown, sdk, user, consentDialog ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             message = shown,
             nickname = if (user is SdkStatus.Ready) user.value.nickname else null,
             userUnavailable = user is SdkStatus.Failed,
+            showLocationConsent = consentDialog,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -94,6 +102,39 @@ class HomeViewModel @Inject constructor(
                 onFailure = { SdkStatus.Failed(it.toCode()) },
             )
         }
+    }
+
+    /**
+     * 「새 여행 시작」(A-03) — 위치정보 동의가 있으면 여행 시작 설정(A-04)으로, 없으면 동의 창(A-03-1).
+     * A-04 는 다음 묶음 — 지금은 「준비 중」 안내.
+     */
+    fun onStartNewTrip() {
+        viewModelScope.launch {
+            consentRepository.isAgreed(ConsentType.LOCATION_COLLECT).fold(
+                onSuccess = { agreed ->
+                    if (agreed) message.value = UiMessage.NOT_READY else locationConsentDialog.value = true
+                },
+                onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
+            )
+        }
+    }
+
+    /** 동의 창 「동의하고 시작」 — user_consent_hist 에 동의 1건 기록 후 여행 시작 설정(A-04)으로. */
+    fun onAgreeLocationConsent() {
+        viewModelScope.launch {
+            consentRepository.agree(ConsentType.LOCATION_COLLECT).fold(
+                onSuccess = {
+                    locationConsentDialog.value = false
+                    message.value = UiMessage.NOT_READY
+                },
+                onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
+            )
+        }
+    }
+
+    /** 동의 창 「동의 안 함」 — 아무것도 저장하지 않고 홈 유지. */
+    fun onDeclineLocationConsent() {
+        locationConsentDialog.value = false
     }
 
     fun onMessageShown() {

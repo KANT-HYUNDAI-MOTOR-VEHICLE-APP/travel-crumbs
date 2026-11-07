@@ -5,6 +5,7 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RecordingStatus
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.testing.FakeConsentRepository
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
@@ -54,6 +55,7 @@ class HomeViewModelTest {
         gleoActionRepository = gleo,
         naviRepository = navi,
         userRepository = FakeUserRepository(),
+        consentRepository = FakeConsentRepository(),
     )
 
     @Test

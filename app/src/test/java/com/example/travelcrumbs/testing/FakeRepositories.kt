@@ -1,10 +1,12 @@
 package com.example.travelcrumbs.testing
 
 import android.content.Intent
+import com.example.travelcrumbs.data.consent.ConsentRepository
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.user.UserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
+import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.UserProfile
@@ -58,4 +60,16 @@ class FakeUserRepository(
 ) : UserRepository {
 
     override suspend fun myProfile(): Result<UserProfile> = result
+}
+
+class FakeConsentRepository(
+    var agreed: Boolean = false,
+) : ConsentRepository {
+
+    override suspend fun isAgreed(type: ConsentType): Result<Boolean> = Result.success(agreed)
+
+    override suspend fun agree(type: ConsentType): Result<Unit> {
+        agreed = true
+        return Result.success(Unit)
+    }
 }

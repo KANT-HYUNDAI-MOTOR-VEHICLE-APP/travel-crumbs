@@ -12,6 +12,8 @@ data class HomeUiState(
     val nickname: String? = null,
     /** 사용자 정보를 불러오지 못함(서버 꺼짐 등). */
     val userUnavailable: Boolean = false,
+    /** 위치정보 동의 창(A-03-1) 표시 여부. */
+    val showLocationConsent: Boolean = false,
     val recording: RecordingStatus = RecordingStatus.RECORDING,
     val elapsedMinutes: Long = 0L,
     val message: UiMessage? = null,

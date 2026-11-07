@@ -9,7 +9,7 @@ from alembic import context
 
 from app.core.settings import settings
 from app.db.base import Base
-from app.users import models as _users_models  # noqa: F401  테이블 모델을 메타데이터에 등록
+from app.db import models_registry  # noqa: F401  모든 테이블 모델을 메타데이터에 등록
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

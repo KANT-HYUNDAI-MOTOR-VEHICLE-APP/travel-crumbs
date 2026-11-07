@@ -19,3 +19,5 @@ ERD v0.3 · 데이터 표준정의서 v0.35 이후 결정한 내용. ERD v0.4 �
 
 - 장소 체류 시간: 회의(10/31)에서 "주차 시간으로 방문 여부 판단"으로 정했으나 trip_place_dtl에 도착 · 출발 시각 컬럼이 없음
 - 임시 기록(draft_yn = Y) 처리: 후기 입력 없이 여행을 종료하면 임시 기록을 남길지 정해야 함
+- 팀 리드 확인: user_mst.created_user_no NOT NULL(ERD v0.3) — 첫 사용자 · 시드 데이터의 생성자를 위해 시스템 계정(user_no 1, login_id system)을 임시로 둠. 시스템 계정 유지 또는 NULL 허용 중 결정 필요
+- 팀 리드 · 기보 확인: user_mst.password_hash NOT NULL(ERD v0.3) — Pleos 로그인 계정은 비밀번호가 없어 임시로 '!'(비밀번호 로그인 불가 표시)를 넣음. 로그인 방식에 맞춰 NULL 허용 여부 결정 필요

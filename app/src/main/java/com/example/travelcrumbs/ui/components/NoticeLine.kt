@@ -52,4 +52,5 @@ fun NoticeLine(
 
 private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.NOT_READY -> R.string.not_ready
+    UiMessage.SERVER_UNAVAILABLE -> R.string.server_unavailable
 }

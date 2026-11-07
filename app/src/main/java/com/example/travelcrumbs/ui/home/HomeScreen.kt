@@ -26,6 +26,7 @@ import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.recordingStatusText
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
+import com.example.travelcrumbs.ui.home.components.LocationConsentDialog
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -41,7 +42,9 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
     showSdkCard: Boolean = BuildConfig.DEBUG,
-    featureSections: @Composable ColumnScope.() -> Unit = { HomeFeatureSections() },
+    featureSections: @Composable ColumnScope.() -> Unit = {
+        HomeFeatureSections(onStartNewTrip = viewModel::onStartNewTrip)
+    },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -112,6 +115,13 @@ fun HomeScreen(
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    if (uiState.showLocationConsent) {
+        LocationConsentDialog(
+            onAgree = viewModel::onAgreeLocationConsent,
+            onDecline = viewModel::onDeclineLocationConsent,
+        )
     }
 }
 
