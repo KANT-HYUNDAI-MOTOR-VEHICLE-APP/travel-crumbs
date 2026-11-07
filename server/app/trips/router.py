@@ -1,4 +1,4 @@
-"""여행 — 기록 중인 여행 조회 · 여행 시작(A-04) · 경로점 · 장소 기록(A-05) · 장소 경험 입력(A-06)."""
+"""여행 — 기록 중인 여행 조회 · 여행 시작(A-04) · 경로점 · 장소 기록(A-05) · 장소 경험 입력(A-06) · 여행 종료 · 상세(A-08)."""
 
 from typing import Literal
 
@@ -12,11 +12,13 @@ from app.trips.schemas import (
     RoutePointsCreateRequest,
     RoutePointsCreateResponse,
     TripCreateRequest,
+    TripDetailResponse,
     TripPlaceCreateRequest,
     TripPlaceItem,
     TripPlaceResponse,
     TripPlaceUpdateRequest,
     TripResponse,
+    TripUpdateRequest,
 )
 from app.users.models import UserMst
 from app.users.service import current_user
@@ -92,3 +94,31 @@ async def update_place(
     return await service.complete_place(
         session, user.user_no, trip_uuid, trip_place_no, req
     )
+
+
+@router.post("/{trip_uuid}/end", response_model=TripDetailResponse)
+async def end(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.end_trip(session, user.user_no, trip_uuid)
+
+
+@router.get("/{trip_uuid}", response_model=TripDetailResponse)
+async def read_detail(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.detail(session, user.user_no, trip_uuid)
+
+
+@router.put("/{trip_uuid}", response_model=TripDetailResponse)
+async def update(
+    trip_uuid: str,
+    req: TripUpdateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.rename(session, user.user_no, trip_uuid, req)

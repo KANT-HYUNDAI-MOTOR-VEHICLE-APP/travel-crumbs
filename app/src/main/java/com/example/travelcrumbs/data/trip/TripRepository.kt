@@ -4,11 +4,15 @@ import com.example.travelcrumbs.data.remote.AppApi
 import com.example.travelcrumbs.data.remote.RoutePointDto
 import com.example.travelcrumbs.data.remote.RoutePointsCreateRequest
 import com.example.travelcrumbs.data.remote.TripCreateRequest
+import com.example.travelcrumbs.data.remote.TripDetailResponse
 import com.example.travelcrumbs.data.remote.TripPlaceCreateRequest
 import com.example.travelcrumbs.data.remote.TripResponse
+import com.example.travelcrumbs.data.remote.TripUpdateRequest
+import com.example.travelcrumbs.domain.model.TimelinePlace
 import com.example.travelcrumbs.domain.model.RoutePoint
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
+import com.example.travelcrumbs.domain.model.TripDetail
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -39,6 +43,15 @@ interface TripRepository {
 
     /** 「이 장소 기록」 임시 저장(A-05) — 저장 후 장소 수를 돌려줌. */
     suspend fun recordPlace(tripUuid: String, point: RoutePoint): Result<Int>
+
+    /** 여행 종료(A-08) — 성공하면 기록 중인 여행이 없어짐. 남은 경로점은 EndTripUseCase 가 먼저 보냄. */
+    suspend fun endTrip(tripUuid: String): Result<TripDetail>
+
+    /** 여행 상세(A-08). */
+    suspend fun detail(tripUuid: String): Result<TripDetail>
+
+    /** 「제목 수정」(A-08). */
+    suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail>
 }
 
 @Singleton
@@ -73,6 +86,42 @@ class DefaultTripRepository @Inject constructor(
     }.onSuccess { count ->
         active.update { trip -> if (trip?.tripUuid == tripUuid) trip.copy(placeCount = count) else trip }
     }
+
+    override suspend fun endTrip(tripUuid: String): Result<TripDetail> = runCatching {
+        api.endTrip(tripUuid).toDomain()
+    }.onSuccess { active.update { trip -> if (trip?.tripUuid == tripUuid) null else trip } }
+
+    override suspend fun detail(tripUuid: String): Result<TripDetail> = runCatching {
+        api.getTrip(tripUuid).toDomain()
+    }
+
+    override suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail> = runCatching {
+        api.updateTrip(tripUuid, TripUpdateRequest(tripNm = tripName)).toDomain()
+    }
+
+    private fun TripDetailResponse.toDomain(): TripDetail = TripDetail(
+        tripUuid = tripUuid,
+        tripName = tripNm,
+        statusCode = tripStatusCd,
+        startAt = startAt,
+        endAt = endAt,
+        distanceMeters = dist,
+        durationSeconds = duration,
+        placeCount = placeCnt,
+        routeData = routeData,
+        places = places.map {
+            TimelinePlace(
+                tripPlaceNo = it.tripPlaceNo,
+                recordedAt = it.recordedAt,
+                isDraft = it.draftYn == "Y",
+                userPlaceName = it.userPlaceNm,
+                placeTypeName = it.placeTypeNm,
+                reviewPolarityCode = it.reviewPolarityCd,
+                memo = it.memo,
+                tagNames = it.tagNms,
+            )
+        },
+    )
 
     private fun TripResponse.toDomain(): Trip = Trip(
         tripNo = tripNo,

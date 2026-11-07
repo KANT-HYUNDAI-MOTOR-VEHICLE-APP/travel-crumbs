@@ -11,11 +11,13 @@ import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.UserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.EndTripUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.UserProfile
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,7 +44,11 @@ class HomeViewModel @Inject constructor(
     private val consentRepository: ConsentRepository,
     private val tripRepository: TripRepository,
     private val placeRepository: PlaceRepository,
+    private val endTrip: EndTripUseCase,
 ) : ViewModel() {
+
+    /** 종료한 여행 UUID — 상세(A-08)를 띄울 때. */
+    private val endedTripUuid = MutableStateFlow<String?>(null)
 
     private val message = MutableStateFlow<UiMessage?>(null)
     private val naviState = MutableStateFlow<SdkStatus<NaviRouteState>>(SdkStatus.Idle)
@@ -81,9 +87,12 @@ class HomeViewModel @Inject constructor(
     }
 
     /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역) + 입력 안 한 임시 기록(A-06). */
-    private val tripState = combine(overlay, tripRepository.activeTrip, placeRepository.drafts) { open, trip, drafts ->
-        Triple(open, trip, drafts.size)
-    }
+    private val tripState = combine(
+        overlay,
+        tripRepository.activeTrip,
+        placeRepository.drafts,
+        endedTripUuid,
+    ) { open, trip, drafts, ended -> TripState(open, trip, drafts.size, ended) }
 
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
@@ -91,7 +100,7 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
         profile,
         tripState,
-    ) { progress, shown, sdk, user, (open, trip, draftCount) ->
+    ) { progress, shown, sdk, user, (open, trip, draftCount, ended) ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
@@ -104,6 +113,8 @@ class HomeViewModel @Inject constructor(
             placeCount = trip?.placeCount ?: 0,
             draftCount = if (trip != null) draftCount else 0,
             showPlaceInput = open == Overlay.PLACE_INPUT,
+            showEndConfirm = open == Overlay.END_CONFIRM,
+            tripDetailUuid = if (open == Overlay.TRIP_DETAIL) ended else null,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -159,6 +170,37 @@ class HomeViewModel @Inject constructor(
         overlay.value = Overlay.NONE
     }
 
+    /** 「여행 종료」 — 확인 창(A-08). */
+    fun onEndTrip() {
+        if (tripRepository.activeTrip.value != null) overlay.value = Overlay.END_CONFIRM
+    }
+
+    /** 확인 창 「계속 기록」. */
+    fun onContinueRecording() {
+        overlay.value = Overlay.NONE
+    }
+
+    /** 확인 창 「종료」 — 남은 경로점 전송 → 종료 → 상세(A-08). 입력 안 한 임시 기록은 남김. */
+    fun onConfirmEndTrip() {
+        val trip = tripRepository.activeTrip.value ?: return
+        overlay.value = Overlay.NONE
+        viewModelScope.launch {
+            endTrip(trip.tripUuid).fold(
+                onSuccess = {
+                    endedTripUuid.value = trip.tripUuid
+                    overlay.value = Overlay.TRIP_DETAIL
+                },
+                onFailure = { message.value = UiMessage.SERVER_UNAVAILABLE },
+            )
+        }
+    }
+
+    /** 여행 상세 「닫기」. */
+    fun onTripDetailClosed() {
+        overlay.value = Overlay.NONE
+        endedTripUuid.value = null
+    }
+
     /** 「장소 경험 입력」 — 임시 기록이 있을 때만 A-06. */
     fun onOpenPlaceInput() {
         overlay.value = Overlay.PLACE_INPUT
@@ -208,7 +250,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private enum class Overlay { NONE, LOCATION_CONSENT, TRIP_SETUP, PLACE_INPUT }
+    private enum class Overlay { NONE, LOCATION_CONSENT, TRIP_SETUP, PLACE_INPUT, END_CONFIRM, TRIP_DETAIL }
+
+    private data class TripState(
+        val open: Overlay,
+        val trip: Trip?,
+        val draftCount: Int,
+        val ended: String?,
+    )
 
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName

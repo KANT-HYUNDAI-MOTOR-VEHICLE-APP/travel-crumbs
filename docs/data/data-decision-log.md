@@ -29,11 +29,11 @@ ERD v0.3 · 데이터 표준정의서 v0.35 이후 결정한 내용. ERD v0.4 �
 | D23 | 2026-11-07 | 장소유형을 카테고리(대분류) → 유형(소분류) 2단계로 · 자연은 바다 · 산 · 계곡 · 호수 · 강 · 섬 · 공원으로 나눔 · 편의시설은 한국도로공사 휴게소 공공데이터 항목 기준 · 전기차 충전소 유형 코드는 EV_STATION(편의시설 EV_CHARGER 와 구분) · 단어 「카테고리(category)」는 약어 없이 | 바다 · 산처럼 사용자가 찾는 단위로 검색 | place_type_mst | 지수 |
 | D24 | 2026-11-07 | 코드그룹을 가리키는 값(REVIEW_POLARITY 등)은 코드가 아니라 목록의 이름 → 코드그룹명(cd_grp_nm · 명 도메인)에 저장 · cd_grp_cd 는 쓰지 않음 · 한글 그룹명(후기 성격 등)은 DB 에 두지 않고 표준정의서 코드 표에만 | 코드 도메인 허용값은 cd_dtl 의 코드값뿐. 목록 이름은 개별 코드 테이블이라면 테이블명(DEPT)에 해당. 한글 이름은 화면에 쓰이지 않고 표준 용어로 충분 | cd_grp_mst · cd_dtl · 표준정의서 v0.4(반영은 v0.4 때) | 지수 |
 | D25 | 2026-11-07 | 통합 공통 코드는 cd_mst 한 테이블(PK cd_no · 코드그룹명 + 코드 중복 불가) · 값이 많고 속성이 있는 코드는 개별 코드 테이블로: place_type_mst(PK place_type_cd · place_type_nm · place_category_cd · place_category_nm) · 다른 테이블은 place_type_cd 로 FK | 그룹에 딸린 속성이 코드그룹명뿐이라 그룹 테이블이 필요 없음. 장소유형은 값이 많고 카테고리 속성이 있음 | cd_mst · place_type_mst · trip_place_dtl · place_mst | 지수 |
+| D26 | 2026-11-07 | 공통 변경 이력 테이블 data_change_hist(데이터변경이력): data_change_hist_no · table_nm · column_nm · row_no · before_value · after_value(변경 일시 · 사용자 = created_at · created_user_no) · 단어는 change(약어 없이) · 분류어 「값(VALUE · value)」 등록(VARCHAR(500)) — 다른 컬럼의 값을 형식과 상관없이 문자로 옮겨 담을 때만, 데이터변경이력의 before_value · after_value 에만 사용(다른 곳은 맞는 도메인 등록) | D17 실행. 「값」이 도메인을 못 찾을 때 붙이는 말이 되지 않게 사용처를 제한(R03 아이디와 같은 방식). 첫 사용: A-08 여행명 수정 | data_change_hist · 표준 단어 · 도메인 | 지수 |
 
 ## 확인 필요
 
 - 장소 체류 시간(시나리오 1 이후): 회의(10/31)에서 "주차 시간으로 방문 여부 판단"으로 정했으나 trip_place_dtl에 도착 · 출발 시각 컬럼이 없음. 시나리오 1 화면(A-08 타임라인은 도착 시각만 표시)에는 쓰이지 않아 이후에 정함. 방법 후보: 경로점에 정차여부 추가 / trip_place_dtl에 도착 · 출발 시각 추가 / 경로점 시간 간격으로 계산(경로점은 이동할 때만 저장하므로 같은 위치에서 다음 점까지 걸린 시간 = 멈춘 시간). 정차 판단 재료(기어 P · 속도)는 Vehicle SDK에 있음
-- 임시 기록(draft_yn = Y) 처리: 후기 입력 없이 여행을 종료하면 임시 기록을 남길지 정해야 함
 - 팀 리드 확인: user_mst.created_user_no NOT NULL(ERD v0.3) — 첫 사용자 · 시드 데이터의 생성자를 위해 시스템 계정(user_no 1, login_id system)을 임시로 둠. 시스템 계정 유지 또는 NULL 허용 중 결정 필요
 - 팀 리드 · 기보 확인: user_mst.password_hash NOT NULL(ERD v0.3) — Pleos 로그인 계정은 비밀번호가 없어 임시로 '!'(비밀번호 로그인 불가 표시)를 넣음. 로그인 방식에 맞춰 NULL 허용 여부 결정 필요
 - 동행자 선택 규칙(D12 가안): 데이터 표준이 아닌 화면 · 업무 규칙이라 결정자 확인 필요. 지금은 가안대로 서버(422) · 앱 둘 다 검사

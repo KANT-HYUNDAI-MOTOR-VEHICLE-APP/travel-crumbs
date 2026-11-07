@@ -20,6 +20,10 @@ data class HomeUiState(
     val placeCount: Int = 0,
     /** 입력 안 한 임시 기록 수(trip_place_dtl draft_yn = Y) — A-06 으로 들어가는 버튼. */
     val draftCount: Int = 0,
+    /** 「여행 종료」 확인 창(A-08). */
+    val showEndConfirm: Boolean = false,
+    /** 종료한 여행의 상세(A-08)를 홈 자리에 띄웠으면 그 여행 UUID. */
+    val tripDetailUuid: String? = null,
     /** 장소 경험 입력(A-06)을 홈 자리에 띄웠는지. */
     val showPlaceInput: Boolean = false,
     /** 여행 시작 설정(A-04)을 홈 자리에 띄웠는지. */

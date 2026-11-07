@@ -63,6 +63,7 @@ class HomeViewModelTest {
         consentRepository = consent,
         tripRepository = trips,
         placeRepository = FakePlaceRepository(),
+        endTrip = { uuid -> trips.endTrip(uuid) },
     )
 
     @Test
@@ -149,6 +150,24 @@ class HomeViewModelTest {
 
         assertEquals(false, vm.uiState.value.showTripSetup)
         assertEquals(UiMessage.TRIP_STARTED, vm.uiState.value.message)
+    }
+
+    @Test
+    fun `여행 종료 — 확인 뒤 종료하면 기록 중인 여행이 없어지고 상세가 열림`() = runTest(dispatcher) {
+        val trips = FakeTripRepository(current = Trip(1L, "uuid-1", "2026.11.07 여행", "RECORDING", listOf("SOLO")))
+        val vm = viewModel(trips = trips)
+        subscribe(vm)
+
+        vm.onEndTrip()
+        runCurrent()
+        assertTrue(vm.uiState.value.showEndConfirm)
+
+        vm.onConfirmEndTrip()
+        runCurrent()
+
+        assertEquals(null, trips.activeTrip.value)
+        assertEquals("uuid-1", vm.uiState.value.tripDetailUuid)
+        assertEquals(null, vm.uiState.value.activeTripName)
     }
 
     private fun TestScope.subscribe(vm: HomeViewModel) {

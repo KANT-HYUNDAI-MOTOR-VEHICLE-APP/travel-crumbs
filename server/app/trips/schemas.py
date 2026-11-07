@@ -134,3 +134,40 @@ class TripPlaceUpdateRequest(BaseModel):
     navi_place: NaviPlaceIn | None = Field(
         default=None, description="내비 후보에서 골랐으면 그 장소 — 공식 장소로 연결"
     )
+
+
+class TripUpdateRequest(BaseModel):
+    """여행 상세(A-08) 「제목 수정」."""
+
+    trip_nm: TripName = Field(description="여행명")
+
+
+class TimelinePlace(BaseModel):
+    """여행 상세 타임라인 한 줄 — 기록 순서(recorded_at)."""
+
+    trip_place_no: int = Field(description="여행장소번호")
+    recorded_at: datetime = Field(description="기록일시")
+    draft_yn: str = Field(description="임시저장여부 — Y 면 아직 입력 안 함")
+    user_place_nm: str | None = Field(description="사용자장소명")
+    place_type_nm: str | None = Field(description="장소유형명")
+    review_polarity_cd: str | None = Field(description="후기성격코드")
+    memo: str | None = Field(description="메모")
+    tag_nms: list[str] = Field(description="경험 태그 이름")
+
+
+class TripDetailResponse(BaseModel):
+    """여행 상세(A-08) — 요약 · 간소화 경로 · 장소 타임라인."""
+
+    trip_no: int = Field(description="여행번호")
+    trip_uuid: str = Field(description="여행UUID")
+    trip_nm: str = Field(description="여행명")
+    trip_status_cd: str = Field(description="여행상태코드")
+    start_at: datetime = Field(description="시작일시")
+    end_at: datetime | None = Field(description="종료일시")
+    dist: int | None = Field(description="거리(m)")
+    duration: int | None = Field(description="소요시간(초)")
+    place_cnt: int = Field(description="장소개수")
+    route_data: str | None = Field(
+        description="간소화 경로(인코딩 폴리라인) — 종료 전이면 null"
+    )
+    places: list[TimelinePlace] = Field(description="장소 타임라인")

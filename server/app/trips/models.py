@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -181,4 +182,22 @@ class TripPlaceTagRel(CommonColumns, Base):
     )
     tag_no: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("tag_mst.tag_no"), comment="태그번호"
+    )
+
+
+class TripRouteDtl(CommonColumns, Base):
+    __tablename__ = "trip_route_dtl"
+    __table_args__ = table_args(
+        "여행경로내역 — 여행 종료 때 원본 경로점을 간소화한 경로(여행과 1:1)",
+        UniqueConstraint("trip_no", name="uq_trip_route_dtl_trip_no"),
+    )
+
+    trip_route_no: Mapped[int] = mapped_column(
+        BigInteger, Identity(always=False), primary_key=True, comment="여행경로번호"
+    )
+    trip_no: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("trip_mst.trip_no"), comment="여행번호"
+    )
+    route_data: Mapped[str] = mapped_column(
+        Text, comment="경로데이터 — 인코딩 폴리라인(구글 · 정밀도 1e-5)"
     )

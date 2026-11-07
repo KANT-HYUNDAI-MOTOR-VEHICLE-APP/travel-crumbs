@@ -70,4 +70,16 @@ interface AppApi {
     /** 장소유형 목록(place_type_mst) — 카테고리 → 유형 버튼(A-06). 서버 `GET /place-types`. */
     @GET("place-types")
     suspend fun getPlaceTypes(): List<PlaceTypeResponse>
+
+    /** 여행 종료 — 완료 · 거리 · 소요시간 · 간소화 경로 · 상태 이력(A-08). 서버 `POST /trips/{trip_uuid}/end`. */
+    @POST("trips/{trip_uuid}/end")
+    suspend fun endTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse
+
+    /** 여행 상세(A-08). 서버 `GET /trips/{trip_uuid}`. */
+    @GET("trips/{trip_uuid}")
+    suspend fun getTrip(@Path("trip_uuid") tripUuid: String): TripDetailResponse
+
+    /** 「제목 수정」 — trip_nm 수정 + 데이터변경이력. 서버 `PUT /trips/{trip_uuid}`. */
+    @PUT("trips/{trip_uuid}")
+    suspend fun updateTrip(@Path("trip_uuid") tripUuid: String, @Body body: TripUpdateRequest): TripDetailResponse
 }

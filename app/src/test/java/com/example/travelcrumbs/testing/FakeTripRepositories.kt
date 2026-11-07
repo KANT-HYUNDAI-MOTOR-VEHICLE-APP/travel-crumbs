@@ -10,6 +10,7 @@ import com.example.travelcrumbs.domain.model.RoutePoint
 import com.example.travelcrumbs.domain.model.Tag
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
+import com.example.travelcrumbs.domain.model.TripDetail
 import com.example.travelcrumbs.domain.model.TripPlace
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +50,37 @@ class FakeTripRepository(
         routePoints += points
         return Result.success(Unit)
     }
+
+    val renamed = mutableListOf<String>()
+
+    override suspend fun endTrip(tripUuid: String): Result<TripDetail> {
+        failWith?.let { return Result.failure(it) }
+        val trip = active.value ?: return Result.failure(IllegalStateException("TRIP_NOT_RECORDING"))
+        active.value = null
+        return Result.success(detailOf(trip.tripUuid, trip.tripName))
+    }
+
+    override suspend fun detail(tripUuid: String): Result<TripDetail> =
+        failWith?.let { Result.failure(it) } ?: Result.success(detailOf(tripUuid, renamed.lastOrNull() ?: "2026.11.07 여행"))
+
+    override suspend fun rename(tripUuid: String, tripName: String): Result<TripDetail> {
+        failWith?.let { return Result.failure(it) }
+        renamed += tripName
+        return Result.success(detailOf(tripUuid, tripName))
+    }
+
+    private fun detailOf(uuid: String, name: String) = TripDetail(
+        tripUuid = uuid,
+        tripName = name,
+        statusCode = "COMPLETED",
+        startAt = "2026-11-07T09:00:00Z",
+        endAt = "2026-11-07T11:30:00Z",
+        distanceMeters = 4362,
+        durationSeconds = 9000,
+        placeCount = places.size,
+        routeData = "e{neFouvqW",
+        places = emptyList(),
+    )
 
     override suspend fun recordPlace(tripUuid: String, point: RoutePoint): Result<Int> {
         failWith?.let { return Result.failure(it) }

@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
 import com.example.travelcrumbs.ui.home.components.LocationConsentDialog
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.placeinput.PlaceInputScreen
+import com.example.travelcrumbs.ui.tripdetail.TripDetailScreen
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.tripsetup.TripSetupScreen
 
@@ -50,6 +53,13 @@ fun HomeScreen(
     },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 여행 상세(A-08) — 종료 직후 홈 자리를 그대로 씀
+    val detailUuid = uiState.tripDetailUuid
+    if (detailUuid != null) {
+        TripDetailScreen(tripUuid = detailUuid, onClose = viewModel::onTripDetailClosed, modifier = modifier)
+        return
+    }
 
     // 장소 경험 입력(A-06) — 홈 자리를 그대로 씀
     if (uiState.showPlaceInput) {
@@ -107,6 +117,15 @@ fun HomeScreen(
                         maxLines = 1,
                     )
                 }
+                // 여행 종료(A-08)
+                if (tripName != null) {
+                    OutlinedButton(
+                        onClick = viewModel::onEndTrip,
+                        modifier = Modifier.height(Dimens.HomeButtonHeight),
+                    ) {
+                        Text(text = stringResource(R.string.home_end_trip), style = MaterialTheme.typography.titleLarge)
+                    }
+                }
                 // 입력 안 한 임시 기록(A-06) — 정차 중에만 보이는 홈에서 입력
                 if (uiState.draftCount > 0) {
                     OutlinedButton(
@@ -156,6 +175,21 @@ fun HomeScreen(
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    if (uiState.showEndConfirm) {
+        AlertDialog(
+            onDismissRequest = viewModel::onContinueRecording,
+            text = { Text(text = stringResource(R.string.end_trip_body), style = MaterialTheme.typography.bodyLarge) },
+            confirmButton = {
+                Button(onClick = viewModel::onConfirmEndTrip) { Text(text = stringResource(R.string.end_trip_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onContinueRecording) {
+                    Text(text = stringResource(R.string.end_trip_continue))
+                }
+            },
+        )
     }
 
     if (uiState.showLocationConsent) {

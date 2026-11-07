@@ -35,6 +35,19 @@
     <string name="trip_setup_cancel">취소</string>
     <string name="trip_setup_start">여행 시작</string>
     <string name="retry">다시 시도</string>
+    <string name="home_end_trip">여행 종료</string>
+    <string name="end_trip_body">현재 여행 기록을 종료할까요?</string>
+    <string name="end_trip_continue">계속 기록</string>
+    <string name="end_trip_confirm">종료</string>
+
+    <!-- 여행 상세(A-08) -->
+    <string name="trip_detail_edit_title">제목 수정</string>
+    <string name="trip_detail_summary">총 %1$.1fkm · %2$d시간 %3$d분 · 장소 %4$d개</string>
+    <string name="trip_detail_no_place">기록한 장소가 없어요</string>
+    <string name="trip_detail_draft_place">입력 안 한 장소</string>
+    <string name="trip_detail_positive">좋았어요</string>
+    <string name="trip_detail_negative">별로예요</string>
+    <string name="trip_detail_close">닫기</string>
     <string name="home_place_input">장소 경험 입력 · 남은 기록 %1$d</string>
 
     <!-- 장소 경험 입력(A-06) -->

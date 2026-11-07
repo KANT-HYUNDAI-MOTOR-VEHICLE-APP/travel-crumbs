@@ -126,3 +126,38 @@ data class TripPlaceUpdateRequest(
     @SerialName("tag_nos") val tagNos: List<Long> = emptyList(),
     @SerialName("navi_place") val naviPlace: NaviPlaceDto? = null,
 )
+
+/** 서버 `PUT /trips/{trip_uuid}` 요청 — 여행 상세(A-08) 「제목 수정」. */
+@Serializable
+data class TripUpdateRequest(
+    @SerialName("trip_nm") val tripNm: String,
+)
+
+/** 여행 상세 타임라인 한 줄. */
+@Serializable
+data class TimelinePlaceDto(
+    @SerialName("trip_place_no") val tripPlaceNo: Long,
+    @SerialName("recorded_at") val recordedAt: String,
+    @SerialName("draft_yn") val draftYn: String,
+    @SerialName("user_place_nm") val userPlaceNm: String? = null,
+    @SerialName("place_type_nm") val placeTypeNm: String? = null,
+    @SerialName("review_polarity_cd") val reviewPolarityCd: String? = null,
+    @SerialName("memo") val memo: String? = null,
+    @SerialName("tag_nms") val tagNms: List<String> = emptyList(),
+)
+
+/** 서버 여행 상세 응답 — `POST /trips/{trip_uuid}/end` · `GET /trips/{trip_uuid}` · `PUT /trips/{trip_uuid}`. */
+@Serializable
+data class TripDetailResponse(
+    @SerialName("trip_no") val tripNo: Long,
+    @SerialName("trip_uuid") val tripUuid: String,
+    @SerialName("trip_nm") val tripNm: String,
+    @SerialName("trip_status_cd") val tripStatusCd: String,
+    @SerialName("start_at") val startAt: String,
+    @SerialName("end_at") val endAt: String? = null,
+    @SerialName("dist") val dist: Int? = null,
+    @SerialName("duration") val duration: Int? = null,
+    @SerialName("place_cnt") val placeCnt: Int = 0,
+    @SerialName("route_data") val routeData: String? = null,
+    @SerialName("places") val places: List<TimelinePlaceDto> = emptyList(),
+)

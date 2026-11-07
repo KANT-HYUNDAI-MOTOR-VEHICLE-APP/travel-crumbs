@@ -12,6 +12,7 @@ import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
 import com.example.travelcrumbs.ui.placeinput.PlaceInputViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
+import com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel
 import com.example.travelcrumbs.ui.tripsetup.TripSetupViewModel
 
 /**
@@ -54,6 +55,11 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             consentRepository = FakeConsentRepository(),
             tripRepository = trips,
             placeRepository = places,
+            endTrip = { uuid -> trips.endTrip(uuid) },
+        )
+        TripDetailViewModel::class.java -> TripDetailViewModel(
+            tripRepository = trips,
+            nameSuggester = { it },
         )
         PlaceInputViewModel::class.java -> PlaceInputViewModel(
             tripRepository = trips,

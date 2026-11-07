@@ -15,7 +15,7 @@
 | 번호 | 화면 | 상태 | 하는 일 |
 |---|---|---|---|
 | G1 | A-04 여행 시작 설정 | 자리 있음(묶음 3) | 여행명 「수정」 시 이름 추천 |
-| G2 | A-08 여행 종료 확인 | 예정(묶음 6) | 들른 장소 이름으로 여행명 추천 |
+| G2 | A-08 여행 상세 「제목 수정」 | 자리 있음(묶음 6) | 들른 장소 이름으로 여행명 추천 |
 
 ### G1 여행명 추천 — A-04 「수정」
 
@@ -33,7 +33,9 @@
 - 저장: 사용자가 「여행 시작」을 누르면 최종 이름이 `POST /trips` → `trip_mst.trip_nm`
 - 참고: 시작 시점에는 여행지 정보가 없음(시작 위치는 보통 출발지). 의미 있는 추천은 G2 에서 가능
 
-### G2 여행명 추천 — A-08 여행 종료 (예정)
+### G2 여행명 추천 — A-08 여행 상세 「제목 수정」
+
+- 지금: `ui/tripdetail/TripDetailViewModel.onEditTitle()` 가 G1 과 같은 `TripNameSuggester.suggest(current)` 를 부름(입력 = 지금 여행명). 저장하면 `PUT /trips/{trip_uuid}` → `trip_mst.trip_nm` 수정 + `data_change_hist` 1행
 
 - 생각: 여행을 마칠 때 들른 장소 이름을 Gleo 에 넘겨 여행명 추천(예: 「강릉 중앙시장 외 2곳」 수준보다 자연스러운 이름)
 - 입력 후보: `trip_place_dtl`(기록 순서 = `recorded_at`) → `place_mst.place_nm`(장소 연결은 A-06 · 묶음 5), `trip_mst.start_at · end_at`, `trip_companion_dtl.companion_type_cd`(SOLO · SPOUSE · CHILD · PARENT · PET)

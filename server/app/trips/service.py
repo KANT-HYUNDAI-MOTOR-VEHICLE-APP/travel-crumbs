@@ -21,19 +21,24 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.history import repository as history_repository
 from app.places import repository as place_repository
 from app.trips import repository
+from app.trips import route as route_calc
 from app.trips.models import TripMst, TripPlaceDtl, TripStatus
 from app.trips.schemas import (
     CurrentTripResponse,
     RoutePointsCreateRequest,
     RoutePointsCreateResponse,
+    TimelinePlace,
     TripCreateRequest,
+    TripDetailResponse,
     TripPlaceCreateRequest,
     TripPlaceItem,
     TripPlaceResponse,
     TripPlaceUpdateRequest,
     TripResponse,
+    TripUpdateRequest,
 )
 
 COMPANION_TYPE = "COMPANION_TYPE"
@@ -163,6 +168,97 @@ async def complete_place(
     await session.commit()
     await session.refresh(row)
     return _to_place_item(row, tag_nos)
+
+
+async def end_trip(
+    session: AsyncSession, user_no: int, trip_uuid: str
+) -> TripDetailResponse:
+    """여행 종료(A-08) — 완료 · 종료 시각 · 거리 · 소요시간 · 간소화 경로 · 상태 이력을 한 번에.
+
+    입력 안 한 임시 기록(draft_yn = Y)은 지우지 않고 남김(나중에 입력 가능).
+    """
+    trip = await _recording_trip(session, user_no, trip_uuid)
+    coords = await repository.find_route_coords(session, trip.trip_no)
+    now = datetime.now(UTC)
+    trip.trip_status_cd = TripStatus.COMPLETED
+    trip.end_at = now
+    trip.dist = route_calc.total_distance_m(coords)
+    trip.duration = int((now - trip.start_at).total_seconds())
+    trip.updated_at = now
+    trip.updated_user_no = user_no
+    if coords:
+        await repository.save_route(
+            session,
+            trip.trip_no,
+            user_no,
+            route_calc.encode_polyline(route_calc.simplify(coords)),
+        )
+    await repository.add_status_hist(
+        session, trip.trip_no, user_no, TripStatus.COMPLETED
+    )
+    await session.commit()
+    return await detail(session, user_no, trip_uuid)
+
+
+async def detail(
+    session: AsyncSession, user_no: int, trip_uuid: str
+) -> TripDetailResponse:
+    trip = await _my_trip(session, user_no, trip_uuid)
+    rows = await repository.find_places(session, trip.trip_no, None)
+    tag_names, type_names = await repository.find_timeline_extras(
+        session,
+        [r.trip_place_no for r in rows],
+        [r.place_type_cd for r in rows if r.place_type_cd],
+    )
+    return TripDetailResponse(
+        trip_no=trip.trip_no,
+        trip_uuid=trip.trip_uuid,
+        trip_nm=trip.trip_nm,
+        trip_status_cd=trip.trip_status_cd,
+        start_at=trip.start_at,
+        end_at=trip.end_at,
+        dist=trip.dist,
+        duration=trip.duration,
+        place_cnt=trip.place_cnt,
+        route_data=await repository.find_route_data(session, trip.trip_no),
+        places=[
+            TimelinePlace(
+                trip_place_no=r.trip_place_no,
+                recorded_at=r.recorded_at,
+                draft_yn=r.draft_yn,
+                user_place_nm=r.user_place_nm,
+                place_type_nm=type_names.get(r.place_type_cd)
+                if r.place_type_cd
+                else None,
+                review_polarity_cd=r.review_polarity_cd,
+                memo=r.memo,
+                tag_nms=tag_names[r.trip_place_no],
+            )
+            for r in rows
+        ],
+    )
+
+
+async def rename(
+    session: AsyncSession, user_no: int, trip_uuid: str, req: TripUpdateRequest
+) -> TripDetailResponse:
+    """「제목 수정」 — 바뀌면 trip_nm 수정 + 데이터변경이력 1행(결정 로그 D17 · D26)."""
+    trip = await _my_trip(session, user_no, trip_uuid)
+    if trip.trip_nm != req.trip_nm:
+        await history_repository.add_change(
+            session,
+            user_no,
+            table_nm="trip_mst",
+            column_nm="trip_nm",
+            row_no=trip.trip_no,
+            before=trip.trip_nm,
+            after=req.trip_nm,
+        )
+        trip.trip_nm = req.trip_nm
+        trip.updated_at = datetime.now(UTC)
+        trip.updated_user_no = user_no
+        await session.commit()
+    return await detail(session, user_no, trip_uuid)
 
 
 async def _my_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:

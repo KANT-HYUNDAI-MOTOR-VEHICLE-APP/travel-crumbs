@@ -10,7 +10,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
@@ -21,6 +20,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
@@ -28,7 +29,7 @@ import kotlinx.coroutines.withTimeout
  * 경로 기록(A-05) — 기록 중인 여행이 있는 동안 내비에 현재 위치를 묻고(RouteRules.POLL_MILLIS),
  * 움직였을 때만 경로점을 모아 서버(trip_route_point_dtl)로 보냄.
  * 앱이 켜져 있는 동안만 기록(백그라운드 · 앱 종료 뒤 기록은 시나리오 1 범위 밖).
- * MainActivity 가 start() · stop() 을 부름.
+ * MainActivity 가 start() · stop() 을 부름 · 여행 종료(A-08) 직전에는 [flushNow] 로 남은 점을 먼저 보냄.
  */
 @Singleton
 class RouteRecorder @Inject constructor(
@@ -39,7 +40,11 @@ class RouteRecorder @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    /** 아직 서버로 못 보낸 경로점 — 지금 기록 중인 여행 것만. */
+    private val pending = ArrayDeque<RoutePoint>()
+    private val lock = Mutex()
+    private var pendingTripUuid: String? = null
+
     fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
@@ -57,8 +62,17 @@ class RouteRecorder @Inject constructor(
         job = null
     }
 
+    /** 남은 경로점을 지금 보냄 — 여행 종료 전에 부름(종료 뒤에는 서버가 경로점을 받지 않음). */
+    suspend fun flushNow() {
+        val tripUuid = lock.withLock { pendingTripUuid } ?: return
+        flush(tripUuid)
+    }
+
     private suspend fun record(tripUuid: String) {
-        val pending = ArrayDeque<RoutePoint>()
+        lock.withLock {
+            pendingTripUuid = tripUuid
+            pending.clear()
+        }
         var last: RoutePoint? = null
         var lastFlush = timeSource.nowMillis()
         try {
@@ -73,31 +87,32 @@ class RouteRecorder @Inject constructor(
                 if (location != null && location.isValid) {
                     val point = RoutePoint(location.lat, location.lng, timeSource.nowMillis())
                     if (RouteRules.shouldKeep(last, point)) {
-                        pending.addLast(point)
+                        lock.withLock {
+                            pending.addLast(point)
+                            while (pending.size > RouteRules.MAX_PENDING) pending.removeFirst()
+                        }
                         last = point
-                        while (pending.size > RouteRules.MAX_PENDING) pending.removeFirst()
                     }
                 }
                 val now = timeSource.nowMillis()
-                if (pending.size >= RouteRules.BATCH_SIZE ||
-                    (pending.isNotEmpty() && now - lastFlush >= RouteRules.FLUSH_MILLIS)
-                ) {
-                    flush(tripUuid, pending)
+                val size = lock.withLock { pending.size }
+                if (size >= RouteRules.BATCH_SIZE || (size > 0 && now - lastFlush >= RouteRules.FLUSH_MILLIS)) {
+                    flush(tripUuid)
                     lastFlush = now
                 }
                 delay(RouteRules.POLL_MILLIS)
             }
         } finally {
             // 여행이 바뀌거나 앱이 닫힐 때 남은 점을 한 번 더 보냄
-            withContext(NonCancellable) { flush(tripUuid, pending) }
+            withContext(NonCancellable) { flush(tripUuid) }
         }
     }
 
-    private suspend fun flush(tripUuid: String, pending: ArrayDeque<RoutePoint>) {
-        if (pending.isEmpty()) return
-        val batch = pending.toList()
+    private suspend fun flush(tripUuid: String) {
+        val batch = lock.withLock { if (pendingTripUuid == tripUuid) pending.toList() else emptyList() }
+        if (batch.isEmpty()) return
         tripRepository.addRoutePoints(tripUuid, batch)
-            .onSuccess { repeat(batch.size) { pending.removeFirst() } }
+            .onSuccess { lock.withLock { repeat(batch.size) { pending.removeFirstOrNull() } } }
             .onFailure { Log.d(TAG, "경로점 전송 실패(다음에 다시 보냄): ${it.message}") }
     }
 
