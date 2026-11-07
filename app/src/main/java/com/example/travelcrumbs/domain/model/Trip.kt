@@ -19,10 +19,11 @@ data class RoutePoint(
     val recordedAtMillis: Long,
 )
 
-/** 코드 한 줄(cd_dtl) — code 는 저장값, label 은 화면 글자. */
+/** 코드 한 줄(cd_dtl) — code 는 저장값, label 은 화면 글자, categoryCode 는 속한 카테고리(장소유형에서만 씀). */
 data class CodeItem(
     val code: String,
     val label: String,
+    val categoryCode: String? = null,
 )
 
 /** 서버가 「이미 기록 중인 여행이 있음」(409 TRIP_ALREADY_RECORDING)으로 거절. */

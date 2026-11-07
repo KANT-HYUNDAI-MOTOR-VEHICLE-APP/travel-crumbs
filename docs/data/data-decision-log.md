@@ -22,6 +22,13 @@ ERD v0.3 · 데이터 표준정의서 v0.35 이후 결정한 내용. ERD v0.4 �
 | D16 | 2026-11-07 | 코드(cd)는 영어 대문자 · 화면 글자는 cd_dtl.cd_nm · 데이터가 쌓인 뒤 cd 는 바꾸지 않고 뜻이 바뀌면 새 코드 추가 + 기존 코드 use_yn = N · M02 확정: SPOUSE 「배우자」 · CHILD 「아이」 | 그룹이 COMPANION_TYPE(동행자 = 나와 함께 가는 사람)이라 나를 포함하는 「부부」는 맞지 않고, 「동반」은 그룹 이름에 이미 있음. 「부부 여행」 같은 표현은 화면 문구로 처리. 숫자 코드는 뜻이 없어 매번 코드표를 봐야 하지만 영어 코드는 SQL · 로그에서 바로 읽히고 앱 상수로도 씀(R10) · 한글 인코딩 문제 없음 | cd_dtl COMPANION_TYPE · 표준정의서 v0.35 6절 M02 | 지수 |
 | D17 | 2026-11-07 | 값 변경 이력은 공통 변경 이력 테이블 하나로 남김(테이블명 · 컬럼명 · 행 번호 · 이전 값 · 이후 값 · 변경 일시 · 변경 사용자) · 업무 로직에 쓰이는 이력(trip_status_hist · user_consent_hist)은 그대로 둠 · 테이블은 기존 값을 고치는 화면이 처음 생기는 묶음에서 생성 | 데이터가 바뀌면 이력을 남김. 테이블별 이력은 ERD 테이블 수가 크게 늘어남. 시나리오 1에는 아직 수정 화면이 없음 | 공통(새 테이블 1개) | 지수 |
 | D18 | 2026-11-07 | trip_place_dtl.memo · review_polarity_cd 를 NULL 허용으로 변경 | A-05에서 「이 장소 기록」은 위치 · 시각만 임시 저장(draft_yn = Y)하고 메모 · 후기는 정차 후 A-06에서 입력. 빈 문자열은 「아직 입력 안 함」과 구분 안 됨 | trip_place_dtl | 지수 |
+| D19 | 2026-11-07 | trip_place_dtl.user_place_nm(사용자장소명 · varchar(100) · NULL 허용) 추가 — 사용자가 부르는 이름은 개인 기록에 · place_mst 는 내비 POI · 공공데이터로 확인된 공식 장소만(직접 입력한 이름으로는 만들지 않음) · 확인되면 place_no 로 연결 | 같은 장소도 사람마다 부르는 이름이 다름(중앙시장 / 강릉 중앙시장). place_mst 는 여러 사용자의 후기 · 시설을 장소 단위로 모으는 공식 목록이라 1곳 1행 유지 | trip_place_dtl · place_mst | 지수 |
+| D20 | 2026-11-07 | place_mst.poi_id(POI번호 · varchar(50)) · poi_provider(POI제공자 · varchar(30)) 추가 · DATA_SRC 코드 NAVI(내비 POI) 추가 · 같은 장소 판단은 poi_provider + poi_id | 내비(NaviHelper 목적지 · 경유지 · 최근 목적지 · 즐겨찾기)가 장소명 · 주소 · 좌표와 함께 POI 고유번호를 줌. 이름이 달라도 같은 장소로 묶어 1곳 1행 유지. 지도 회사마다 번호 체계가 달라 제공자도 저장 | place_mst · cd_dtl DATA_SRC | 지수 |
+| D21 | 2026-11-07 | REVIEW_POLARITY 를 POSITIVE(좋았어요) · NEGATIVE(별로예요)로 변경(CAUTION 은 쓰지 않음) · A-06에 둘 중 하나를 고르는 버튼 추가 · 주의할 점 · 팁(웨이팅 있음 등)은 경험 태그로 | 그룹 이름이 극성(좋다 ↔ 나쁘다)인데 「주의」는 반대값이 아님. 평가와 주의점을 나누면 「좋았지만 웨이팅 있음」도 기록 가능. 지난 기록에 나중에 채울 수 없어 지금 입력받음 | trip_place_dtl.review_polarity_cd · cd_dtl REVIEW_POLARITY · tag_mst · 표준정의서 v0.35 6절 | 지수 |
+| D22 | 2026-11-07 | 사용자가 고른 장소 유형은 trip_place_dtl.place_type_cd(장소유형코드 · NULL 허용)에 저장 · place_mst.place_type_cd 는 NULL 허용으로 변경(내비 장소는 유형 정보가 없음) | D19와 같은 방식 — 개인이 보는 값은 개인 기록에, 공식 장소는 확인된 값만 | trip_place_dtl · place_mst | 지수 |
+| D23 | 2026-11-07 | 장소유형을 카테고리(대분류) → 유형(소분류) 2단계로 · 자연은 바다 · 산 · 계곡 · 호수 · 강 · 섬 · 공원으로 나눔 · 편의시설은 한국도로공사 휴게소 공공데이터 항목 기준 · 전기차 충전소 유형 코드는 EV_STATION(편의시설 EV_CHARGER 와 구분) · 단어 「카테고리(category)」는 약어 없이 | 바다 · 산처럼 사용자가 찾는 단위로 검색 | place_type_mst | 지수 |
+| D24 | 2026-11-07 | 코드그룹을 가리키는 값(REVIEW_POLARITY 등)은 코드가 아니라 목록의 이름 → 코드그룹명(cd_grp_nm · 명 도메인)에 저장 · cd_grp_cd 는 쓰지 않음 · 한글 그룹명(후기 성격 등)은 DB 에 두지 않고 표준정의서 코드 표에만 | 코드 도메인 허용값은 cd_dtl 의 코드값뿐. 목록 이름은 개별 코드 테이블이라면 테이블명(DEPT)에 해당. 한글 이름은 화면에 쓰이지 않고 표준 용어로 충분 | cd_grp_mst · cd_dtl · 표준정의서 v0.4(반영은 v0.4 때) | 지수 |
+| D25 | 2026-11-07 | 통합 공통 코드는 cd_mst 한 테이블(PK cd_no · 코드그룹명 + 코드 중복 불가) · 값이 많고 속성이 있는 코드는 개별 코드 테이블로: place_type_mst(PK place_type_cd · place_type_nm · place_category_cd · place_category_nm) · 다른 테이블은 place_type_cd 로 FK | 그룹에 딸린 속성이 코드그룹명뿐이라 그룹 테이블이 필요 없음. 장소유형은 값이 많고 카테고리 속성이 있음 | cd_mst · place_type_mst · trip_place_dtl · place_mst | 지수 |
 
 ## 확인 필요
 
@@ -30,3 +37,4 @@ ERD v0.3 · 데이터 표준정의서 v0.35 이후 결정한 내용. ERD v0.4 �
 - 팀 리드 확인: user_mst.created_user_no NOT NULL(ERD v0.3) — 첫 사용자 · 시드 데이터의 생성자를 위해 시스템 계정(user_no 1, login_id system)을 임시로 둠. 시스템 계정 유지 또는 NULL 허용 중 결정 필요
 - 팀 리드 · 기보 확인: user_mst.password_hash NOT NULL(ERD v0.3) — Pleos 로그인 계정은 비밀번호가 없어 임시로 '!'(비밀번호 로그인 불가 표시)를 넣음. 로그인 방식에 맞춰 NULL 허용 여부 결정 필요
 - 동행자 선택 규칙(D12 가안): 데이터 표준이 아닌 화면 · 업무 규칙이라 결정자 확인 필요. 지금은 가안대로 서버(422) · 앱 둘 다 검사
+- 나중에 보완(프로토타입 이후): place_mst.place_type_cd 가 비어 있는 내비 장소는 시나리오 2 유형 검색(예: 휴게소 찾아줘)에 안 잡힘 → 사용자 기록에서 가장 많이 고른 유형으로 채우는 방식 검토

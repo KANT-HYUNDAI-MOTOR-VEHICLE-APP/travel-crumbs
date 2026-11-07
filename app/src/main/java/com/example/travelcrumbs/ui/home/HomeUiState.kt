@@ -18,6 +18,10 @@ data class HomeUiState(
     val activeTripName: String? = null,
     /** 기록 중인 여행의 장소 수(trip_mst.place_cnt) — A-05 「기록된 장소 N」. */
     val placeCount: Int = 0,
+    /** 입력 안 한 임시 기록 수(trip_place_dtl draft_yn = Y) — A-06 으로 들어가는 버튼. */
+    val draftCount: Int = 0,
+    /** 장소 경험 입력(A-06)을 홈 자리에 띄웠는지. */
+    val showPlaceInput: Boolean = false,
     /** 여행 시작 설정(A-04)을 홈 자리에 띄웠는지. */
     val showTripSetup: Boolean = false,
     val recording: RecordingStatus = RecordingStatus.RECORDING,

@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.remote
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -46,4 +47,27 @@ interface AppApi {
         @Path("trip_uuid") tripUuid: String,
         @Body body: TripPlaceCreateRequest,
     ): TripPlaceResponse
+
+    /** 기록한 장소 목록 — draftYn = "Y" 면 입력 안 한 임시 기록만(A-06). 서버 `GET /trips/{trip_uuid}/places`. */
+    @GET("trips/{trip_uuid}/places")
+    suspend fun getPlaces(
+        @Path("trip_uuid") tripUuid: String,
+        @Query("draft_yn") draftYn: String?,
+    ): List<TripPlaceItem>
+
+    /** 장소 경험 입력 「저장」 — 임시 기록 완성(draft_yn = N). 서버 `PUT /trips/{trip_uuid}/places/{trip_place_no}`. */
+    @PUT("trips/{trip_uuid}/places/{trip_place_no}")
+    suspend fun updatePlace(
+        @Path("trip_uuid") tripUuid: String,
+        @Path("trip_place_no") tripPlaceNo: Long,
+        @Body body: TripPlaceUpdateRequest,
+    ): TripPlaceItem
+
+    /** 경험 태그 목록(tag_mst). 서버 `GET /tags`. */
+    @GET("tags")
+    suspend fun getTags(): List<TagResponse>
+
+    /** 장소유형 목록(place_type_mst) — 카테고리 → 유형 버튼(A-06). 서버 `GET /place-types`. */
+    @GET("place-types")
+    suspend fun getPlaceTypes(): List<PlaceTypeResponse>
 }

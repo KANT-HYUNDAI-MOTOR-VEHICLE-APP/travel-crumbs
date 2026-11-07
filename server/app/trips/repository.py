@@ -4,14 +4,16 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.codes.models import CdDtl
+from app.codes.models import CdMst
+from app.places.models import PlaceTypeMst
 from app.trips.models import (
     TripCompanionDtl,
     TripMst,
     TripPlaceDtl,
+    TripPlaceTagRel,
     TripRoutePointDtl,
     TripStatus,
     TripStatusHist,
@@ -44,16 +46,25 @@ async def find_companion_cds(session: AsyncSession, trip_no: int) -> list[str]:
 
 
 async def find_valid_codes(
-    session: AsyncSession, cd_grp_cd: str, cds: list[str]
+    session: AsyncSession, cd_grp_nm: str, cds: list[str]
 ) -> set[str]:
-    """cds 중 cd_dtl 에 있고 사용 중인 코드만."""
-    stmt = select(CdDtl.cd).where(
-        CdDtl.cd_grp_cd == cd_grp_cd,
-        CdDtl.cd.in_(cds),
-        CdDtl.use_yn == "Y",
-        CdDtl.deleted_yn == "N",
+    """cds 중 cd_mst 에 있고 사용 중인 코드만."""
+    stmt = select(CdMst.cd).where(
+        CdMst.cd_grp_nm == cd_grp_nm,
+        CdMst.cd.in_(cds),
+        CdMst.use_yn == "Y",
+        CdMst.deleted_yn == "N",
     )
     return set((await session.execute(stmt)).scalars())
+
+
+async def is_valid_place_type(session: AsyncSession, place_type_cd: str) -> bool:
+    stmt = select(PlaceTypeMst.place_type_cd).where(
+        PlaceTypeMst.place_type_cd == place_type_cd,
+        PlaceTypeMst.use_yn == "Y",
+        PlaceTypeMst.deleted_yn == "N",
+    )
+    return (await session.execute(stmt)).scalar_one_or_none() is not None
 
 
 async def add_trip(session: AsyncSession, user_no: int, trip_nm: str) -> TripMst:
@@ -162,3 +173,68 @@ async def increase_place_cnt(session: AsyncSession, trip_no: int) -> int:
         .returning(TripMst.place_cnt)
     )
     return (await session.execute(stmt)).scalar_one()
+
+
+async def find_places(
+    session: AsyncSession, trip_no: int, draft_yn: str | None
+) -> list[TripPlaceDtl]:
+    """기록 순서(recorded_at)대로 — 순서 컬럼 없음(결정 로그 D09)."""
+    stmt = select(TripPlaceDtl).where(
+        TripPlaceDtl.trip_no == trip_no, TripPlaceDtl.deleted_yn == "N"
+    )
+    if draft_yn is not None:
+        stmt = stmt.where(TripPlaceDtl.draft_yn == draft_yn)
+    stmt = stmt.order_by(TripPlaceDtl.recorded_at, TripPlaceDtl.trip_place_no)
+    return list((await session.execute(stmt)).scalars())
+
+
+async def find_place(
+    session: AsyncSession, trip_no: int, trip_place_no: int
+) -> TripPlaceDtl | None:
+    stmt = select(TripPlaceDtl).where(
+        TripPlaceDtl.trip_no == trip_no,
+        TripPlaceDtl.trip_place_no == trip_place_no,
+        TripPlaceDtl.deleted_yn == "N",
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def find_tag_nos(
+    session: AsyncSession, trip_place_nos: list[int]
+) -> dict[int, list[int]]:
+    """장소별 태그 번호 — 목록 화면에서 한 번에."""
+    if not trip_place_nos:
+        return {}
+    stmt = (
+        select(TripPlaceTagRel.trip_place_no, TripPlaceTagRel.tag_no)
+        .where(
+            TripPlaceTagRel.trip_place_no.in_(trip_place_nos),
+            TripPlaceTagRel.deleted_yn == "N",
+        )
+        .order_by(TripPlaceTagRel.tag_no)
+    )
+    result: dict[int, list[int]] = {no: [] for no in trip_place_nos}
+    for trip_place_no, tag_no in (await session.execute(stmt)).all():
+        result[trip_place_no].append(tag_no)
+    return result
+
+
+async def replace_tags(
+    session: AsyncSession, trip_place_no: int, user_no: int, tag_nos: list[int]
+) -> None:
+    """태그를 새 목록으로 바꿈 — 빠진 관계는 지우고 새 관계는 추가."""
+    current = (await find_tag_nos(session, [trip_place_no]))[trip_place_no]
+    removed = [t for t in current if t not in tag_nos]
+    if removed:
+        await session.execute(
+            delete(TripPlaceTagRel).where(
+                TripPlaceTagRel.trip_place_no == trip_place_no,
+                TripPlaceTagRel.tag_no.in_(removed),
+            )
+        )
+    session.add_all(
+        TripPlaceTagRel(trip_place_no=trip_place_no, tag_no=t, created_user_no=user_no)
+        for t in tag_nos
+        if t not in current
+    )
+    await session.flush()

@@ -8,20 +8,31 @@
 
 - 경로점 · 장소는 내 여행이고 기록 중(RECORDING)일 때만 저장(아니면 404 · 409)
 - 장소는 위치 · 시각만 임시 저장(draft_yn = Y) + trip_mst.place_cnt +1
+
+장소 경험 입력 규칙(A-06).
+
+- 내 여행이고 취소되지 않았으면 입력 가능(여행 중 · 종료 뒤 모두)
+- 「저장」은 임시 기록을 완성(draft_yn = N) — 사용자장소명 필수, 유형 · 후기 · 메모 · 태그는 선택
+- 내비 후보를 골랐으면 같은 POI 의 공식 장소(place_mst)에 연결, 없으면 새로 만듦(결정 로그 D19 · D20)
 """
+
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.places import repository as place_repository
 from app.trips import repository
-from app.trips.models import TripMst, TripStatus
+from app.trips.models import TripMst, TripPlaceDtl, TripStatus
 from app.trips.schemas import (
     CurrentTripResponse,
     RoutePointsCreateRequest,
     RoutePointsCreateResponse,
     TripCreateRequest,
     TripPlaceCreateRequest,
+    TripPlaceItem,
     TripPlaceResponse,
+    TripPlaceUpdateRequest,
     TripResponse,
 )
 
@@ -88,12 +99,99 @@ async def record_place(
     )
 
 
-async def _recording_trip(
-    session: AsyncSession, user_no: int, trip_uuid: str
-) -> TripMst:
+async def list_places(
+    session: AsyncSession, user_no: int, trip_uuid: str, draft_yn: str | None
+) -> list[TripPlaceItem]:
+    trip = await _my_trip(session, user_no, trip_uuid)
+    rows = await repository.find_places(session, trip.trip_no, draft_yn)
+    tags = await repository.find_tag_nos(session, [r.trip_place_no for r in rows])
+    return [_to_place_item(r, tags[r.trip_place_no]) for r in rows]
+
+
+async def complete_place(
+    session: AsyncSession,
+    user_no: int,
+    trip_uuid: str,
+    trip_place_no: int,
+    req: TripPlaceUpdateRequest,
+) -> TripPlaceItem:
+    trip = await _my_trip(session, user_no, trip_uuid)
+    if trip.trip_status_cd == TripStatus.CANCELED:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="TRIP_CANCELED")
+    row = await repository.find_place(session, trip.trip_no, trip_place_no)
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TRIP_PLACE_NOT_FOUND")
+
+    if req.place_type_cd is not None and not await repository.is_valid_place_type(
+        session, req.place_type_cd
+    ):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail="INVALID_PLACE_TYPE"
+        )
+    cd = req.review_polarity_cd
+    if cd is not None and await repository.find_valid_codes(
+        session, "REVIEW_POLARITY", [cd]
+    ) != {cd}:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail="INVALID_REVIEW_POLARITY"
+        )
+    tag_nos = list(dict.fromkeys(req.tag_nos))
+    if tag_nos and await place_repository.find_valid_tag_nos(session, tag_nos) != set(
+        tag_nos
+    ):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="INVALID_TAG")
+
+    if req.navi_place is not None:
+        place = await place_repository.find_or_add_navi_place(
+            session,
+            user_no,
+            place_nm=req.navi_place.place_nm,
+            lat=repository.coord(req.navi_place.lat),
+            lng=repository.coord(req.navi_place.lng),
+            poi_id=req.navi_place.poi_id,
+            poi_provider=req.navi_place.poi_provider,
+        )
+        row.place_no = place.place_no
+    row.user_place_nm = req.user_place_nm
+    row.place_type_cd = req.place_type_cd
+    row.review_polarity_cd = req.review_polarity_cd
+    row.memo = req.memo or None
+    row.draft_yn = "N"
+    row.updated_at = datetime.now(UTC)
+    row.updated_user_no = user_no
+    await repository.replace_tags(session, row.trip_place_no, user_no, tag_nos)
+    await session.commit()
+    await session.refresh(row)
+    return _to_place_item(row, tag_nos)
+
+
+async def _my_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:
     trip = await repository.find_by_uuid(session, user_no, trip_uuid)
     if trip is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TRIP_NOT_FOUND")
+    return trip
+
+
+def _to_place_item(row: TripPlaceDtl, tag_nos: list[int]) -> TripPlaceItem:
+    return TripPlaceItem(
+        trip_place_no=row.trip_place_no,
+        lat=float(row.lat),
+        lng=float(row.lng),
+        recorded_at=row.recorded_at,
+        draft_yn=row.draft_yn,
+        place_no=row.place_no,
+        user_place_nm=row.user_place_nm,
+        place_type_cd=row.place_type_cd,
+        review_polarity_cd=row.review_polarity_cd,
+        memo=row.memo,
+        tag_nos=tag_nos,
+    )
+
+
+async def _recording_trip(
+    session: AsyncSession, user_no: int, trip_uuid: str
+) -> TripMst:
+    trip = await _my_trip(session, user_no, trip_uuid)
     if trip.trip_status_cd != TripStatus.RECORDING:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="TRIP_NOT_RECORDING")
     return trip

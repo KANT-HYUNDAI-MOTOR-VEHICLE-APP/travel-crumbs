@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
+import com.example.travelcrumbs.ui.placeinput.PlaceInputViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
 import com.example.travelcrumbs.ui.tripsetup.TripSetupViewModel
 
@@ -24,6 +25,7 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     val drafts = draftRepositoryOf(time)
     val savedState = SavedStateHandle()
     val trips = FakeTripRepository()
+    val places = FakePlaceRepository()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -51,6 +53,13 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             userRepository = FakeUserRepository(),
             consentRepository = FakeConsentRepository(),
             tripRepository = trips,
+            placeRepository = places,
+        )
+        PlaceInputViewModel::class.java -> PlaceInputViewModel(
+            tripRepository = trips,
+            placeRepository = places,
+            codeRepository = FakeCodeRepository(),
+            naviRepository = FakeNaviRepository(),
         )
         TripSetupViewModel::class.java -> TripSetupViewModel(
             tripRepository = trips,

@@ -83,3 +83,54 @@ class TripPlaceResponse(BaseModel):
     recorded_at: datetime = Field(description="기록일시")
     draft_yn: str = Field(description="임시저장여부 — 상세 입력 전이면 Y")
     place_cnt: int = Field(description="이 여행의 장소개수(저장 후)")
+
+
+class TripPlaceItem(BaseModel):
+    """여행에 기록한 장소 1건 — 임시(draft_yn = Y)면 장소명 · 유형 · 후기가 비어 있음."""
+
+    trip_place_no: int = Field(description="여행장소번호")
+    lat: float = Field(description="위도")
+    lng: float = Field(description="경도")
+    recorded_at: datetime = Field(description="기록일시")
+    draft_yn: str = Field(description="임시저장여부")
+    place_no: int | None = Field(description="장소번호 — 공식 장소에 연결됐으면 값")
+    user_place_nm: str | None = Field(description="사용자장소명")
+    place_type_cd: str | None = Field(description="장소유형코드 (PLACE_TYPE)")
+    review_polarity_cd: str | None = Field(description="후기성격코드 (REVIEW_POLARITY)")
+    memo: str | None = Field(description="메모")
+    tag_nos: list[int] = Field(description="경험 태그 번호 목록")
+
+
+class NaviPlaceIn(BaseModel):
+    """내비 후보(목적지 · 경유지 · 최근 목적지 · 즐겨찾기)에서 고른 장소."""
+
+    place_nm: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    lat: Lat
+    lng: Lng
+    poi_id: Annotated[str, StringConstraints(min_length=1, max_length=50)]
+    poi_provider: Annotated[str, StringConstraints(min_length=1, max_length=30)]
+
+
+class TripPlaceUpdateRequest(BaseModel):
+    """장소 경험 입력(A-06) 「저장」 — 임시 기록을 완성(draft_yn = N)."""
+
+    user_place_nm: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ] = Field(description="사용자장소명")
+    place_type_cd: str | None = Field(
+        default=None, description="장소유형코드 (PLACE_TYPE)"
+    )
+    review_polarity_cd: str | None = Field(
+        default=None, description="후기성격코드 (POSITIVE · NEGATIVE)"
+    )
+    memo: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None
+    ) = Field(default=None, description="메모")
+    tag_nos: list[int] = Field(
+        default_factory=list, max_length=20, description="경험 태그 번호 목록"
+    )
+    navi_place: NaviPlaceIn | None = Field(
+        default=None, description="내비 후보에서 골랐으면 그 장소 — 공식 장소로 연결"
+    )

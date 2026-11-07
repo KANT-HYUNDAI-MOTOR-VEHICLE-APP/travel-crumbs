@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.consent.ConsentRepository
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
+import com.example.travelcrumbs.data.place.PlaceRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.UserRepository
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -38,6 +41,7 @@ class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val consentRepository: ConsentRepository,
     private val tripRepository: TripRepository,
+    private val placeRepository: PlaceRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -51,6 +55,15 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadProfile()
+        // 기록 중인 여행이 바뀌거나 장소가 늘면(홈 · 주행 화면의 「이 장소 기록」) 임시 기록을 다시 읽음
+        viewModelScope.launch {
+            tripRepository.activeTrip
+                .map { trip -> trip?.let { it.tripUuid to it.placeCount } }
+                .distinctUntilChanged()
+                .collect { key ->
+                    if (key == null) placeRepository.clearDrafts() else placeRepository.refreshDrafts(key.first)
+                }
+        }
     }
 
     private val sdkCheck = combine(
@@ -67,8 +80,10 @@ class HomeViewModel @Inject constructor(
         )
     }
 
-    /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역). */
-    private val tripState = combine(overlay, tripRepository.activeTrip) { open, trip -> open to trip }
+    /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역) + 입력 안 한 임시 기록(A-06). */
+    private val tripState = combine(overlay, tripRepository.activeTrip, placeRepository.drafts) { open, trip, drafts ->
+        Triple(open, trip, drafts.size)
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
@@ -76,7 +91,7 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
         profile,
         tripState,
-    ) { progress, shown, sdk, user, (open, trip) ->
+    ) { progress, shown, sdk, user, (open, trip, draftCount) ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
@@ -87,6 +102,8 @@ class HomeViewModel @Inject constructor(
             showTripSetup = open == Overlay.TRIP_SETUP,
             activeTripName = trip?.tripName,
             placeCount = trip?.placeCount ?: 0,
+            draftCount = if (trip != null) draftCount else 0,
+            showPlaceInput = open == Overlay.PLACE_INPUT,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -142,6 +159,16 @@ class HomeViewModel @Inject constructor(
         overlay.value = Overlay.NONE
     }
 
+    /** 「장소 경험 입력」 — 임시 기록이 있을 때만 A-06. */
+    fun onOpenPlaceInput() {
+        overlay.value = Overlay.PLACE_INPUT
+    }
+
+    /** A-06 이 닫힘(저장 · 나중에 입력) — 임시 기록 수는 저장소가 이미 갱신. */
+    fun onPlaceInputClosed() {
+        overlay.value = Overlay.NONE
+    }
+
     /** 여행 시작 설정 「취소」 — 저장 없이 홈. */
     fun onTripSetupCancel() {
         overlay.value = Overlay.NONE
@@ -181,7 +208,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private enum class Overlay { NONE, LOCATION_CONSENT, TRIP_SETUP }
+    private enum class Overlay { NONE, LOCATION_CONSENT, TRIP_SETUP, PLACE_INPUT }
 
     private fun Throwable.toCode(): String =
         message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName

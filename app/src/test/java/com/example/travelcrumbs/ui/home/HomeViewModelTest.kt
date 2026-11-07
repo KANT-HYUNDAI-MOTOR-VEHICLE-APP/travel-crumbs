@@ -10,6 +10,7 @@ import com.example.travelcrumbs.testing.FakeConsentRepository
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
+import com.example.travelcrumbs.testing.FakePlaceRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
 import com.example.travelcrumbs.testing.FakeTripRepository
@@ -61,6 +62,7 @@ class HomeViewModelTest {
         userRepository = FakeUserRepository(),
         consentRepository = consent,
         tripRepository = trips,
+        placeRepository = FakePlaceRepository(),
     )
 
     @Test

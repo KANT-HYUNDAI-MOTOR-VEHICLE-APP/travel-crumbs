@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +29,7 @@ import com.example.travelcrumbs.ui.components.recordingStatusText
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
 import com.example.travelcrumbs.ui.home.components.LocationConsentDialog
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
+import com.example.travelcrumbs.ui.placeinput.PlaceInputScreen
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.tripsetup.TripSetupScreen
 
@@ -48,6 +50,12 @@ fun HomeScreen(
     },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 장소 경험 입력(A-06) — 홈 자리를 그대로 씀
+    if (uiState.showPlaceInput) {
+        PlaceInputScreen(onClose = viewModel::onPlaceInputClosed, modifier = modifier)
+        return
+    }
 
     // 여행 시작 설정(A-04) — 홈 자리를 그대로 씀(레일 항목이 아니라 홈에서 들어가는 단계)
     if (uiState.showTripSetup) {
@@ -98,6 +106,18 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                     )
+                }
+                // 입력 안 한 임시 기록(A-06) — 정차 중에만 보이는 홈에서 입력
+                if (uiState.draftCount > 0) {
+                    OutlinedButton(
+                        onClick = viewModel::onOpenPlaceInput,
+                        modifier = Modifier.height(Dimens.HomeButtonHeight),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_place_input, uiState.draftCount),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
                 }
                 Text(
                     text = recordingStatusText(uiState.recording),

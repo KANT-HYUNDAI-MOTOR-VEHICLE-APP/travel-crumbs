@@ -73,3 +73,56 @@ data class TripPlaceResponse(
     @SerialName("draft_yn") val draftYn: String,
     @SerialName("place_cnt") val placeCnt: Int,
 )
+
+/** 서버 `GET /place-types` 응답 한 줄 — 장소유형(place_type_mst · 카테고리 포함). */
+@Serializable
+data class PlaceTypeResponse(
+    @SerialName("place_type_cd") val placeTypeCd: String,
+    @SerialName("place_type_nm") val placeTypeNm: String,
+    @SerialName("place_category_cd") val placeCategoryCd: String,
+    @SerialName("place_category_nm") val placeCategoryNm: String,
+)
+
+/** 서버 `GET /tags` 응답 한 줄 — 경험 태그(tag_mst). */
+@Serializable
+data class TagResponse(
+    @SerialName("tag_no") val tagNo: Long,
+    @SerialName("tag_nm") val tagNm: String,
+)
+
+/** 서버 `GET /trips/{trip_uuid}/places` 응답 한 줄 — 기록한 장소(trip_place_dtl). */
+@Serializable
+data class TripPlaceItem(
+    @SerialName("trip_place_no") val tripPlaceNo: Long,
+    @SerialName("lat") val lat: Double,
+    @SerialName("lng") val lng: Double,
+    @SerialName("recorded_at") val recordedAt: String,
+    @SerialName("draft_yn") val draftYn: String,
+    @SerialName("place_no") val placeNo: Long? = null,
+    @SerialName("user_place_nm") val userPlaceNm: String? = null,
+    @SerialName("place_type_cd") val placeTypeCd: String? = null,
+    @SerialName("review_polarity_cd") val reviewPolarityCd: String? = null,
+    @SerialName("memo") val memo: String? = null,
+    @SerialName("tag_nos") val tagNos: List<Long> = emptyList(),
+)
+
+/** 내비 후보에서 고른 장소 — 서버가 같은 POI 의 place_mst 에 연결. */
+@Serializable
+data class NaviPlaceDto(
+    @SerialName("place_nm") val placeNm: String,
+    @SerialName("lat") val lat: Double,
+    @SerialName("lng") val lng: Double,
+    @SerialName("poi_id") val poiId: String,
+    @SerialName("poi_provider") val poiProvider: String,
+)
+
+/** 서버 `PUT /trips/{trip_uuid}/places/{trip_place_no}` 요청 — 장소 경험 입력(A-06) 「저장」. */
+@Serializable
+data class TripPlaceUpdateRequest(
+    @SerialName("user_place_nm") val userPlaceNm: String,
+    @SerialName("place_type_cd") val placeTypeCd: String? = null,
+    @SerialName("review_polarity_cd") val reviewPolarityCd: String? = null,
+    @SerialName("memo") val memo: String? = null,
+    @SerialName("tag_nos") val tagNos: List<Long> = emptyList(),
+    @SerialName("navi_place") val naviPlace: NaviPlaceDto? = null,
+)

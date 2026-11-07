@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -133,9 +134,18 @@ class TripPlaceDtl(CommonColumns, Base):
     trip_no: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("trip_mst.trip_no"), comment="여행번호"
     )
-    # place_mst 는 장소 연결 화면(A-06 · 묶음 5)에서 만들고 그때 FK 를 붙임
     place_no: Mapped[int | None] = mapped_column(
-        BigInteger, comment="장소번호 — 정차 후 장소 연결 전에는 NULL"
+        BigInteger,
+        ForeignKey("place_mst.place_no"),
+        comment="장소번호 — 공식 장소(place_mst)로 확인 전에는 NULL",
+    )
+    user_place_nm: Mapped[str | None] = mapped_column(
+        String(100), comment="사용자장소명 — 사용자가 부르는 이름(결정 로그 D19)"
+    )
+    place_type_cd: Mapped[str | None] = mapped_column(
+        String(30),
+        ForeignKey("place_type_mst.place_type_cd"),
+        comment="장소유형코드 — 사용자가 고른 유형(결정 로그 D22)",
     )
     lat: Mapped[Decimal] = mapped_column(Numeric(10, 7), comment="위도 — 기록한 위치")
     lng: Mapped[Decimal] = mapped_column(Numeric(10, 7), comment="경도 — 기록한 위치")
@@ -151,4 +161,24 @@ class TripPlaceDtl(CommonColumns, Base):
     )
     review_polarity_cd: Mapped[str | None] = mapped_column(
         String(30), comment="후기성격코드 (REVIEW_POLARITY · NULL 허용 결정 로그 D18)"
+    )
+
+
+class TripPlaceTagRel(CommonColumns, Base):
+    __tablename__ = "trip_place_tag_rel"
+    __table_args__ = table_args(
+        "여행장소태그관계 — 여행장소내역과 태그의 N:M",
+        UniqueConstraint(
+            "trip_place_no", "tag_no", name="uq_trip_place_tag_rel_trip_place_no_tag_no"
+        ),
+    )
+
+    trip_place_tag_no: Mapped[int] = mapped_column(
+        BigInteger, Identity(always=False), primary_key=True, comment="여행장소태그번호"
+    )
+    trip_place_no: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("trip_place_dtl.trip_place_no"), comment="여행장소번호"
+    )
+    tag_no: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("tag_mst.tag_no"), comment="태그번호"
     )

@@ -10,11 +10,11 @@ from app.db.session import get_session
 router = APIRouter(prefix="/codes", tags=["codes"])
 
 
-@router.get("/{cd_grp_cd}", response_model=list[CodeResponse])
+@router.get("/{cd_grp_nm}", response_model=list[CodeResponse])
 async def read_group(
-    cd_grp_cd: str, session: AsyncSession = Depends(get_session)
+    cd_grp_nm: str, session: AsyncSession = Depends(get_session)
 ) -> list[CodeResponse]:
-    rows = await repository.find_by_group(session, cd_grp_cd)
+    rows = await repository.find_by_group(session, cd_grp_nm)
     if not rows:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="CODE_GROUP_NOT_FOUND")
     return [CodeResponse(cd=r.cd, cd_nm=r.cd_nm) for r in rows]

@@ -2,5 +2,6 @@
 
 from app.codes import models as codes_models  # noqa: F401
 from app.consents import models as consents_models  # noqa: F401
+from app.places import models as places_models  # noqa: F401
 from app.trips import models as trips_models  # noqa: F401
 from app.users import models as users_models  # noqa: F401

@@ -1,11 +1,16 @@
 package com.example.travelcrumbs.testing
 
 import com.example.travelcrumbs.data.code.CodeRepository
+import com.example.travelcrumbs.data.place.PlaceRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.domain.model.CodeItem
+import com.example.travelcrumbs.domain.model.PlaceInput
+import com.example.travelcrumbs.domain.model.PlaceType
 import com.example.travelcrumbs.domain.model.RoutePoint
+import com.example.travelcrumbs.domain.model.Tag
 import com.example.travelcrumbs.domain.model.Trip
 import com.example.travelcrumbs.domain.model.TripAlreadyRecordingException
+import com.example.travelcrumbs.domain.model.TripPlace
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -64,6 +69,54 @@ class FakeCodeRepository(
             CodeItem("PET", "반려동물"),
         ),
     ),
+    /** 그룹별 코드 — 없으면 [result](동행자 코드). */
+    private val byGroup: Map<String, List<CodeItem>> = PLACE_CODES,
 ) : CodeRepository {
-    override suspend fun codes(groupCode: String): Result<List<CodeItem>> = result
+    override suspend fun codes(groupCode: String): Result<List<CodeItem>> =
+        byGroup[groupCode]?.let { Result.success(it) } ?: result
+
+    companion object {
+        /** 마이그레이션 코드값 일부 — 후기성격. */
+        val PLACE_CODES = mapOf(
+            "REVIEW_POLARITY" to listOf(CodeItem("POSITIVE", "좋았어요"), CodeItem("NEGATIVE", "별로예요")),
+        )
+    }
+}
+
+/** 서버 trip_place_dtl(임시 기록) · tag_mst 대역. */
+class FakePlaceRepository(
+    drafts: List<TripPlace> = emptyList(),
+    var failWith: Throwable? = null,
+) : PlaceRepository {
+    val completed = mutableListOf<Pair<Long, PlaceInput>>()
+    private val draftList = MutableStateFlow(drafts)
+    override val drafts: StateFlow<List<TripPlace>> = draftList
+
+    override suspend fun refreshDrafts(tripUuid: String): Result<List<TripPlace>> =
+        failWith?.let { Result.failure(it) } ?: Result.success(draftList.value)
+
+    override suspend fun placeTypes(): Result<List<PlaceType>> =
+        failWith?.let { Result.failure(it) } ?: Result.success(
+            listOf(
+                PlaceType("REST_AREA", "휴게소", "MOBILITY", "이동·차량"),
+                PlaceType("PARKING", "주차장", "MOBILITY", "이동·차량"),
+                PlaceType("BEACH", "바다·해변", "NATURE", "자연"),
+                PlaceType("MOUNTAIN", "산", "NATURE", "자연"),
+            ),
+        )
+
+    override suspend fun tags(): Result<List<Tag>> =
+        failWith?.let { Result.failure(it) } ?: Result.success(listOf(Tag(1L, "주차 편함"), Tag(5L, "웨이팅 있음")))
+
+    override suspend fun complete(tripUuid: String, tripPlaceNo: Long, input: PlaceInput): Result<TripPlace> {
+        failWith?.let { return Result.failure(it) }
+        completed += tripPlaceNo to input
+        val done = draftList.value.first { it.tripPlaceNo == tripPlaceNo }.copy(isDraft = false, userPlaceName = input.userPlaceName)
+        draftList.value = draftList.value.filterNot { it.tripPlaceNo == tripPlaceNo }
+        return Result.success(done)
+    }
+
+    override fun clearDrafts() {
+        draftList.value = emptyList()
+    }
 }
