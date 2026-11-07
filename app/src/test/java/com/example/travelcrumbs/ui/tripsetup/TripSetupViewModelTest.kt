@@ -112,7 +112,7 @@ class TripSetupViewModelTest {
 
     @Test
     fun `여행 시작 — 이미 기록 중이면 안내만`() = runTest(dispatcher) {
-        val trips = FakeTripRepository(current = Trip(1L, "기존 여행", "RECORDING", listOf("SOLO")))
+        val trips = FakeTripRepository(current = Trip(1L, "uuid-1", "기존 여행", "RECORDING", listOf("SOLO")))
         val vm = viewModel(trips = trips)
         vm.prepare()
         runCurrent()

@@ -1,14 +1,18 @@
 """trip_mst · trip_companion_dtl · trip_status_hist 읽기 · 쓰기 — SQL 은 이 파일에만."""
 
 import uuid
+from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.codes.models import CdDtl
 from app.trips.models import (
     TripCompanionDtl,
     TripMst,
+    TripPlaceDtl,
+    TripRoutePointDtl,
     TripStatus,
     TripStatusHist,
     Visibility,
@@ -88,3 +92,73 @@ async def add_status_hist(
         )
     )
     await session.flush()
+
+
+def coord(value: float) -> Decimal:
+    """위도 · 경도 → decimal(10,7)."""
+    return round(Decimal(str(value)), 7)
+
+
+async def find_by_uuid(
+    session: AsyncSession, user_no: int, trip_uuid: str
+) -> TripMst | None:
+    """내 여행만 — 다른 사용자의 여행 UUID 면 없는 것으로."""
+    stmt = select(TripMst).where(
+        TripMst.trip_uuid == trip_uuid,
+        TripMst.user_no == user_no,
+        TripMst.deleted_yn == "N",
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def add_route_points(
+    session: AsyncSession,
+    trip_no: int,
+    user_no: int,
+    points: list[tuple[float, float, datetime]],
+) -> int:
+    session.add_all(
+        TripRoutePointDtl(
+            trip_no=trip_no,
+            lat=coord(lat),
+            lng=coord(lng),
+            recorded_at=at,
+            created_user_no=user_no,
+        )
+        for lat, lng, at in points
+    )
+    await session.flush()
+    return len(points)
+
+
+async def add_place(
+    session: AsyncSession,
+    trip_no: int,
+    user_no: int,
+    lat: float,
+    lng: float,
+    recorded_at: datetime,
+) -> TripPlaceDtl:
+    """임시 기록(draft_yn = Y) — 장소 연결 · 메모 · 후기는 정차 후(A-06)."""
+    row = TripPlaceDtl(
+        trip_no=trip_no,
+        lat=coord(lat),
+        lng=coord(lng),
+        recorded_at=recorded_at,
+        created_user_no=user_no,
+    )
+    session.add(row)
+    await session.flush()
+    await session.refresh(row)
+    return row
+
+
+async def increase_place_cnt(session: AsyncSession, trip_no: int) -> int:
+    """반정규화 장소개수 +1 — 장소 저장과 같은 트랜잭션."""
+    stmt = (
+        update(TripMst)
+        .where(TripMst.trip_no == trip_no)
+        .values(place_cnt=TripMst.place_cnt + 1)
+        .returning(TripMst.place_cnt)
+    )
+    return (await session.execute(stmt)).scalar_one()

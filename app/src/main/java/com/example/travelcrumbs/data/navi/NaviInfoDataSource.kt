@@ -1,11 +1,13 @@
 package com.example.travelcrumbs.data.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
+import ai.pleos.playground.navi.data.CurrentLocationInfo
 import ai.pleos.playground.navi.data.RouteStateInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
 import android.util.Log
+import com.example.travelcrumbs.domain.model.NaviLocation
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.atomic.AtomicBoolean
@@ -20,7 +22,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Pleos NaviHelper 를 감싸는 유일한 파일 — `ai.pleos.*` 타입은 이 패키지 밖으로 나가지 않음.
- * 쓰는 범위는 조회 하나(getRouteStateInfo) → 권한도 `pleos.car.permission.NAVI_ROUTE` 하나.
+ * 쓰는 범위는 조회 둘(getRouteStateInfo · getCurrentLocationInfo) → 권한은 둘 다 `pleos.car.permission.NAVI_ROUTE` 하나.
  */
 @Singleton
 class NaviInfoDataSource @Inject constructor(
@@ -80,6 +82,36 @@ class NaviInfoDataSource @Inject constructor(
                 if (continuation.isActive) continuation.resumeWithException(error)
             }
     }
+
+    /** 현재 위치 한 번 조회(위도 · 경도 · 주소) — 경로 기록 · 「이 장소 기록」(A-05). 결과는 리스너로 돌아옴. */
+    suspend fun currentLocation(): NaviLocation = suspendCancellableCoroutine { continuation ->
+        val listener = object : NaviHelperEventListener {
+            override fun onCurrentLocationInfo(currentLocationInfo: CurrentLocationInfo) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) continuation.resume(currentLocationInfo.toDomain())
+            }
+
+            override fun onError(errorCode: NaviErrorCode) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) {
+                    continuation.resumeWithException(IllegalStateException(errorCode.name))
+                }
+            }
+        }
+        naviHelper.addListener(listener)
+        continuation.invokeOnCancellation { naviHelper.removeListener(listener) }
+        runCatching { naviHelper.getCurrentLocationInfo() }
+            .onFailure { error ->
+                naviHelper.removeListener(listener)
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
+    }
+
+    private fun CurrentLocationInfo.toDomain(): NaviLocation = NaviLocation(
+        lat = latitude,
+        lng = longitude,
+        address = address?.takeIf { it.isNotBlank() },
+    )
 
     private fun RouteStateInfo.toDomain(): NaviRouteState = NaviRouteState(
         routing = isRouting,

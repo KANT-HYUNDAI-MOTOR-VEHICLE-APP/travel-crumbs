@@ -124,7 +124,7 @@ class HomeViewModelTest {
 
     @Test
     fun `새 여행 시작 — 기록 중인 여행이 있으면 설정 화면 대신 안내`() = runTest(dispatcher) {
-        val trips = FakeTripRepository(current = Trip(1L, "2026.11.07 강릉 여행", "RECORDING", listOf("SOLO")))
+        val trips = FakeTripRepository(current = Trip(1L, "uuid-1", "2026.11.07 여행", "RECORDING", listOf("SOLO")))
         val vm = viewModel(consent = FakeConsentRepository(agreed = true), trips = trips)
         subscribe(vm)
 

@@ -32,4 +32,18 @@ interface AppApi {
     /** 여행 시작 — trip_mst · trip_companion_dtl · trip_status_hist 저장. 서버 `POST /trips`. */
     @POST("trips")
     suspend fun createTrip(@Body body: TripCreateRequest): TripResponse
+
+    /** 경로점 묶음 저장(trip_route_point_dtl) — 여행 기록 중(A-05). 서버 `POST /trips/{trip_uuid}/route-points`. */
+    @POST("trips/{trip_uuid}/route-points")
+    suspend fun createRoutePoints(
+        @Path("trip_uuid") tripUuid: String,
+        @Body body: RoutePointsCreateRequest,
+    ): RoutePointsCreateResponse
+
+    /** 「이 장소 기록」 임시 저장(trip_place_dtl) — A-05. 서버 `POST /trips/{trip_uuid}/places`. */
+    @POST("trips/{trip_uuid}/places")
+    suspend fun createPlace(
+        @Path("trip_uuid") tripUuid: String,
+        @Body body: TripPlaceCreateRequest,
+    ): TripPlaceResponse
 }

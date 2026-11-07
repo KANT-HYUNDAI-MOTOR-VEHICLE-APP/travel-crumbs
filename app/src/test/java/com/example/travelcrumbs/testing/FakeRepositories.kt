@@ -8,6 +8,7 @@ import com.example.travelcrumbs.data.user.UserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.NaviLocation
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
@@ -31,11 +32,14 @@ class FakeDrivingSignalRepository(
 class FakeNaviRepository(
     private val result: Result<NaviRouteState> = Result.failure(IllegalStateException("준비 안 됨")),
     ready: Boolean = true,
+    var location: Result<NaviLocation> = Result.failure(IllegalStateException("위치 없음")),
 ) : NaviRepository {
 
     override val ready: StateFlow<Boolean> = MutableStateFlow(ready)
 
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
+
+    override suspend fun currentLocation(): NaviLocation = location.getOrThrow()
 }
 
 class FakeGleoActionRepository(

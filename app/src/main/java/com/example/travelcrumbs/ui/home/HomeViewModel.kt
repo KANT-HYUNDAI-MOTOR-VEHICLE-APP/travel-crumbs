@@ -67,13 +67,16 @@ class HomeViewModel @Inject constructor(
         )
     }
 
+    /** 홈 위에 띄운 것 + 기록 중인 여행(A-05 맨 위 영역). */
+    private val tripState = combine(overlay, tripRepository.activeTrip) { open, trip -> open to trip }
+
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
         message,
         sdkCheck,
         profile,
-        overlay,
-    ) { progress, shown, sdk, user, open ->
+        tripState,
+    ) { progress, shown, sdk, user, (open, trip) ->
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
@@ -82,6 +85,8 @@ class HomeViewModel @Inject constructor(
             userUnavailable = user is SdkStatus.Failed,
             showLocationConsent = open == Overlay.LOCATION_CONSENT,
             showTripSetup = open == Overlay.TRIP_SETUP,
+            activeTripName = trip?.tripName,
+            placeCount = trip?.placeCount ?: 0,
         )
     }.stateIn(
         scope = viewModelScope,

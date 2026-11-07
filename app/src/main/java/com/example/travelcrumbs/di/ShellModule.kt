@@ -9,7 +9,7 @@ import com.example.travelcrumbs.data.recording.DefaultRecordingRepository
 import com.example.travelcrumbs.data.recording.RecordingLocalDataSource
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.time.SystemTimeSource
-import com.example.travelcrumbs.domain.NotReadyRecordPlaceUseCase
+import com.example.travelcrumbs.data.trip.TripRecordPlaceUseCase
 import com.example.travelcrumbs.domain.NotReadyStartVoiceInputUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
@@ -51,7 +51,7 @@ abstract class ShellModule {
     abstract fun bindDraftRepository(impl: DefaultDraftRepository): DraftRepository
 
     @Binds
-    abstract fun bindRecordPlaceUseCase(impl: NotReadyRecordPlaceUseCase): RecordPlaceUseCase
+    abstract fun bindRecordPlaceUseCase(impl: TripRecordPlaceUseCase): RecordPlaceUseCase
 
     @Binds
     abstract fun bindStartVoiceInputUseCase(impl: NotReadyStartVoiceInputUseCase): StartVoiceInputUseCase

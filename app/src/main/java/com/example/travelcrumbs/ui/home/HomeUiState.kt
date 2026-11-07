@@ -14,6 +14,10 @@ data class HomeUiState(
     val userUnavailable: Boolean = false,
     /** 위치정보 동의 창(A-03-1) 표시 여부. */
     val showLocationConsent: Boolean = false,
+    /** 기록 중인 여행명(trip_mst.trip_nm) — 없으면 null. */
+    val activeTripName: String? = null,
+    /** 기록 중인 여행의 장소 수(trip_mst.place_cnt) — A-05 「기록된 장소 N」. */
+    val placeCount: Int = 0,
     /** 여행 시작 설정(A-04)을 홈 자리에 띄웠는지. */
     val showTripSetup: Boolean = false,
     val recording: RecordingStatus = RecordingStatus.RECORDING,

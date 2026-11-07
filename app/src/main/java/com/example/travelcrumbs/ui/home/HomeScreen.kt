@@ -89,6 +89,16 @@ fun HomeScreen(
                         maxLines = 1,
                     )
                 }
+                // 기록 중인 여행(A-05) — trip_mst.trip_nm · place_cnt
+                val tripName = uiState.activeTripName
+                if (tripName != null) {
+                    Text(
+                        text = stringResource(R.string.home_active_trip, tripName, uiState.placeCount),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                    )
+                }
                 Text(
                     text = recordingStatusText(uiState.recording),
                     style = MaterialTheme.typography.headlineLarge,
