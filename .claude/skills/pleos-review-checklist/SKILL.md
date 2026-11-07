@@ -58,13 +58,14 @@ description: Pleos 앱 마켓 심사 가이드 5항목(콘텐츠 안전 · 기�
 | 질문 | 어디서 보나 |
 |---|---|
 | 권한이 기능과 1:1 인가 — 허용 목록 밖 권한(위반) · 허용된 권한도 근거가 가리키는 기능이 이 변경에 실제로 있나 | 매니페스트(센서 `check_manifest.py` 결과). 목록 원본은 그 스크립트의 `ALLOWED`(권한마다 근거) · 늘리는 기준은 `sensors` 「권한 허용 목록을 늘리는 길」 |
-| 좌표 · 기어 · 속도 · VIN 이 서버로 가나(위반) | 앱 DTO · 서버 schemas · models |
+| 기어 · 속도 · VIN · Pleos 토큰 · 비밀번호가 서버로 가나(위반) | 앱 DTO · 서버 schemas · models |
+| **좌표**는 서버에 있어도 됨(ADR 0015) — 대신 동의 전에 보내지 않나 · 수집 범위가 스펙에 적힌 만큼인가 · 보관 기간이 정해져 있나 · 철회 · 탈퇴 때 지워지나. 넷 중 하나라도 비면 위반 | 스펙 「데이터」 절 · 앱 전송 큐 · 서버 models · 삭제 경로 |
 | 계정과 묶인 이동 기록(예: 어느 장소로 안내를 시작했나)을 서버로 보내나 — 보낸다면 동의 전 미전송 · 수집 항목 · 목적 · 보관 기간 · 철회 · 탈퇴 시 삭제가 스펙에 있고 코드가 지키나 | 스펙 「최소 수집」 절 · 앱 전송 큐 · 서버 models · 삭제 경로 |
 | Pleos 토큰 · clientSecret 이 앱에 있나 · 서버가 Pleos 토큰을 저장하나(위반) | 앱 전체 grep · 서버 `auth/pleos/` · models |
 | 로그에 pleos_user_id · 토큰 · 이름 · 좌표 · LLM 원문이 원문으로 남나 | 서버 logging · 앱 `Log.` |
 | LLM 프롬프트에 개인 데이터가 들어가나 — 외부 전송 = 제3자 제공 | `prompts/` · `llm/service` 입력 조립 |
 | 동의 화면 — 동의 버튼만 동의로 인정하나(화면 닫기 · 뒤로가기가 동의로 처리되면 위반) · 수집 항목 · 목적 · 보유 기간 · 제3자 제공 여부가 적혀 있나 | `ConsentScreen` · `consents` API |
-| 철회 · 탈퇴 시 즉시 삭제되나(앱 로컬 + 서버 CASCADE + Pleos 웹훅 처리) | `DELETE /me` · 웹훅 · Room · DataStore 삭제 |
+| 철회 · 탈퇴 시 즉시 삭제되나(앱 로컬 + 서버 CASCADE + Pleos 웹훅 처리) — `deleted_yn` 논리 삭제로 때우면 위반. 사용자가 지우는 여행 · 장소는 논리 삭제가 맞음 | `DELETE /me` · 웹훅 · Room · DataStore 삭제 |
 | 전송이 HTTPS 만인가(release) · debug cleartext 가 `10.0.2.2` 로 한정인가 | `network_security_config` |
 | 토큰 저장이 Keystore 로 감싼 암호화인가 · 비밀번호 저장이 없나 | `SessionStore` |
 | 운전자 교체 시 로그아웃 · 계정 전환이 한 번에 되나 | 기록 화면 |

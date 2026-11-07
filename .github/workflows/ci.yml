@@ -120,6 +120,7 @@ jobs:
       # 계약 파일은 서버 첫 이슈에서 생김 — 그 전엔 건너뜀
       - if: hashFiles('docs/api/openapi.json') != ''
         run: python .claude/skills/sensors/scripts/check_api_contract.py docs/api/openapi.json app/src/main/java
+      - run: python .claude/skills/sensors/scripts/check_data_standard.py server/app app/src/main/java
       - run: python .claude/guardrails/tests/test_guard.py
       - run: python .claude/guardrails/tests/test_trace.py
       - run: python .claude/guardrails/tests/test_check_manifest.py

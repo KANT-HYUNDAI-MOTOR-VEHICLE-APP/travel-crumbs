@@ -1,12 +1,13 @@
 # travel-crumbs — Claude 작업 가이드
 
-Pleos Connect(Android Automotive) 차량 앱 + Python · FastAPI 서버 + 문서 + 하네스를 한 저장소에 둠. 두 사람 이상이 같은 하네스로 작업 · 푸시 · 병합. 시연용 경량 앱 — 여행 기록 · 공유는 기기 안이 원본, 서버는 로그인 · 추천 근거 집계처럼 여러 사용자 데이터가 필요한 곳만(ADR 0014). 주행 중에도 쓰는 앱 — DO 선언 + 코드로 제한(ADR 0013).
+Pleos Connect(Android Automotive) 차량 앱 + Python · FastAPI 서버 + 문서 + 하네스를 한 저장소에 둠. 두 사람 이상이 같은 하네스로 작업 · 푸시 · 병합. 데이터 원본은 서버 PostgreSQL(로컬) — 여행 기록 · 공유도 서버가 가지고, 앱 Room 은 캐시 · 전송 대기 큐(ADR 0015 · 0014 대체). 주행 중에도 쓰는 앱 — DO 선언 + 코드로 제한(ADR 0013).
 
 하네스의 목적: **AI 활용 기록 공유 · AI 작업 방식 단일화.** 모든 작업은 GitHub 이슈로 시작하고(기능 · 버그 · 하네스 피드백), 이슈별 AI 작업 기록은 `.claude/log/<이슈>-<짧은이름>/` 에 남김(규칙 `.claude/log/README.md`).
 
 - 답 · 보고 · 문서 설명은 한국어 · 명사형 종결. 화면 문구(「」)만 제품 톤 그대로.
 - 코드 수정은 `builder` 에이전트만. 리뷰어는 읽기 전용. main 브랜치로 merge는 사람만. 브랜치 전략(develop · `<기능명>/main` · `/spec` · `/impl` · `bug/`)은 `team-workflow` 2절.
 - 협업 규칙은 `team-workflow` 스킬, 구조 규칙은 `android-architecture` · `server-architecture`, 센서는 `sensors` 스킬이 원본 — 여기에 되풀이하지 않음.
+- 테이블 · 컬럼 이름과 코드값의 원본은 `docs/data/standard.md`(읽는 법 `docs/data/README.md`). 스펙 · 모델 · Room 엔티티를 쓰기 전에 읽고, 「결정」인 것만 따름 — 「제안 · 미결 · 가안」은 스펙의 「미확정」 표로.
 - 다른 프로젝트의 규칙 · 경험을 근거로 끌어오지 않음. 근거는 Pleos 문서 · Google 권장안 · FastAPI 문서 · 이 저장소.
 
 ## 하네스: travel-crumbs Pleos 앱
