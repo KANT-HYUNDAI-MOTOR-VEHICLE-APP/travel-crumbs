@@ -5,6 +5,7 @@ import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.remote.NavigationStartRemoteDataSource
 import com.example.travelcrumbs.data.remote.SendOutcome
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.GuidanceStartRecorder
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.Pin
 import com.example.travelcrumbs.domain.model.PinUploadState
@@ -13,6 +14,7 @@ import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -24,7 +26,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 핀(여행의 목적지 기록)의 단일 출처(스펙 navigation 4.1 「저장소 경계」 · 결정 기록 U45).
  * 핀을 실제 여행에 붙이는 일은 #3 이 이 인터페이스의 구현을 바꿔 끼워서 함 — 화면 · ViewModel · 도메인은 그대로.
  */
-interface PinRepository {
+interface PinRepository : GuidanceStartRecorder {
     /** 현재 여행의 핀을 순서대로(1, 2, 3 …) — 보냄 상태와 무관 · 앱 재실행 뒤에도 같음. */
     val pins: Flow<List<Pin>>
 
@@ -32,7 +34,7 @@ interface PinRepository {
      * 안내가 시작됨(onRouteStarted) — 기록 중(RECORDING)일 때만 핀 1건(U21 · U42) → 바로 보내기 1회(U30).
      * 일시정지 · 기록 상태를 못 읽음이면 아무것도 남기지 않음. 핀을 남겼으면 참.
      */
-    suspend fun recordGuidanceStart(placeId: String): Boolean
+    override suspend fun recordGuidanceStart(placeId: String): Boolean
 
     /** 대기 핀을 서버로 보냄 — 다시 보낼 것이 남으면 [retryIndex] 번째 간격으로 예약. */
     suspend fun uploadPending(retryIndex: Int = 0): UploadRun
@@ -64,7 +66,17 @@ class DefaultPinRepository @Inject constructor(
 
     override val pins: Flow<List<Pin>> = local.pins
 
-    override suspend fun recordGuidanceStart(placeId: String): Boolean {
+    override suspend fun recordGuidanceStart(placeId: String): Boolean = try {
+        record(placeId)
+    } catch (cancel: CancellationException) {
+        throw cancel
+    } catch (error: Exception) {
+        // 로그엔 예외 이름만 — 장소 id · 시각을 남기지 않음(4.4)
+        Log.w(TAG, "핀 남기기 실패: ${error.javaClass.simpleName}")
+        throw error
+    }
+
+    private suspend fun record(placeId: String): Boolean {
         val status = withTimeoutOrNull(AppConfig.RECORDING_STATUS_READ_TIMEOUT_MILLIS) {
             recordingRepository.progress.map { it.status }.first()
         }

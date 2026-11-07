@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.GuideRequestState
 import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRequestStatus
@@ -15,6 +16,7 @@ import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
 import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.guideTrackerOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.testing.testPlace
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +68,7 @@ class HomeRouteFallbackViewModelTest {
             private set
         val state: HomeUiState get() = vm.uiState.value
 
-        /** 같은 저장소로 ViewModel 을 새로 만듦 — 프로세스 재생성 흉내(T108 · SavedStateHandle 없음). */
+        /** 같은 저장소로 ViewModel · 입구를 새로 만듦 — 프로세스 재생성 흉내(T108 · SavedStateHandle 없음). */
         fun recreate() {
             vm = create()
         }
@@ -79,7 +81,7 @@ class HomeRouteFallbackViewModelTest {
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedLocal.repository,
-            pinRepository = pins,
+            guideRequests = guideTrackerOf(navi, pins),
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
         )
@@ -434,6 +436,20 @@ class HomeRouteFallbackViewModelTest {
             "요청 중인데 패널이 열린 상태는 없음",
             seen.none { it.routeRequest is RouteRequestState.Requesting && it.dummyRoute != null },
         )
+    }
+
+    @Test
+    fun `T107 R4-1 패널은 입구 상태에서 파생 — 요청 중 · 시작됨 · 다른 시도의 실패엔 어떤 번호로도 패널 없음`() {
+        val a = testPlace("a")
+        val failed = GuideRequestState.Failed(RouteFailReason.TIMEOUT, a, attempt = 3)
+        listOf(null, 1L, 2L, 3L, 4L).forEach { opened ->
+            assertNull(dummyRouteOf(GuideRequestState.Requesting(a), opened))
+            assertNull(dummyRouteOf(GuideRequestState.Started(a), opened))
+            assertNull(dummyRouteOf(GuideRequestState.Idle, opened))
+        }
+        assertEquals(PlaceItem("a", "a 이름", "a 주소"), dummyRouteOf(failed, 3L))
+        assertNull(dummyRouteOf(failed, 2L))
+        assertNull(dummyRouteOf(failed, null))
     }
 
     @Test

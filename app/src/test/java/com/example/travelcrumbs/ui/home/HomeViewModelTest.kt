@@ -14,6 +14,7 @@ import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
 import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.guideTrackerOf
 import com.example.travelcrumbs.testing.pinnedPlacesRepositoryOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
@@ -59,7 +60,7 @@ class HomeViewModelTest {
         naviRepository = navi,
         placeCatalogRepository = FakePlaceCatalogRepository(),
         pinnedPlacesRepository = pinnedPlacesRepositoryOf(),
-        pinRepository = FakePinRepository(),
+        guideRequests = guideTrackerOf(navi, FakePinRepository()),
         placeStatsRepository = FakePlaceStatsRepository(),
         demoFeatures = DemoFeatures(dummyRoute = true),
     )
