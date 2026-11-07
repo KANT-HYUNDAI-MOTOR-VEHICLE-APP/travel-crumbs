@@ -127,3 +127,15 @@
 - 남은 결정: `_workspace/4/05_open_findings_guide.md` — G1 · G2=R3-2(하네스 규칙 문장) · 스펙 3.1 · 3.2(요청 상태 출처 · Activity 재진입 때 결과 문구 유지) · 정차 거르기(음성 · 다시 가기 붙일 때)
 - 막힘: 없음 · BACK 키가 이 플랫폼에서 MainActivity 를 끝내지 않아 `am start --activity-clear-task` 로 Activity 만 끝냄
 - 다음: 푸시 · PR(PR #20 머지 순서 확인) · 음성 · 「다시 가기」 · 장소 여러 곳 안내가 이 입구를 쓰도록
+
+## A-14 전용 화면 · 카드형 홈 · 1 스펙 · 2 구현 · 4 수정 끝 — 2026-11-07 · 최성호
+- 계기: 와이어프레임 v5 슬라이드(I-04 · A-13 · A-14)를 이미지로 그려 실제 화면과 비교 → 사람 선택 「전용 화면까지」(U63) — A-14 전용 화면 + 홈 카드형 · U52(패널 방식)를 뒤집음
+- 산출물: navigation-screen/impl eec0e2d(스펙 U63 ~ U77 · T115 ~ T134) · 7711ffc(전용 화면 · 카드형 홈 · 17파일) · e775aab(리뷰 1회차) · acd5980(결정 표기 정정) — 로컬 커밋 · 푸시 전 · navigation-guide/impl(입구 분리) → navigation-a14/impl(PR #20) 위에 쌓음
+- 에이전트: spec-writer × 2 · builder(app) × 2 · pleos-reviewer × 1 · structure-reviewer × 1
+- 센서: gradle lint · 단위 219 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest develop 판 녹색 · #6 파일 변경 0줄
+- 에뮬레이터: 요청 → 성공 · 실패 → 다시 시도 · 더미 경로 → 닫기 · 시스템 뒤로 · 주행 → 정차 통과 · FATAL 0 · 캡처 `_workspace/4/screen_emulator/`
+- 리뷰 지적: 1회차 심사 반려 0 · 확인 2 · 구조 위반 0 · 확인 4(X1 ~ X4) → 고침 4건(X1 KDoc · X2(b) 이름 · Dimens 이름 · internal) · 재리뷰는 동작 변화 없는 정리라 생략(센서 녹색) · 센서 후보 1(심사 2 release 산출물 검사 · 3회)
+- 사람 결정: U55 · U57(2026-11-06) · U63 · U68 · U70 · U71 · U73(2026-11-07) — U54 · U64 ~ U67 · U69 · U72 는 추천 기본값(사람 미확인)으로 구현
+- 남은 결정: `_workspace/4/05_open_findings_screen.md` — 심사 1(release 지도 박스 「예시」 표시) · 심사 2 · X2(a) · X3 · X4 · 희주 님과 맞출 U64 ~ U67
+- 막힘: 없음
+- 다음: 푸시(스택 순서 · PR #20 머지 확인) · 희주 님께 U64 ~ U67 질문 · release 지도 박스 표시 결정
