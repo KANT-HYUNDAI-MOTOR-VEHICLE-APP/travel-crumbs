@@ -37,14 +37,19 @@ data class HomeUiState(
      * 좌표 · 현재 위치 칸 없음(navigation 3.1 · U53).
      */
     val dummyRoute: PlaceItem? = null,
+    /**
+     * 길안내 연결 화면(2.3)에 그릴 장소(id · 이름 · 주소) — null 이면 닫힘(홈 목록). 열림이면 홈 목록(맨 위 영역 · 두 구역 · debug 카드)을
+     * 그리지 않음. 좌표 · 현재 위치 칸 없음(navigation 3.1 · U53).
+     */
+    val guideScreen: PlaceItem? = null,
     /** 이 빌드에 「더미 경로」가 있나 — debug 만(U55). 버튼 표시는 아래 [dummyRouteVisible]. */
     val dummyRouteAvailable: Boolean = false,
 ) {
     /** 「여기로 안내」 누를 수 있음 = 내비 연결됨 · 요청 중 아님(navigation 3.1 — 따로 칸을 두지 않음). */
     val guideEnabled: Boolean get() = naviReady && routeRequest !is RouteRequestState.Requesting
 
-    /** 「다시 시도」 보임 = 실패(이유 무관 · U51) · 누를 수 있음 = 「여기로 안내」와 같은 식. */
-    val retryVisible: Boolean get() = routeRequest is RouteRequestState.Failed
+    /** 「다시 시도」(G4) 보임 = 길안내 연결 화면 열림 · 실패(이유 무관 · U51 · U71) · 누를 수 있음 = 「여기로 안내」와 같은 식. */
+    val retryVisible: Boolean get() = guideScreen != null && routeRequest is RouteRequestState.Failed
     val retryEnabled: Boolean get() = retryVisible && guideEnabled
 
     /** 「더미 경로」 보임 = 실패 · debug 빌드 · 누를 수 있음 = 패널이 닫혀 있음(내비 연결과 무관). */

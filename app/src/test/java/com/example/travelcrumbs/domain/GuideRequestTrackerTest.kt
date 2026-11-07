@@ -37,12 +37,12 @@ class GuideRequestTrackerTest {
 
         f.tracker.guide(a)
         runCurrent()
-        assertEquals(GuideRequestState.Requesting(a), f.tracker.state.value)
+        assertEquals(a, (f.tracker.state.value as GuideRequestState.Requesting).place)
 
         f.navi.answerRoute(RouteRequestResult.Started)
         runCurrent()
 
-        assertEquals(GuideRequestState.Started(a), f.tracker.state.value)
+        assertEquals(a, (f.tracker.state.value as GuideRequestState.Started).place)
         assertEquals(listOf("a"), f.pins.recorded)
     }
 
@@ -55,7 +55,7 @@ class GuideRequestTrackerTest {
         f.tracker.guide(b)
         runCurrent()
 
-        assertEquals(GuideRequestState.Requesting(a), f.tracker.state.value)
+        assertEquals(a, (f.tracker.state.value as GuideRequestState.Requesting).place)
         assertEquals(1, f.navi.routeRequests.size)
     }
 
@@ -103,6 +103,22 @@ class GuideRequestTrackerTest {
         val sent = f.tracker.state.value as GuideRequestState.Failed
         assertTrue("보낸 요청은 늘 새 번호", sent.attempt > other.attempt)
         assertEquals(0, f.pins.recorded.size)
+    }
+
+    @Test
+    fun `T116 변경 번호 — 상태가 바뀔 때마다 1씩 늘고 무시된 호출엔 그대로`() = runTest {
+        val f = Fixture(this)
+        assertEquals(0L, f.tracker.state.value.seq)
+        f.tracker.guide(a)
+        runCurrent()
+        assertEquals(1L, f.tracker.state.value.seq)
+        f.tracker.guide(b)
+        f.tracker.retry()
+        runCurrent()
+        assertEquals("요청 중엔 무시 — 번호 그대로", 1L, f.tracker.state.value.seq)
+        f.navi.answerRoute(RouteRequestResult.Failed(RouteFailReason.TOO_FAR))
+        runCurrent()
+        assertEquals(2L, f.tracker.state.value.seq)
     }
 
     @Test

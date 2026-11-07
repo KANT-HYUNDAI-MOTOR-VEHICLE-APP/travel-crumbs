@@ -65,6 +65,16 @@ class HomeViewModel @Inject constructor(
      */
     private val dummyRouteAttempt = MutableStateFlow<Long?>(null)
 
+    /**
+     * 길안내 연결 화면(2.3)을 연 때의 입구 변경 번호 — 화면은 입구 상태의 [GuideRequestState.seq] 가 이 번호 이상일 때만 보임(파생).
+     * 「여기로 안내」가 입구를 부르기 **전에** 다음 번호로 써 둠 → 입구 상태가 바뀌기 전엔 화면이 닫힌 채, 바뀐 뒤엔 열림 —
+     * 「요청 중인데 화면 안 열림」 같은 사이값이 생기지 않음. 화면 상태뿐 · 복원 대상 아님(T129).
+     */
+    private val guideScreenFrom = MutableStateFlow<Long?>(null)
+
+    /** 화면이 고른 두 보기(길안내 연결 화면 · 더미 경로)의 열림 번호 — combine 인자 수를 줄이려고 하나로 묶음. */
+    private val screenMarks = combine(guideScreenFrom, dummyRouteAttempt) { from, dummy -> from to dummy }
+
     /** 후보 — 읽기 전 null. 조작 메서드가 바로 찾을 수 있게 값으로 들고 있음. */
     private val candidates = MutableStateFlow<List<Place>?>(null)
 
@@ -87,9 +97,9 @@ class HomeViewModel @Inject constructor(
         pinnedPlacesRepository.pinnedIds.map<List<String>, List<String>?> { it }.onStart { emit(null) },
         guideRequests.state,
         placeStats,
-        dummyRouteAttempt,
-    ) { all, pinnedIds, request, stats, dummyAttempt ->
-        PlacesPart.of(all, pinnedIds, request, stats, dummyAttempt)
+        screenMarks,
+    ) { all, pinnedIds, request, stats, (screenFrom, dummyAttempt) ->
+        PlacesPart.of(all, pinnedIds, request, stats, screenFrom, dummyAttempt)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -98,17 +108,20 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
         places,
     ) { progress, shown, sdk, part ->
+        val parked = sdk.drivingState == DrivingState.PARKED
         sdk.copy(
             recording = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             message = shown,
             pinnedPlaces = part.pinnedPlaces,
             candidates = part.candidates,
-            placesVisible = sdk.drivingState == DrivingState.PARKED,
+            placesVisible = parked,
             canPinMore = part.canPinMore,
             routeRequest = part.routeRequest,
             placeStats = part.placeStats,
-            dummyRoute = part.dummyRoute,
+            // 주행 · 모름이면 전용 화면 · 더미 경로는 없음(U54 넓힘 · 닫힘은 아래 init 구독이 기록)
+            guideScreen = part.guideScreen.takeIf { parked },
+            dummyRoute = part.dummyRoute.takeIf { parked },
             dummyRouteAvailable = demoFeatures.dummyRoute,
         )
     }.stateIn(
@@ -119,11 +132,11 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { candidates.value = placeCatalogRepository.candidates() }
-        // 주행 · 모름이 되면 더미 경로 패널을 닫음 — 정차로 돌아와도 닫힌 채(U54 · T103).
+        // 주행 · 모름이 되면 길안내 연결 화면 · 더미 경로를 닫음 — 정차로 돌아와도 홈 목록(U54 넓힘 · T124 · T125).
         // 주행 중엔 홈 화면이 그려지지 않아 uiState 구독이 멈추므로 따로 받음(주행 판정 출처는 하나 · 공유 흐름).
         viewModelScope.launch {
             drivingSignalRepository.drivingState.collect { driving ->
-                if (driving != DrivingState.PARKED) dummyRouteAttempt.value = null
+                if (driving != DrivingState.PARKED) closeGuideScreen()
             }
         }
     }
@@ -138,11 +151,30 @@ class HomeViewModel @Inject constructor(
         message.value = null
     }
 
-    /** 「여기로 안내」(navigation 3.2 「길안내 요청」) — 주행 · 모름이면 무시 · 요청 중이면 입구가 무시(T5). */
+    /**
+     * 「여기로 안내」(navigation 3.2 「길안내 요청」) — 요청을 시작하면(또는 그 순간 미연결로 바로 실패하면) 길안내 연결 화면(2.3)이 열림(U68).
+     * 주행 · 모름 · 요청 중이면 무시(T5 · 화면도 그대로).
+     */
     fun onGuide(placeId: String) {
         if (!uiState.value.placesVisible) return
         val place = candidates.value?.firstOrNull { it.id == placeId } ?: return
+        val current = guideRequests.state.value
+        if (current is GuideRequestState.Requesting) return
+        // 입구가 상태를 바꾸기 전에 「다음 변경부터 화면에 보임」을 써 둠 — 요청 중 · 즉시 실패 어느 쪽이든 그 상태와 함께 열림
+        dummyRouteAttempt.value = null
+        guideScreenFrom.value = current.seq + 1
         guideRequests.guide(place)
+    }
+
+    /** 「길안내 화면 닫기」(2.3 G6 · 시스템 뒤로) — 요청은 취소하지 않음 · 결과는 홈 E3 에(T122). 주행 · 모름이면 무시(T132). */
+    fun onCloseGuideScreen() {
+        if (!uiState.value.placesVisible) return
+        closeGuideScreen()
+    }
+
+    private fun closeGuideScreen() {
+        guideScreenFrom.value = null
+        dummyRouteAttempt.value = null
     }
 
     /** 화면이 다시 앞으로 옴(시작 · 재개 · R1) — 바로 앞 요청이 아직 시작 알림을 못 받았으면 입구가 내비 상태로 대조. */
@@ -161,18 +193,12 @@ class HomeViewModel @Inject constructor(
 
     /**
      * 「더미 경로」(E12 · E13) — 실패한 장소의 이름 · 주소만 패널에 · 내비 요청 · 핀 · 서버 · 기기 저장 · 로그 없음(U56 · T101).
-     * debug 빌드 · 정차 · 실패일 때만(열려 있으면 같은 번호를 다시 씀 — 그대로).
+     * debug 빌드 · 정차 · 길안내 연결 화면 열림 · 실패일 때만(켜져 있으면 같은 번호를 다시 씀 — 그대로).
      */
     fun onShowDummyRoute() {
-        if (!demoFeatures.dummyRoute || !uiState.value.placesVisible) return
+        if (!demoFeatures.dummyRoute || !uiState.value.placesVisible || uiState.value.guideScreen == null) return
         val failed = guideRequests.state.value as? GuideRequestState.Failed ?: return
         dummyRouteAttempt.value = failed.attempt
-    }
-
-    /** 더미 경로 「닫기」(E13-4) — 결과 문구 · 두 버튼은 남음(T102). */
-    fun onCloseDummyRoute() {
-        if (!uiState.value.placesVisible) return
-        dummyRouteAttempt.value = null
     }
 
     /** 「고정」 — 정차일 때만 · 최대면 저장소가 그대로 둠(T36). */
@@ -226,6 +252,7 @@ class HomeViewModel @Inject constructor(
         val canPinMore: Boolean,
         val routeRequest: RouteRequestState,
         val placeStats: SdkStatus<List<PlaceStatItem>>,
+        val guideScreen: PlaceItem?,
         val dummyRoute: PlaceItem?,
     ) {
         companion object {
@@ -234,8 +261,10 @@ class HomeViewModel @Inject constructor(
                 pinnedIds: List<String>?,
                 request: GuideRequestState,
                 stats: SdkStatus<List<PlaceStatItem>>,
+                screenFrom: Long?,
                 dummyAttempt: Long?,
             ): PlacesPart {
+                val screen = guideScreenOf(request, screenFrom)
                 val byId = all.orEmpty().associateBy { it.id }
                 val pinned = if (all == null || pinnedIds == null) {
                     null
@@ -249,7 +278,8 @@ class HomeViewModel @Inject constructor(
                     canPinMore = pinnedSet.size < AppConfig.PINNED_PLACES_MAX,
                     routeRequest = request.toUi(),
                     placeStats = stats,
-                    dummyRoute = dummyRouteOf(request, dummyAttempt),
+                    guideScreen = screen,
+                    dummyRoute = if (screen == null) null else dummyRouteOf(request, dummyAttempt),
                 )
             }
         }
@@ -265,7 +295,22 @@ internal fun GuideRequestState.toUi(): RouteRequestState = when (this) {
 }
 
 /**
- * 더미 경로 패널(E13)에 그릴 장소 — 입구가 지금 실패이고 그 시도 번호가 패널을 연 번호와 같을 때만(R4-1 · 파생).
+ * 길안내 연결 화면(2.3)에 그릴 장소 — 화면을 연 뒤의 입구 상태([GuideRequestState.seq] ≥ [screenFrom])일 때만 · 그 상태의 장소.
+ * 입구 상태 하나에서 나오므로 화면의 장소와 요청 상태가 어긋날 수 없음.
+ */
+internal fun guideScreenOf(request: GuideRequestState, screenFrom: Long?): PlaceItem? {
+    if (screenFrom == null || request.seq < screenFrom) return null
+    val place = when (request) {
+        GuideRequestState.Idle -> return null
+        is GuideRequestState.Requesting -> request.place
+        is GuideRequestState.Started -> request.place
+        is GuideRequestState.Failed -> request.place
+    }
+    return PlaceItem(place.id, place.name, place.address)
+}
+
+/**
+ * 더미 경로(2.3 G1-D · 옛 E13)에 그릴 장소 — 입구가 지금 실패이고 그 시도 번호가 패널을 연 번호와 같을 때만(R4-1 · 파생).
  * 요청 중 · 시작됨이면 [dummyAttempt] 가 무엇이든 없음 → 「요청 중 + 패널 열림」은 만들 수 없음.
  */
 internal fun dummyRouteOf(request: GuideRequestState, dummyAttempt: Long?): PlaceItem? {

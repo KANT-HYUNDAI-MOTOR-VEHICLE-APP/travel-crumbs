@@ -17,18 +17,28 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 길안내 요청 상태(스펙 navigation 3.2 「길안내 요청」 · 「실패 폴백」).
+ * [seq] = 상태가 바뀔 때마다 1씩 느는 변경 번호(대기 = 0) — 화면이 「이 변경 뒤의 상태만 보여 줌」(길안내 연결 화면)을 이 번호로 묶음.
  * [Failed.attempt] = 그 실패를 낳은 시도 번호 — 내비에 요청을 보낼 때마다 늘고, 보내지 않은 즉시 실패(미연결)는
  * 바로 앞 실패와 같은 장소면 그 번호를 이어받음. 화면이 「이 실패에 딸린 보기(더미 경로)」를 이 번호로 묶음.
  */
 sealed interface GuideRequestState {
-    data object Idle : GuideRequestState
+    val seq: Long
 
-    data class Requesting(val place: Place) : GuideRequestState
+    data object Idle : GuideRequestState {
+        override val seq: Long get() = 0L
+    }
+
+    data class Requesting(val place: Place, override val seq: Long) : GuideRequestState
 
     /** 요청할 때의 장소(그 뒤 고정 해제해도 · T42). */
-    data class Started(val place: Place) : GuideRequestState
+    data class Started(val place: Place, override val seq: Long) : GuideRequestState
 
-    data class Failed(val reason: RouteFailReason, val place: Place, val attempt: Long) : GuideRequestState
+    data class Failed(
+        val reason: RouteFailReason,
+        val place: Place,
+        val attempt: Long,
+        override val seq: Long,
+    ) : GuideRequestState
 }
 
 /**
@@ -51,6 +61,12 @@ class GuideRequestTracker(
     val state: StateFlow<GuideRequestState> = _state.asStateFlow()
 
     private var attempts = 0L
+    private var changes = 0L
+
+    /** 상태를 바꾸는 유일한 길 — 변경 번호를 붙여 내보냄. */
+    private fun publish(make: (seq: Long) -> GuideRequestState) {
+        _state.value = make(++changes)
+    }
 
     /**
      * 바로 앞 길안내 요청 — 결과 전(요청 중) 또는 TIMEOUT 뒤(늦은 시작 · 재개 대조를 아직 받음 · 스펙 3.2 「바로 앞 요청 X」).
@@ -91,14 +107,14 @@ class GuideRequestTracker(
             } else {
                 ++attempts
             }
-            _state.value = GuideRequestState.Failed(RouteFailReason.NOT_CONNECTED, place, attempt)
+            publish { GuideRequestState.Failed(RouteFailReason.NOT_CONNECTED, place, attempt, it) }
             return
         }
         // 다른(또는 같은) 장소를 새로 요청 — 바로 앞 TIMEOUT 요청은 더 대조하지 않음(T94)
         lastRequest?.stop()
         val request = GuideRequest(place, ++attempts, scope.async { navi.requestRoute(place) })
         lastRequest = request
-        _state.value = GuideRequestState.Requesting(place)
+        publish { GuideRequestState.Requesting(place, it) }
         request.jobs += scope.launch {
             var result = awaitRouteResult(navi.ready, AppConfig.ROUTE_START_TIMEOUT_MILLIS) {
                 request.answer.await()
@@ -134,7 +150,7 @@ class GuideRequestTracker(
             result == TIMEOUT -> {
                 // TIMEOUT 으로 보이되 이 요청을 기억 — 늦은 onRouteStarted 를 받으면 시작됨(스펙 3.2 · T91)
                 request.timedOut = true
-                _state.value = GuideRequestState.Failed(RouteFailReason.TIMEOUT, request.place, request.attempt)
+                publish { GuideRequestState.Failed(RouteFailReason.TIMEOUT, request.place, request.attempt, it) }
                 request.jobs += scope.launch {
                     val late = try {
                         request.answer.await()
@@ -155,7 +171,7 @@ class GuideRequestTracker(
             }
             result is RouteRequestResult.Failed -> {
                 lastRequest = null
-                _state.value = GuideRequestState.Failed(result.reason, request.place, request.attempt)
+                publish { GuideRequestState.Failed(result.reason, request.place, request.attempt, it) }
                 request.stop()
             }
         }
@@ -172,7 +188,7 @@ class GuideRequestTracker(
     private fun markStarted(request: GuideRequest) {
         if (lastRequest !== request) return
         lastRequest = null
-        _state.value = GuideRequestState.Started(request.place)
+        publish { GuideRequestState.Started(request.place, it) }
         scope.launch { recordPin(request.place.id) }
         // 기다리던 응답 · 한도 · 늦은 알림 대기를 거둠(내비 리스너 제거) — 같은 요청이 다시 정해지지 않음
         request.stop()
