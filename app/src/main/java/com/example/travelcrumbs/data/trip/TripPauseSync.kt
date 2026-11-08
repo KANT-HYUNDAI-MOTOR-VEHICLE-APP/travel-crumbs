@@ -6,7 +6,7 @@ import com.example.travelcrumbs.domain.model.Trip
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -25,29 +25,32 @@ class TripPauseSync @Inject constructor(
     private val tripRepository: TripRepository,
 ) {
     fun start(scope: CoroutineScope) {
-        // 여행이 바뀌면(시작 · 앱 재실행) 앱 상태를 서버에 맞춤
+        // 여행별 초기 정렬을 끝낸 뒤에만 버튼 변경을 서버로 보냄.
+        // 두 방향을 동시에 수집하면 미초기화 기본 RECORDING이 서버 PAUSED를 먼저 resume할 수 있음.
         scope.launch {
             tripRepository.activeTrip
                 .map { it?.tripUuid }
                 .distinctUntilChanged()
-                .collect {
-                    val trip = tripRepository.activeTrip.value ?: return@collect
+                .collectLatest { tripUuid ->
+                    if (tripUuid == null) return@collectLatest
                     val local = recordingRepository.progress.first().status
+                    val trip = tripRepository.activeTrip.value
+                        ?.takeIf { it.tripUuid == tripUuid } ?: return@collectLatest
                     if (local != trip.toRecordingStatus()) recordingRepository.togglePause()
-                }
-        }
-        // 앱 상태가 바뀌면 서버를 맞춤
-        scope.launch {
-            combine(
-                recordingRepository.progress.map { it.status }.distinctUntilChanged(),
-                tripRepository.activeTrip,
-            ) { local, trip -> local to trip }
-                .collect { (local, trip) ->
-                    if (trip == null || local == trip.toRecordingStatus()) return@collect
-                    when (local) {
-                        RecordingStatus.PAUSED -> tripRepository.pause(trip.tripUuid)
-                        RecordingStatus.RECORDING -> tripRepository.resume(trip.tripUuid)
-                    }
+
+                    // collectLatest가 여행 전환 시 이전 여행의 초기 대기·변경 감지를 함께 취소.
+                    recordingRepository.progress
+                        .map { it.status }
+                        .distinctUntilChanged()
+                        .collect { status ->
+                            val current = tripRepository.activeTrip.value
+                                ?.takeIf { it.tripUuid == tripUuid } ?: return@collect
+                            if (status == current.toRecordingStatus()) return@collect
+                            when (status) {
+                                RecordingStatus.PAUSED -> tripRepository.pause(tripUuid)
+                                RecordingStatus.RECORDING -> tripRepository.resume(tripUuid)
+                            }
+                        }
                 }
         }
     }
