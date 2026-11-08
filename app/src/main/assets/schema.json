@@ -15,6 +15,19 @@
         },
         "component": "activity"
       }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "RECORD_CURRENT_PLACE",
+        "description": "Records the vehicle's current location as a draft place in the active trip after location consent and navigation readiness have been confirmed. Place details are completed later while parked.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "component": "activity"
+      }
     }
   ]
 }
