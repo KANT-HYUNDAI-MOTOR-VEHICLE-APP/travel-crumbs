@@ -43,6 +43,12 @@ Gleo 등록 없이 앱 Intent 경계만 점검하는 명령. 아래 호출은 �
 adb shell am start -W -n com.example.travelcrumbs/.MainActivity -a RECORD_CURRENT_PLACE --es ACTION_PARAM '{}'
 ```
 
+## 기존 일시정지 복원의 최소 보완
+
+첫 CI가 기존 `TripPauseSyncTest`의 PAUSED 복원 시험에서 실패해 `TripPauseSync`와 해당 시험만 추가 보완. 기존 API·DB·저장 UseCase·일시정지 규칙을 유지하면서 서버→로컬 초기 정렬이 끝난 뒤 로컬→서버 변경 감지를 시작하도록 순서화. 여행이 바뀌면 이전 여행의 초기 대기와 변경 감지를 취소.
+
+기존 시험의 기대값을 유지하고 PAUSED 서버 상태 유지·빠른 여행 전환을 검증. 이 보완은 Gleo 입력 연결 외의 최소 의존 수정이므로 리뷰에서 함께 확인할 대상.
+
 ## 이번 구현의 경계
 
 - 앱 초기 실행에서 여행 복원이 끝나지 않았으면 준비 미확인 응답. 초기 null을 여행 없음으로 단정하지 않음.
