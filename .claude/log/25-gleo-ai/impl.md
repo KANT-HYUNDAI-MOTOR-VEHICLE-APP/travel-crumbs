@@ -31,3 +31,21 @@
 - 센서: builder의 manifest·secrets·hygiene·diff-check 통과. 로컬 Gradle은 Java 없음. 생성 OpenAPI 입력 부재를 실제 검사 오류로 확인.
 - 스펙 밖 최소 보완: 단일 root Activity 재진입(singleTask)·복원 Intent 재실행 방지·구성 변경 동안 SDK 유지·RECORD 입력 크기 제한. 실기 수명 검증은 미완료.
 - 다음: 소스 freeze 후 Pleos·구조 읽기 전용 리뷰. 로컬 빌드 도구 부재로 원격 CI 실행을 위한 검토용 Draft PR 준비. Ready/머지/운영 배포 아님.
+
+## 4 두 관점 리뷰 응답 — 2026-11-08 · errorn
+
+- 에이전트: 읽기 전용 Pleos reviewer 1회·Android structure reviewer 1회. 변경 app 23개 freeze 해시 일치. 정적 구조 위반 0/확인 0, Pleos 반려 0/확인 1.
+- R1: exported RECORD의 쓰기 권한 보호 계약 미확인. 입력 검증이 발신 인증이라는 주장 없음. 공식 Gleo 일반 startActivity 계약과 API34 환경에서 신뢰할 발신 인증 방법을 확인하지 못했으므로 임의 package/referrer/extra 인증 코드 추가 없음.
+- builder 응답: 공식 보호 계약 확보 전 보류. 개발 가이드·PR에 공식 계약 및 별도 UID 무권한 앱 차단 시험을 출시 전 조건으로 추가. 자동저장 공개 범위 결정 또는 활성화 보류 필요. 제품 소스 변경 없음.
+- 검증 경계: 실제 Activity/Hilt 재생성·SDK 수명 시험은 미작성·미실행. source guard가 실제 기기에서 동작한다는 보장과 구분.
+
+## 6 구현 검토용 Draft PR — 2026-11-08 · errorn
+
+- 산출물: PR #27 https://github.com/KANT-HYUNDAI-MOTOR-VEHICLE-APP/travel-crumbs/pull/27 · `gleo-ai/impl` → `gleo-ai/main` · Draft. 기준 브랜치 변경·머지·배포 없음.
+- 커밋: 제품 코드·시험 `1629dc8` 및 개발 가이드·공유 기록. spec PR #26 및 그 브랜치 유지.
+- 센서: 원격 CI의 changes/common 성공, server 변경 없음으로 생략. 첫 app 실행은 Kotlin/Hilt·신규 시험 포함 125개 컴파일·시험 실행 후 기존 TripPauseSyncTest 1개 실패. 결과 로그는 CI run `42475180073` 및 PR 체크에서 확인 가능.
+- 실패 첫 줄: `TripPauseSyncTest > 앱을 다시 켰을 때 서버가 일시정지면 앱도 일시정지로 맞춤 FAILED`, `AssertionError at TripPauseSyncTest.kt:38`.
+- 원인 대조: 해당 시험·TripPauseSync·FakeTripRepository·RecordingRepository의 기준 대비 변경 없음. 신규 Gleo가 이 시험에서 생성/호출되지 않음. 양방향 초기 복원 collector 경합 가능성은 있지만 현재 로그만으로 어느 assertion인지 확정 불가. 기대값 완화·삭제·skip·기존 CRUD 패치 없음.
+- 다음: 실패 잡 재실행 및 문서 변경 이후 최신 CI 결과를 PR 본문·이슈 #25에 기록. CI 성공 전 Ready 또는 빌드 완료로 표시하지 않음. 제품 소스는 리뷰한 freeze 그대로 유지.
+- 남은 것: R1, U1~U3 사람 리뷰, D3/D4/D5 및 실기 검증. 이 PR에서 다른 작업과 기존 품질 문제를 해결했다고 간주하지 않음.
+- 활동: 자동 trace 없음. `trace_report.py` 입력 없음은 활동 기록 한계로 공개하며 임의 trace 또는 집계 생성 없음.

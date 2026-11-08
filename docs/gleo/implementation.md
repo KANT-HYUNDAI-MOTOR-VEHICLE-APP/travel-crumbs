@@ -49,6 +49,7 @@ adb shell am start -W -n com.example.travelcrumbs/.MainActivity -a RECORD_CURREN
 - 앱 내부 6초는 응답 시도 목표. 공식 Gleo 7초 제한을 기기 전체에서 지킨다는 성능 보장 없음.
 - 같은 프로세스에서 진행 중인 음성 기록의 중복을 제한. 요청 ID 없는 서로 다른 동시 명령, 수동 기록 버튼과의 동시 실행, 프로세스 종료 후 재전달까지의 완전한 중복 방지 보장 없음.
 - 추가 위치 조회·POST는 Gleo 동의 확인 뒤 기존 UseCase에서만 수행. 기존 RouteRecorder 전체의 동의 동작을 이 기능이 보장하지 않음.
+- 외부 호출 보호는 출시 전 확인 조건. 현재 exported Activity의 Action·빈 파라미터 검증은 발신자 인증이 아니어서 다른 앱도 같은 입력으로 저장 경로를 호출할 수 있음. 공식 Gleo 보호 계약을 확인하고 별도 UID 앱의 무권한 저장 차단을 기기에서 검증하기 전에는 출시 승인으로 취급하지 않음. 계약 확보가 불가하면 자동저장 공개 범위 결정 또는 활성화 보류 필요. 임의 package·referrer·extra 비교로 인증을 구현했다고 표시하지 않음. 일반 `startActivity()`에서 `getCallingPackage()`가 null인 제약은 [Android Activity 문서](https://developer.android.com/reference/android/app/Activity#getCallingPackage()) 참조.
 - 스펙 PR #26 미머지 상태의 선행 구현. 기준/화면 PR #23 사이 기존 충돌, 하네스 정합성, OpenAPI 생성 기반, 실제 Gleo 등록·실기 시험은 별도 확인 필요.
 
 공식 계약: [App Schema](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/app-capability), [Callback](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/action_callback), [Intent·Broadcast 예제](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/examples), [스키마 등록](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/deliver-schema).
