@@ -20,8 +20,9 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
     val recording = recordingRepositoryOf(time)
-    val drafts = draftRepositoryOf(time)
+    val inputs = unfinishedInputRepositoryOf(time)
     val savedState = SavedStateHandle()
+    val drivingSavedState = SavedStateHandle()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -34,11 +35,13 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     }
 
     private fun create(modelClass: Class<*>): ViewModel = when (modelClass) {
-        AppShellViewModel::class.java -> AppShellViewModel(driving, drafts, savedState)
+        AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState)
         DrivingViewModel::class.java -> DrivingViewModel(
-            recording,
-            FakeRecordPlaceUseCase(),
-            FakeStartVoiceInputUseCase(),
+            recordingRepository = recording,
+            recordPlace = FakeRecordPlaceUseCase(),
+            startVoiceInput = FakeStartVoiceInputUseCase(),
+            drivingSignalRepository = driving,
+            savedStateHandle = drivingSavedState,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,

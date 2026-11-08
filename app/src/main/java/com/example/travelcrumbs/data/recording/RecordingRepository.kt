@@ -2,9 +2,9 @@ package com.example.travelcrumbs.data.recording
 
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
+import com.example.travelcrumbs.domain.model.CurrentTrip
 import com.example.travelcrumbs.domain.model.RecordingProgress
-import com.example.travelcrumbs.domain.model.RecordingSession
-import com.example.travelcrumbs.domain.model.RecordingStatus
+import com.example.travelcrumbs.domain.model.TripStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,15 +18,18 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onEach
 
 /**
- * 기록 상태 · 경과의 단일 출처(스펙 app-shell D1) — 홈 · 주행 화면이 같은 값을 봄.
+ * 지금 여행 상태 · 경과의 단일 출처(#6 D1 · 스펙 app-shell-v5 3-4) — 홈 · 주행 화면이 같은 값을 봄.
  * route(위치 수집)는 뒤에 [progress] 를 구독.
  */
 interface RecordingRepository {
-    /** 상태 + 경과(분) — 기록 중이면 분이 바뀔 때마다 새 값. */
+    /** 상태 + 경과(분) + 여행명 · 장소 수 — 기록 중이면 분이 바뀔 때마다 새 값. */
     val progress: Flow<RecordingProgress>
 
-    /** 기록 중 ↔ 일시정지. */
-    suspend fun togglePause()
+    /** 「여행 종료」 팝업의 「종료」 — 기록 중이면 COMPLETED · 이미 끝났으면 그대로(V21). */
+    suspend fun endTrip()
+
+    /** 임시 「새 여행 시작」(D26) — 기록 중이 아닐 때만 새 여행 RECORDING · 기록 중이면 아무 일도 안 함(N19). */
+    suspend fun startNewTrip()
 }
 
 @Singleton
@@ -36,38 +39,51 @@ class DefaultRecordingRepository @Inject constructor(
 ) : RecordingRepository {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val progress: Flow<RecordingProgress> = local.session
+    override val progress: Flow<RecordingProgress> = local.trip
         .onEach { stored ->
-            // 설치 뒤 첫 실행 — 저장된 기록 상태가 없으면 기록 중 · 0분으로 시작(스펙 D2)
+            // 저장된 여행이 없으면(설치 뒤 첫 실행 · #6 판 값만 있음) 옮기거나 기록 중 · 0분으로 시작(#6 D2 · N10)
             if (stored == null) {
-                local.update { current -> current ?: RecordingSession.start(timeSource.nowMillis()) }
+                local.update { current -> current ?: CurrentTrip.start(timeSource.nowMillis()) }
             }
         }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { session -> session.ticks() }
+        .flatMapLatest { trip -> trip.ticks() }
         .distinctUntilChanged()
 
-    override suspend fun togglePause() {
+    override suspend fun endTrip() {
         local.update { current ->
             val now = timeSource.nowMillis()
-            (current ?: RecordingSession.start(now)).toggled(now)
+            (current ?: CurrentTrip.start(now)).ended(now)
         }
     }
 
-    private fun RecordingSession.ticks(): Flow<RecordingProgress> {
-        if (status == RecordingStatus.PAUSED) {
-            return flowOf(RecordingProgress(status, elapsedMillis(timeSource.nowMillis()) / UNIT))
+    override suspend fun startNewTrip() {
+        local.update { current ->
+            if (current?.status == TripStatus.RECORDING) current else CurrentTrip.start(timeSource.nowMillis())
+        }
+    }
+
+    private fun CurrentTrip.ticks(): Flow<RecordingProgress> {
+        if (status != TripStatus.RECORDING) {
+            return flowOf(progressAt(timeSource.nowMillis()))
         }
         return flow {
             while (true) {
-                val elapsed = elapsedMillis(timeSource.nowMillis())
-                emit(RecordingProgress(status, elapsed / UNIT))
+                val now = timeSource.nowMillis()
+                emit(progressAt(now))
                 // 다음 분 경계까지 잠듦 — 초 단위로 깨지 않음(주행 중 CPU)
-                delay(UNIT - elapsed % UNIT)
+                delay(UNIT - elapsedMillis(now) % UNIT)
             }
         }
     }
+
+    private fun CurrentTrip.progressAt(nowMillis: Long) = RecordingProgress(
+        status = status,
+        elapsedMinutes = elapsedMillis(nowMillis) / UNIT,
+        tripName = tripName,
+        placeCount = placeCount,
+    )
 
     private companion object {
         const val UNIT = AppConfig.ELAPSED_UNIT_MILLIS

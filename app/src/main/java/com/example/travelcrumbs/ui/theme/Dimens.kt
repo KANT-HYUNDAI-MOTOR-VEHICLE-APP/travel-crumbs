@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.theme
 
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** 화면 크기 수치 한 곳 — dp 기준 수치화는 다음 이슈(스펙 app-shell D8). */
 object Dimens {
@@ -15,6 +16,23 @@ object Dimens {
 
     /** 홈 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
+
+    /** 터치 대상 최소 크기 — Android 접근성 권장 48 × 48dp(스펙 app-shell-v5 2-1 · V46). */
+    val MinTouchTarget = 48.dp
+
+    /**
+     * 레일 — 글자 높이 5 mm 이상(Pleos UI 디자인 가이드 · 에뮬레이터 160 dpi 실측 기준 · #21 사람 결정).
+     * 160 dpi 에서 1dp = 1px = 0.159 mm → 5 mm ≈ 31.5dp. 글자 줄 높이 [RailLabelLineHeight] 가 그 위.
+     * 칸 높이 × 5 가 창 2개 영역 높이(1210dp) · 창 1개 영역 높이 안에 스크롤 없이 들어감.
+     */
+    val RailWidth = 120.dp
+    val RailItemHeight = 96.dp
+    val RailIconSize = 32.dp
+    val RailLabelFontSize = 24.sp
+    val RailLabelLineHeight = 34.sp
+
+    /** 주행 화면 지도 자리 테두리. */
+    val MapPlaceholderBorder = 2.dp
 
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
     val NoticeLineHeight = 40.dp

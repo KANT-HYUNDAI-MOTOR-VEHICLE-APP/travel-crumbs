@@ -3,8 +3,8 @@ package com.example.travelcrumbs.ui.home
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
-import com.example.travelcrumbs.domain.model.RecordingStatus
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -55,15 +56,50 @@ class HomeViewModelTest {
     )
 
     @Test
-    fun `T19 주행 화면에서 일시정지하면 홈도 일시정지 — 같은 출처`() = runTest(dispatcher) {
+    fun `V18 주행 화면에서 종료하면 홈도 완료 — 같은 출처 · 이 장소 기록 비활성`() = runTest(dispatcher) {
         val recording = recordingRepositoryOf(FakeTimeSource())
         val vm = viewModel(recording = recording)
         subscribe(vm)
 
-        recording.togglePause()
+        recording.endTrip()
         runCurrent()
 
-        assertEquals(RecordingStatus.PAUSED, vm.uiState.value.recording)
+        assertEquals(TripStatus.COMPLETED, vm.uiState.value.tripStatus)
+        assertFalse(vm.uiState.value.recordPlaceEnabled)
+        assertTrue(vm.uiState.value.startNewTripEnabled)
+    }
+
+    @Test
+    fun `V34 완료 뒤 새 여행 시작 — 기록 중 · 0분 · 새 여행 시작 비활성 · 이 장소 기록 활성`() = runTest(dispatcher) {
+        val time = FakeTimeSource()
+        val recording = recordingRepositoryOf(time)
+        val vm = viewModel(recording = recording)
+        subscribe(vm)
+        recording.endTrip()
+        time.now += 30 * 60_000L
+
+        vm.onStartNewTrip()
+        runCurrent()
+
+        val state = vm.uiState.value
+        assertEquals(TripStatus.RECORDING, state.tripStatus)
+        assertEquals(0L, state.elapsedMinutes)
+        assertFalse(state.startNewTripEnabled)
+        assertTrue(state.recordPlaceEnabled)
+    }
+
+    @Test
+    fun `V35 기록 중 — 새 여행 시작 비활성 · 눌러도 상태 · 경과 그대로`() = runTest(dispatcher) {
+        val time = FakeTimeSource()
+        val vm = viewModel(recording = recordingRepositoryOf(time))
+        subscribe(vm)
+        time.now += 5 * 60_000L
+
+        assertFalse(vm.uiState.value.startNewTripEnabled)
+        vm.onStartNewTrip()
+        runCurrent()
+
+        assertEquals(TripStatus.RECORDING, vm.uiState.value.tripStatus)
     }
 
     @Test

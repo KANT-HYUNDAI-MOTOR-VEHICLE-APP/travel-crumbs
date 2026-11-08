@@ -2,28 +2,46 @@
 <resources>
     <string name="app_name">Travel Crumbs</string>
 
-    <!-- 레일 목적지(스펙 app-shell 2-1) — 여행 · 설정 화면 제목도 같은 문자열 -->
+    <!-- 목적지(스펙 app-shell-v5 2-1) — 레일 글자 · 화면 제목 · 홈 「설정」 버튼 글자 공통 -->
     <string name="nav_home">홈</string>
+    <string name="nav_records">기록</string>
     <string name="nav_trips">여행</string>
+    <string name="nav_inbox">받은함</string>
+    <string name="nav_recommendations">추천</string>
     <string name="nav_settings">설정</string>
 
-    <!-- 「이어서 쓰기」 띠 -->
-    <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
-    <string name="draft_banner_action">이어서 쓰기</string>
+    <!-- 「이어서 쓰기」 띠 — 작성 중 내용(D27) -->
+    <string name="unfinished_input_banner_text">작성 중이던 내용이 있어요</string>
+    <string name="unfinished_input_banner_action">이어서 쓰기</string>
 
-    <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
-    <string name="recording_status_recording">기록 중</string>
-    <string name="recording_status_paused">일시정지</string>
+    <!-- 여행 상태(표준 TRIP_STATUS 코드명 · N8) · 경과(홈 · 주행 화면 공통) -->
+    <string name="trip_status_recording">기록 중</string>
+    <string name="trip_status_completed">완료</string>
+    <string name="trip_status_interrupted">중단</string>
+    <string name="trip_status_canceled">취소</string>
     <string name="elapsed_minutes">경과 %1$d분</string>
     <string name="elapsed_hours_minutes">경과 %1$d시간 %2$d분</string>
 
+    <!-- 주행 화면(스펙 app-shell-v5 2-5) -->
+    <string name="trip_name_default">새 여행</string>
+    <string name="trip_place_count">기록된 장소 %1$d</string>
+    <string name="map_placeholder">지도 준비 중</string>
+
     <!-- 버튼 -->
     <string name="action_record_place">이 장소 기록</string>
-    <string name="action_voice_input">음성 입력</string>
-    <string name="action_pause_recording">기록 일시정지</string>
-    <string name="action_resume_recording">기록 재개</string>
+    <string name="action_voice">음성</string>
+    <string name="action_end_trip">여행 종료</string>
+    <string name="action_start_new_trip">새 여행 시작</string>
 
-    <!-- 「준비 중」 — 안내 한 줄 · 여행 · 설정 화면 안내 공통 -->
+    <!-- 여행 종료 확인 팝업(와이어프레임 A-08 · 스펙 app-shell-v5 2-6) -->
+    <string name="end_trip_confirm_body">현재 여행 기록을 종료할까요?</string>
+    <string name="end_trip_confirm_continue">계속 기록</string>
+    <string name="end_trip_confirm_end">종료</string>
+
+    <!-- 주행 제한 안내(스펙 app-shell-v5 2-8) -->
+    <string name="driving_restricted">정차 후 볼 수 있어요</string>
+
+    <!-- 「준비 중」 — 안내 한 줄 · 준비 중 화면 안내 공통 -->
     <string name="not_ready">준비 중</string>
 
     <!-- debug 빌드 SDK 확인 카드(스펙 D9) -->
