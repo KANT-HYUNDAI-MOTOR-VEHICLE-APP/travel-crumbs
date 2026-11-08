@@ -60,3 +60,16 @@
 - 충돌: 전체 출력을 별도 저장하여 재확인. #23과의 기존14충돌 파일 집합 증가 없음, #26 스펙과 가상 병합은 충돌0. 타 브랜치 실제 병합 없음. gleo-ai/main 최신6281cdb 재확인·impl rebase는 up to date.
 - 센서: builder diff/위생/비밀 성공. 이전 실패 잡 재실행은 후속 커밋의 CI로 대체되어 중단됨. 새 제품 코드의 원격 CI 결과는 PR 체크 및 이슈 최종 기록으로 확인.
 - 다음: 2차 리뷰·최종 CI 확인. 제품 배포 또는 실기 통과로 표시하지 않음.
+
+## 4·6 최종 검증 기록 — 2026-11-08 · errorn
+
+- 2차 읽기 전용 리뷰: 초기 복원 보완 2파일에 새 발견 없음. app 25개 freeze 해시 일치. 구조 위반0/확인0, Pleos 반려0/확인1(R1 유지).
+- 검증한 제품 소스: 기능 `1629dc8` + 초기 복원 `99ed167`. 이후 커밋은 개발 가이드·공유 기록뿐이며 제품 해시 변경 없음.
+- 원격 CI 성공: `4c6c46914334dc487c4aec6d89501410d1d52823`, run https://github.com/KANT-HYUNDAI-MOTOR-VEHICLE-APP/travel-crumbs/actions/runs/42476286765 . changes/common/app 성공, server는 변경 없음으로 생략.
+- 실행 증거: `:app:testDebugUnitTest`, `:app:lintReportDebug`, `:app:assembleRelease`, `BUILD SUCCESSFUL in 3m 10s`. 신규28개 포함 단위 시험 성공. 기존 실패 기대값을 완화하거나 시험을 생략하지 않음.
+- 산출물: `app-release-unsigned` artifact ID `13615173017`, 12,432,120 bytes. 미서명 release이며 실제 Gleo·서버·기기 통과 및 운영 배포와 구분.
+- 최종 정적 센서: manifest 권한3/위반0, secrets 위반0, hygiene 위반0, frontmatter 위반0, guard11/trace5/manifest guard7 시험 성공. 작업 트리 clean·대상 rebase up to date 확인.
+- 최종 충돌 대조: 스펙 PR #26과 충돌0, PR #23과 기존14개 충돌 집합 동일·추가0. 실제 병합·보호 브랜치 변경 없음.
+- PR #27은 Draft 유지. R1 공식 호출 보호 계약/활성화 판단, U1~U3 사람 리뷰, D3/D4/D5·실제 Gleo 및 Activity/SDK·DB 왕복 검증 남음. 기준 스펙 #26은 OPEN 유지.
+- 활동: `trace_report.py 25 --flow 15`는 trace.jsonl 부재로 실패. 자동 활동 원본·추정 집계 생성 없음. 본 기록은 사람이 확인할 실행 결과 요약이며 자동 trace로 표시하지 않음.
+- 이번 기록 이후 제품 소스 변경 없음. 이후 문서 커밋의 자동 CI 상태는 PR 체크가 최신 근거.

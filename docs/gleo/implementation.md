@@ -59,3 +59,9 @@ adb shell am start -W -n com.example.travelcrumbs/.MainActivity -a RECORD_CURREN
 - 스펙 PR #26 미머지 상태의 선행 구현. 기준/화면 PR #23 사이 기존 충돌, 하네스 정합성, OpenAPI 생성 기반, 실제 Gleo 등록·실기 시험은 별도 확인 필요.
 
 공식 계약: [App Schema](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/app-capability), [Callback](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/action_callback), [Intent·Broadcast 예제](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/examples), [스키마 등록](https://document.pleos.ai/docs/pleos-only/app-integration-guide/guide/deliver-schema).
+
+## 검증 결과
+
+제품 소스 `1629dc8` + `99ed167` 기준 [원격 CI](https://github.com/KANT-HYUNDAI-MOTOR-VEHICLE-APP/travel-crumbs/actions/runs/42476286765)에서 Lint·단위 시험(신규28개 포함)·release 빌드 성공. 두 관점의 2회 정적 리뷰 완료. 외부 호출 보호 확인 1건과 실제 Gleo·기기·DB 시험은 위 경계대로 유지.
+
+검토 브랜치와 최신 검사: [Draft PR #27](https://github.com/KANT-HYUNDAI-MOTOR-VEHICLE-APP/travel-crumbs/pull/27). 자동 머지·배포 없음.
