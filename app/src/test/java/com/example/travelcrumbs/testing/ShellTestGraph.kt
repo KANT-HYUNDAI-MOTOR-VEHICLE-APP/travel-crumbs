@@ -7,9 +7,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
+import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
+import com.example.travelcrumbs.ui.recommendations.RecommendationsViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
 
 /**
@@ -23,6 +26,7 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     val inputs = unfinishedInputRepositoryOf(time)
     val savedState = SavedStateHandle()
     val drivingSavedState = SavedStateHandle()
+    val guidance = FakeRouteGuidanceRequester()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -49,6 +53,11 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
             drivingSignalRepository = driving,
             gleoActionRepository = FakeGleoActionRepository(),
             naviRepository = FakeNaviRepository(),
+        )
+        RecommendationsViewModel::class.java -> RecommendationsViewModel(
+            repository = SeedRecommendationRepository(),
+            requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
+            savedStateHandle = SavedStateHandle(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

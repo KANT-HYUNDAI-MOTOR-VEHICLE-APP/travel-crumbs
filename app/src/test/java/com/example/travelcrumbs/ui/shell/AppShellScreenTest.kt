@@ -117,15 +117,64 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V2 V3 V4 내 여행 추천 설정 — 제목 · 준비 중 · 그 칸 강조`() {
+    fun `V2 V4 내 여행 설정 — 제목 · 준비 중 · 그 칸 강조`() {
         show()
 
-        listOf(AppDestination.TRIPS, AppDestination.RECOMMENDATIONS, AppDestination.SETTINGS).forEach { destination ->
+        listOf(AppDestination.TRIPS, AppDestination.SETTINGS).forEach { destination ->
             rail(destination).performClick()
             assertHighlighted(destination)
             compose.onAllNodes(hasText(text(destination.labelRes))).assertCountEquals(2)
             compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
         }
+    }
+
+    @Test
+    fun `V3 R1 추천 — B-01 지역 고르기 · 그 칸 강조 · 준비 중 없음`() {
+        show()
+
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        assertHighlighted(AppDestination.RECOMMENDATIONS)
+        compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
+        compose.onAllNodes(hasText(text(R.string.not_ready))).assertCountEquals(0)
+    }
+
+    @Test
+    fun `R2 R14 추천 보러 가기 → B-01 → 강원 속초시 → B-02 · 뒤로 한 단계씩 · B-01 에서 뒤로는 기록`() {
+        show()
+        drive(DrivingState.DRIVING)
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        drive(DrivingState.PARKED)
+        rail(AppDestination.RECORDS).performClick()
+
+        button(R.string.action_open_recommendations).performClick()
+        compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.reco_open_tags)).assertIsDisplayed()
+
+        pressBack()
+        compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
+        assertHighlighted(AppDestination.RECOMMENDATIONS)
+        pressBack()
+        assertHighlighted(AppDestination.RECORDS)
+    }
+
+    @Test
+    fun `R15 주행 중 추천 칸 — 정차 후 볼 수 있어요 · 정차하면 고른 화면 그대로`() {
+        show()
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+
+        drive(DrivingState.DRIVING)
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNodeWithText(text(R.string.driving_restricted)).assertIsDisplayed()
+        compose.onAllNodes(hasText("속초 가족여행")).assertCountEquals(0)
+
+        drive(DrivingState.PARKED)
+        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
     }
 
     @Test
@@ -287,7 +336,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V68 V69 완료 뒤 기록 칸 — 추천 보러 가기 → 추천 칸 · 강조 추천 → 뒤로 기록`() {
+    fun `V68 V69 R2 완료 뒤 기록 칸 — 추천 보러 가기 → 추천 칸 B-01 · 강조 추천 → 뒤로 기록`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
         button(R.string.action_end_trip).performClick()
@@ -296,7 +345,8 @@ class AppShellScreenTest {
 
         button(R.string.action_open_recommendations).performClick()
         assertHighlighted(AppDestination.RECOMMENDATIONS)
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        // #37 — 「준비 중」 대신 B-01 지역 고르기
+        compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
 
         pressBack()
         assertHighlighted(AppDestination.RECORDS)
