@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 추천 상세(B-04) 시연용 도로 지도 — 앱에 묶은 OpenStreetMap 자료(assets/maps/SOURCES.txt) -->
+    <string name="roadmap_map_sample">시연용 도로 경로 · 실제 차량 이동이나 위치를 기록한 데이터가 아니에요.</string>
+    <string name="roadmap_map_osm_credit">© OpenStreetMap contributors · ODbL</string>
+    <string name="roadmap_map_description">%1$s 도로 지도 · 장소 %2$d곳 경로</string>
+</resources>

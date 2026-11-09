@@ -7,6 +7,7 @@ import com.example.travelcrumbs.domain.GuidanceRequestResult
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.testing.FakeOfflineMapRepository
 import com.example.travelcrumbs.testing.FakeRouteGuidanceRequester
 import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
@@ -51,6 +52,7 @@ class RecommendationsViewModelTest {
         savedStateHandle = saved,
         ratingRepository = ratings,
         timeSource = FakeTimeSource(),
+        offlineMap = FakeOfflineMapRepository(),
     )
 
     private val state get() = vm.uiState.value

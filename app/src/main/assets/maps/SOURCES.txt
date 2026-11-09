@@ -1,0 +1,35 @@
+Travel Crumbs offline demonstration map (roadmaps.json)
+
+Used only to draw the sample road map on the recommended roadmap detail
+screen (B-04). The app reads this bundled file only; it does not download
+map tiles, use a map SDK, read the vehicle location, or use the network.
+
+Roads, paths, water and greenspace geometries:
+Copyright OpenStreetMap contributors, Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Data was acquired on 2026-11-10 as vector data from the Overpass API
+(https://overpass-api.de/api/interpreter). Roads (highway classes listed per
+region in the asset's "source" field), coastline, water, rivers, parks and
+beaches were filtered by feature type, clipped near each region's bounding
+box, generalized (Douglas-Peucker) and rounded to 5 decimals for this vehicle
+display. The distributed map data is the machine-readable JSON alongside this
+notice.
+
+Regions (west, south, east, north):
+- sokcho     Gangwon Sokcho-si downtown        128.572, 38.166, 128.618, 38.232
+- seorak     Gangwon Sokcho-si, Seoraksan side 128.48,  38.16,  128.62,  38.235
+- gyeongpo   Gangwon Gangneung-si, Gyeongpo ~ Anmok ~ Ojukheon
+                                               128.868, 37.762, 128.958, 37.815
+- gangneung  Gangwon Gangneung-si, central market ~ Jumunjin
+                                               128.81,  37.745, 128.915, 37.902
+- yangyang   Gangwon Yangyang-gun, Surfyy Beach ~ Hajodae ~ Naksansa
+                                               128.612, 38.008, 128.748, 38.135
+
+Sample driving routes:
+Generated on 2026-11-10 with OSRM from OpenStreetMap road data
+(https://routing.openstreetmap.de/ , car profile, overview=full) between the
+fixed sample places of the demonstration roadmaps, in roadmap order. Route
+keys "from" and "to" are the sample place numbers. These routes are
+precomputed and contain no driver or vehicle history.
