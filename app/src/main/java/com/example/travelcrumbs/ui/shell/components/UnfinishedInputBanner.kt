@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -13,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /** 「작성 중이던 내용이 있어요」 + 「이어서 쓰기」 — 띠를 지우는 길은 이 버튼 하나(#6 D13 · 작성 중 내용 D27). */
@@ -37,7 +37,7 @@ fun UnfinishedInputBanner(
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
             )
-            Button(onClick = onResume) {
+            SecondaryButton(onClick = onResume) {
                 Text(text = stringResource(R.string.unfinished_input_banner_action))
             }
         }

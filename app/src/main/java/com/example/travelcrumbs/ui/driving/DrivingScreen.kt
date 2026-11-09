@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +24,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.DangerButton
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.components.tripStatusText
@@ -84,14 +87,14 @@ fun DrivingScreen(
             )
             MapPlaceholder(modifier = Modifier.weight(1f))
             val buttons = listOf(
-                DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace),
+                DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace, DrivingButtonKind.PRIMARY),
                 DrivingButtonSpec(R.string.action_voice, enabled = true, onClick = viewModel::onVoice),
                 DrivingButtonSpec(
                     labelRes = if (uiState.pauseButtonShowsResume) R.string.action_resume_recording else R.string.action_pause_recording,
                     enabled = uiState.pauseButtonEnabled,
                     onClick = viewModel::onTogglePause,
                 ),
-                DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip),
+                DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip, DrivingButtonKind.DANGER),
             )
             val rows = if (twoByTwo) buttons.chunked(2) else listOf(buttons)
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing)) {
@@ -135,10 +138,14 @@ private fun MapPlaceholder(modifier: Modifier = Modifier) {
     }
 }
 
+/** 버튼 모양(디자인 시스템 12절) — 주요 행동 「이 장소 기록」 하나만 Primary · 「여행 종료」는 Danger · 나머지 Secondary. */
+private enum class DrivingButtonKind { PRIMARY, SECONDARY, DANGER }
+
 private data class DrivingButtonSpec(
     val labelRes: Int,
     val enabled: Boolean,
     val onClick: () -> Unit,
+    val kind: DrivingButtonKind = DrivingButtonKind.SECONDARY,
 )
 
 @Composable
@@ -146,16 +153,18 @@ private fun DrivingButton(
     spec: DrivingButtonSpec,
     modifier: Modifier = Modifier,
 ) {
-    Button(
-        onClick = spec.onClick,
-        enabled = spec.enabled,
-        modifier = modifier.height(Dimens.DrivingButtonHeight),
-    ) {
+    val label: @Composable RowScope.() -> Unit = {
         Text(
             text = stringResource(spec.labelRes),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+    val sized = modifier.height(Dimens.DrivingButtonHeight)
+    when (spec.kind) {
+        DrivingButtonKind.PRIMARY -> PrimaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
+        DrivingButtonKind.SECONDARY -> SecondaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
+        DrivingButtonKind.DANGER -> DangerButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
     }
 }
