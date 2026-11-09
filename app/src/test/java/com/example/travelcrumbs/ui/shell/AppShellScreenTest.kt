@@ -40,7 +40,7 @@ import com.example.travelcrumbs.ui.shell.components.railItemTag
 import com.example.travelcrumbs.ui.shell.components.railIconTag
 import com.example.travelcrumbs.ui.shell.components.railLabelTag
 import com.example.travelcrumbs.ui.theme.Dimens
-import com.example.travelcrumbs.ui.theme.RailColors
+import com.example.travelcrumbs.ui.theme.TravelCrumbsColors
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -665,11 +665,10 @@ class AppShellScreenTest {
                 .assertTextEquals(text(destination.labelRes))
             assertEquals(destination == selected, rail(destination).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Selected))
         }
-        // 색 규칙(10절 토큰)은 RailColors 한 곳 — 선택 · 기본의 배경 · 아이콘 · 글자 세 가지가 모두 다름
-        assertTrue(RailColors.BackgroundSelected != RailColors.UnselectedBackground)
-        assertTrue(RailColors.BrandSecondary != RailColors.Unselected)
-        assertEquals(androidx.compose.ui.graphics.Color.Transparent, RailColors.UnselectedBackground)
-        assertEquals(androidx.compose.ui.graphics.Color.White, RailColors.Unselected)
+        // 색 규칙(10절 토큰)은 테마 한 곳(#34) — 선택 칸 Background/Selected + Brand/Secondary · 기본 칸 투명 + Text/Primary(흰색 계열)
+        assertTrue(TravelCrumbsColors.BackgroundSelected != androidx.compose.ui.graphics.Color.Transparent)
+        assertTrue(TravelCrumbsColors.BrandSecondary != TravelCrumbsColors.TextPrimary)
+        assertTrue(TravelCrumbsColors.BackgroundSelected != TravelCrumbsColors.BackgroundBase)
     }
 
     private fun assertRailTouchTargets() {
