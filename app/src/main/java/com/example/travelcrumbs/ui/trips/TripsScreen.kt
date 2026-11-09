@@ -47,7 +47,7 @@ fun TripsScreen(
     val selected = uiState.selectedTripNo
     if (selected != null) {
         BackHandler(onBack = viewModel::onCloseTrip)
-        TripDetailScreen(tripNo = selected, modifier = modifier)
+        TripDetailScreen(tripNo = selected, onDeleted = viewModel::onCloseTrip, modifier = modifier)
         return
     }
 

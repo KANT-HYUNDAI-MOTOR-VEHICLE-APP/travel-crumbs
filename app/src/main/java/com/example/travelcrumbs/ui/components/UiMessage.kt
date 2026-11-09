@@ -36,4 +36,7 @@ enum class UiMessage {
 
     /** C-03 — 추천 공개 동의 철회 · 공개 로드맵 모두 비공개(#51 U2). */
     RECO_WITHDRAWN,
+
+    /** C-03 — 내 기록 모두 지움(#51 리뷰 P2). */
+    DATA_CLEARED,
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.ConfirmDialog
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.settings.components.NicknameDialog
 import com.example.travelcrumbs.ui.settings.components.SettingsRow
@@ -73,6 +74,12 @@ fun SettingsScreen(
                 onAction = viewModel::onWithdrawReco,
             )
             SettingsRow(
+                title = stringResource(R.string.settings_data),
+                sub = stringResource(R.string.settings_data_sub),
+                actionLabel = stringResource(R.string.settings_data_clear),
+                onAction = viewModel::onAskClearAll,
+            )
+            SettingsRow(
                 title = stringResource(R.string.settings_account),
                 sub = stringResource(R.string.settings_account_sub),
                 actionLabel = null,
@@ -80,6 +87,16 @@ fun SettingsScreen(
             )
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    if (uiState.clearAllAsk) {
+        ConfirmDialog(
+            titleRes = R.string.settings_data_clear_title,
+            bodyRes = R.string.settings_data_clear_body,
+            confirmRes = R.string.action_delete,
+            onConfirm = viewModel::onConfirmClearAll,
+            onDismiss = viewModel::onDismissClearAll,
+        )
     }
 
     uiState.nicknameDraft?.let { draft ->

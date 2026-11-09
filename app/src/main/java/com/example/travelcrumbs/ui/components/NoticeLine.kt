@@ -63,4 +63,5 @@ private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.NICKNAME_SAVED -> R.string.notice_nickname_saved
     UiMessage.LOCATION_WITHDRAWN -> R.string.notice_location_withdrawn
     UiMessage.RECO_WITHDRAWN -> R.string.notice_reco_withdrawn
+    UiMessage.DATA_CLEARED -> R.string.notice_data_cleared
 }

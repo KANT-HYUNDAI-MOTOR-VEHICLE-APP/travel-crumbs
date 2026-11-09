@@ -101,5 +101,27 @@ class SettingsViewModelTest {
         vm.onWithdrawLocation()
         runCurrent()
         assertNull(vm.uiState.value.locationAgreedOn)
+        // P1 — 철회하면 저장된 좌표 · 주소도 지움
+        assertTrue(trips.trips.first().flatMap { it.places }.all { it.lat == null && it.lng == null && it.addr == null })
+    }
+
+    @Test
+    fun `R1-2 내 기록 모두 지우기 — 확인 팝업 · 지우면 여행 없음 · 동의 이력은 남음`() = runTest(dispatcher) {
+        users.recordConsent(ConsentType.RECO_PUBLIC, agreed = true)
+        val vm = viewModel()
+        vm.onAskClearAll()
+        runCurrent()
+        assertTrue(vm.uiState.value.clearAllAsk)
+        vm.onDismissClearAll()
+        runCurrent()
+        assertFalse(vm.uiState.value.clearAllAsk)
+        assertEquals(2, trips.trips.first().size)
+
+        vm.onAskClearAll()
+        vm.onConfirmClearAll()
+        runCurrent()
+        assertTrue(trips.trips.first().isEmpty())
+        assertEquals(UiMessage.DATA_CLEARED, vm.uiState.value.message)
+        assertTrue(vm.uiState.value.recoAgreed)
     }
 }

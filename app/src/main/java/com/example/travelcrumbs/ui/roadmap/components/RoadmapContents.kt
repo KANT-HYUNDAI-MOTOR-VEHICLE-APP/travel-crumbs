@@ -142,7 +142,7 @@ fun PublishContent(
                         text = stringResource(R.string.publish_consent_body),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = 4,
                     )
                 }
             }

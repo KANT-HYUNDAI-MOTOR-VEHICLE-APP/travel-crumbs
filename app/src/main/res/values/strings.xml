@@ -210,7 +210,7 @@
     <string name="settings_nickname_sub">%1$s · 공개 로드맵에 보이는 이름</string>
     <string name="settings_edit">수정</string>
     <string name="settings_location">위치정보 수집</string>
-    <string name="settings_location_agreed">%1$d.%2$02d.%3$02d 동의 · 여행 기록에 사용</string>
+    <string name="settings_location_agreed">%1$d.%2$02d.%3$02d 동의 · 여행 기록에 사용 · 철회하면 저장된 위치 · 주소를 지워요</string>
     <string name="settings_location_none">동의 안 함 · 여행을 시작할 때 물어요</string>
     <string name="settings_reco">추천 공개</string>
     <string name="settings_reco_agreed">공개한 로드맵을 추천에 보여 줌</string>
@@ -228,7 +228,7 @@
     <string name="trip_start_dest_label">목적지 · 선택</string>
     <string name="trip_start_dest_none">목적지 없음</string>
     <string name="trip_start_consent_title">위치정보 수집 동의</string>
-    <string name="trip_start_consent_body">여행 경로를 기록하는 데 써요 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="trip_start_consent_body">수집 항목 · 기록한 장소의 위치 좌표 · 주소\n목적 · 여행 경로와 로드맵 기록\n보유 기간 · 직접 지우거나 앱을 지울 때까지 · 기기 안에만 저장\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
     <string name="trip_start_navi_hint">내비가 열려요 · ⋮ 를 끌면 기록 화면과 나란히 볼 수 있어요</string>
     <string name="action_start_recording">기록 시작</string>
     <string name="action_consent_and_start">동의하고 기록 시작</string>
@@ -260,7 +260,7 @@
     <string name="publish_preview_title">추천에 이렇게 보여요</string>
     <string name="publish_privacy_hint">정확한 위치 기록과 시각은 공개되지 않아요</string>
     <string name="publish_consent_title">추천 공개 동의</string>
-    <string name="publish_consent_body">공개한 로드맵을 다른 사람 추천에 보여 줘요 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="publish_consent_body">공개 항목 · 닉네임 · 지역 · 대표 태그 · 장소 이름(정확한 위치 기록 · 시각은 빼요)\n목적 · 다른 사람에게 추천 로드맵으로 보여 줌\n보유 기간 · 공개를 끄거나 철회할 때까지\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
     <string name="action_consent_and_save">동의하고 저장</string>
     <string name="region_unknown">지역 모름</string>
 
@@ -273,4 +273,16 @@
     <string name="trip_rename_action">이름 수정</string>
     <string name="trip_detail_rating">★ %1$.1f · %2$d명</string>
     <string name="trip_detail_rating_none">받은 별점 없음</string>
+
+    <!-- 삭제 수단(#51 리뷰 P2) -->
+    <string name="trip_delete_action">여행 삭제</string>
+    <string name="trip_delete_title">이 여행을 삭제할까요?</string>
+    <string name="trip_delete_body">장소 · 태그 · 메모가 함께 사라지고 추천에서도 빠져요</string>
+    <string name="settings_data">내 기록</string>
+    <string name="settings_data_sub">여행 · 장소 · 태그를 이 기기에서 모두 지워요 · 동의 이력은 남아요</string>
+    <string name="settings_data_clear">모두 지우기</string>
+    <string name="settings_data_clear_title">내 기록을 모두 지울까요?</string>
+    <string name="settings_data_clear_body">진행 중인 기록도 끝나요 · 지운 기록은 되돌릴 수 없어요</string>
+    <string name="action_delete">지우기</string>
+    <string name="notice_data_cleared">내 기록을 모두 지웠어요</string>
 </resources>

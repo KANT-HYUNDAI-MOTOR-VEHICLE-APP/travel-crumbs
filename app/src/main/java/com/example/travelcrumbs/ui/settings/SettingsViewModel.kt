@@ -38,8 +38,8 @@ class SettingsViewModel @Inject constructor(
         userRepository.user,
         userRepository.consents,
         savedStateHandle.getStateFlow<String?>(KEY_NICKNAME_DRAFT, null),
-        message,
-    ) { user, consents, draft, shown ->
+        combine(message, savedStateHandle.getStateFlow(KEY_CLEAR_ASK, false)) { shown, ask -> shown to ask },
+    ) { user, consents, draft, (shown, clearAsk) ->
         val location = consents[ConsentType.LOCATION_COLLECT]?.takeIf { it.agreed }
         SettingsUiState(
             nicknameNm = user.nicknameNm,
@@ -49,6 +49,7 @@ class SettingsViewModel @Inject constructor(
             },
             recoAgreed = consents[ConsentType.RECO_PUBLIC]?.agreed == true,
             nicknameDraft = draft,
+            clearAllAsk = clearAsk,
             message = shown,
         )
     }.stateIn(
@@ -85,6 +86,8 @@ class SettingsViewModel @Inject constructor(
     fun onWithdrawLocation() {
         viewModelScope.launch {
             userRepository.recordConsent(ConsentType.LOCATION_COLLECT, agreed = false)
+            // 철회 = 저장된 위치도 지움(심사 개인정보 · #51 리뷰 P1) — 좌표 · 주소 칸을 물리적으로 비움
+            tripRepository.clearLocations()
             message.value = UiMessage.LOCATION_WITHDRAWN
         }
     }
@@ -98,11 +101,30 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** 「모두 지우기」 — 확인 팝업만 엶. */
+    fun onAskClearAll() {
+        savedStateHandle[KEY_CLEAR_ASK] = true
+    }
+
+    fun onDismissClearAll() {
+        savedStateHandle[KEY_CLEAR_ASK] = false
+    }
+
+    /** 확인 팝업 「지우기」 — 내 여행 · 동행 · 장소 · 태그 관계를 물리 삭제(진행 중 기록도 끝남 · 동의 이력은 남김). */
+    fun onConfirmClearAll() {
+        savedStateHandle[KEY_CLEAR_ASK] = false
+        viewModelScope.launch {
+            tripRepository.deleteAll()
+            message.value = UiMessage.DATA_CLEARED
+        }
+    }
+
     fun onMessageShown() {
         message.value = null
     }
 
     private companion object {
         const val KEY_NICKNAME_DRAFT = "settings_nickname_draft"
+        const val KEY_CLEAR_ASK = "settings_clear_all_ask"
     }
 }

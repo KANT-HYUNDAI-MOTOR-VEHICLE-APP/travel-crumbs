@@ -136,4 +136,20 @@ class TripsViewModelTest {
         assertFalse(vm.uiState.value.consentAsk)
         assertTrue(vm.uiState.value.summary!!.public)
     }
+
+    @Test
+    fun `R1-3 여행 삭제 — 확인 팝업 · 지우면 보관함에서 빠지고 화면은 목록으로`() = runTest(dispatcher) {
+        val list = list()
+        val vm = detail(1)
+        vm.onAskDelete()
+        runCurrent()
+        assertTrue(vm.uiState.value.deleteAsk)
+        vm.onConfirmDelete()
+        runCurrent()
+        assertTrue(vm.uiState.value.deleted)
+        assertTrue(list.uiState.value.trips.none { it.tripNo == 1L })
+        vm.onDeletedHandled()
+        runCurrent()
+        assertFalse(vm.uiState.value.deleted)
+    }
 }

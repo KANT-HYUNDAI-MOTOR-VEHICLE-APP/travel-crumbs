@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.ConfirmDialog
+import com.example.travelcrumbs.ui.components.DangerButton
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.PlaceTagSheet
 import com.example.travelcrumbs.ui.components.RoadmapPlaceCard
@@ -46,11 +48,18 @@ import com.example.travelcrumbs.ui.trips.components.RenameTripDialog
 @Composable
 fun TripDetailScreen(
     tripNo: Long,
+    onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TripDetailViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(tripNo) { viewModel.load(tripNo) }
+    LaunchedEffect(uiState.deleted) {
+        if (uiState.deleted) {
+            viewModel.onDeletedHandled()
+            onDeleted()
+        }
+    }
     val summary = uiState.summary
 
     Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
@@ -66,6 +75,9 @@ fun TripDetailScreen(
             )
             SecondaryButton(onClick = viewModel::onEditName, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
                 Text(text = stringResource(R.string.trip_rename_action), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+            DangerButton(onClick = viewModel::onAskDelete, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+                Text(text = stringResource(R.string.trip_delete_action), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
         }
         if (summary != null) {
@@ -128,6 +140,15 @@ fun TripDetailScreen(
 
     uiState.renameDraft?.let { draft ->
         RenameTripDialog(value = draft, onValueChange = viewModel::onRenameChange, onDismiss = viewModel::onDismissRename, onSave = viewModel::onSaveRename)
+    }
+    if (uiState.deleteAsk) {
+        ConfirmDialog(
+            titleRes = R.string.trip_delete_title,
+            bodyRes = R.string.trip_delete_body,
+            confirmRes = R.string.action_delete,
+            onConfirm = viewModel::onConfirmDelete,
+            onDismiss = viewModel::onDismissDelete,
+        )
     }
     if (uiState.consentAsk) {
         RecoConsentDialog(onAgree = viewModel::onConsentAndPublish, onDismiss = viewModel::onDismissConsent)

@@ -125,7 +125,7 @@ fun TripStartScreen(
                         text = stringResource(R.string.trip_start_consent_body),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = CONSENT_BODY_MAX_LINES,
                     )
                 }
             }
@@ -149,3 +149,6 @@ fun TripStartScreen(
         }
     }
 }
+
+/** 동의 카드 본문 줄 수 — 수집 항목 · 목적 · 보유 기간 · 제3자 제공(#51 리뷰 P3). */
+private const val CONSENT_BODY_MAX_LINES = 4

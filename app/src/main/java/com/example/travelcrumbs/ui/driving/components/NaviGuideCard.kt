@@ -38,7 +38,7 @@ fun NaviGuideCard(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         if (naviAppAvailable) {
@@ -51,6 +51,7 @@ fun NaviGuideCard(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

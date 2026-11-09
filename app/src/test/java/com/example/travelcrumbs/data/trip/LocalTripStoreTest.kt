@@ -191,6 +191,34 @@ class LocalTripStoreTest {
     }
 
     @Test
+    fun `R1-1 위치 철회 · 여행 삭제 · 모두 지우기 — 좌표 · 주소 물리 삭제(고친 이름은 남김) · 논리 삭제 · 물리 삭제(동의 이력은 남음)`() = runBlocking {
+        recording.startTrip(NewTrip("속초", setOf(CompanionType.CHILD), null))
+        val tripNo = recording.progress.first().tripNo!!
+        val kept = trips.addPlace(tripNo, CurrentLocation(38.2, 128.59, "강원 속초시 중앙로 147"), draft = true)
+        trips.addPlace(tripNo, CurrentLocation(38.3, 128.6, "강원 속초시 영랑호반길 1"), draft = true)
+        trips.savePlace(kept, "우리 단골집", null, setOf(1L))
+        users.recordConsent(ConsentType.LOCATION_COLLECT, agreed = true)
+
+        trips.clearLocations()
+        val places = trips.trip(tripNo).first()!!.places
+        assertTrue(places.all { it.lat == null && it.lng == null && it.addr == null })
+        assertEquals(listOf("우리 단골집", null), places.map { it.userPlaceNm })
+
+        recording.endTrip()
+        trips.deleteTrip(tripNo)
+        assertNull(trips.trip(tripNo).first())
+        assertTrue(db().travelDao().trips().first().none { it.tripNo == tripNo })
+
+        recording.startTrip(NewTrip("두 번째", emptySet(), null))
+        trips.deleteAll()
+        assertFalse(recording.progress.first().hasTrip)
+        assertTrue(db().travelDao().places().first().isEmpty())
+        assertTrue(db().travelDao().companions().first().isEmpty())
+        assertTrue(db().travelDao().placeTags().first().isEmpty())
+        assertEquals(1, db().travelDao().consents(AppConfig.LOCAL_USER_NO).first().size)
+    }
+
+    @Test
     fun `U1-8 태그 마스터 — 처음 읽으면 시드 5개 · sort_ord 순 · 두 번 읽어도 그대로`() = runBlocking {
         val tags = LocalTagRepository(db().travelDao(), time)
         val first = tags.tags.first()
