@@ -2,6 +2,7 @@ package com.example.travelcrumbs.data.recommendation
 
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.SidoRegion
+import com.example.travelcrumbs.domain.model.Tag
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,6 +19,9 @@ interface RecommendationRepository {
 
     /** 그 시도의 공개 로드맵 전부(정렬 · 필터 · 집계는 도메인 계산). */
     suspend fun publicTrips(sidoNm: String): List<RecommendedTrip>
+
+    /** 태그 마스터(tag_mst) — 별점 「좋았던 점」 칩(#41). */
+    suspend fun tags(): List<Tag>
 }
 
 /** 시드 저장소 — 서버 API 전 임시 · 모든 빌드에서 「시연용 데이터」 표시. 서버가 생기면 debug source set 으로 옮김. */
@@ -30,4 +34,6 @@ class SeedRecommendationRepository @Inject constructor() : RecommendationReposit
 
     override suspend fun publicTrips(sidoNm: String): List<RecommendedTrip> =
         RecommendationSeed.trips.filter { it.region.sidoNm == sidoNm }
+
+    override suspend fun tags(): List<Tag> = RecommendationSeed.tags
 }

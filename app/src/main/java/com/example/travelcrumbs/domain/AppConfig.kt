@@ -49,6 +49,9 @@ object AppConfig {
 
     /** debug 진단 카드 「안내 건수」 한 줄에 보일 장소 수(스펙 navigation 4.6 · U41). */
     const val PLACE_STATS_CARD_LIMIT: Int = 3
+    /** 별점 범위(#41 B-06) — 별 1 ~ 5. */
+    const val RATING_SCORE_MIN: Int = 1
+    const val RATING_SCORE_MAX: Int = 5
 
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L

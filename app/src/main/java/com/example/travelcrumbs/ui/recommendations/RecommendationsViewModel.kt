@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.recommendations
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuidanceRequestResult
@@ -10,9 +11,12 @@ import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.domain.model.SidoRegion
+import com.example.travelcrumbs.domain.model.Tag
+import com.example.travelcrumbs.ui.components.RatingDraft
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -29,13 +33,15 @@ import kotlinx.coroutines.launch
 /**
  * 「추천」 칸(#37 · 와이어프레임 v6 B-01 ~ B-05) — 목적지 안의 화면 이동 · 필터 · 태그 · 안내 요청.
  * 고른 것(화면 · 지역 · 정렬 · 동행자 · 태그 · 로드맵 · 팝업)은 SavedStateHandle 에 둬 프로세스 재생성 · 주행 뒤에도 그대로.
- * 계산(정렬 · 개수 · 대표 태그 · 경로 그림)은 도메인 [RecommendationRules] · 자료는 저장소 하나.
+ * 계산(정렬 · 개수 · 대표 태그 · 경로 그림 · 내 별점 반영)은 도메인 [RecommendationRules] · 자료는 저장소(추천 · 별점).
+ * 별점(#41 B-06): 안내 요청이 성공하면 그 로드맵을 별점 저장소에 남김(실패면 남기지 않음) · B-04 「별점 주기」 / 「내 별점 ★n · 고치기」.
  */
 @HiltViewModel
 class RecommendationsViewModel @Inject constructor(
     private val repository: RecommendationRepository,
     private val requestRouteGuidance: RequestRouteGuidanceUseCase,
     private val savedStateHandle: SavedStateHandle,
+    private val ratingRepository: RatingRepository,
 ) : ViewModel() {
 
     private val selection = MutableStateFlow(restoreSelection())
@@ -44,15 +50,24 @@ class RecommendationsViewModel @Inject constructor(
     private val sidoRegions = MutableStateFlow<List<SidoRegion>>(emptyList())
     private val sidoTrips = MutableStateFlow(SidoTrips(sidoNm = null, trips = emptyList()))
 
+    private val ratingRecords = MutableStateFlow(RatingRecords())
+    private val ratingDraft = MutableStateFlow<RatingDraft?>(null)
+    private val ratingSaving = MutableStateFlow(false)
+    private val tags = MutableStateFlow<List<Tag>>(emptyList())
+    private val rating = combine(ratingRecords, ratingDraft, ratingSaving, tags) { records, draft, saving, tagList ->
+        RatingInputs(records, draft, saving, tagList)
+    }
+
     val uiState: StateFlow<RecommendationsUiState> = combine(
         selection,
         sidoRegions,
         sidoTrips,
         guidance,
-    ) { sel, regions, loaded, progress ->
+        rating,
+    ) { sel, regions, loaded, progress, ratingInputs ->
         // 시도를 바꾼 직후 옛 시도 로드맵이 한 번 섞이지 않게 — 불러온 시도가 지금 시도일 때만 씀
         val trips = if (loaded.sidoNm == sel.sidoNm) loaded.trips else emptyList()
-        buildState(sel, regions, trips, progress)
+        buildState(sel, regions, trips, progress, ratingInputs)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
@@ -65,6 +80,8 @@ class RecommendationsViewModel @Inject constructor(
     init {
         // 자료는 화면 구독과 따로 불러 둠 — 행동(첫 장소 · 안내 목적지)이 화면이 안 보일 때도 같은 값을 보게
         viewModelScope.launch { sidoRegions.value = repository.sidoRegions() }
+        viewModelScope.launch { tags.value = repository.tags() }
+        viewModelScope.launch { ratingRepository.records.collect { ratingRecords.value = it } }
         viewModelScope.launch {
             selection.map { it.sidoNm }.distinctUntilChanged().collect { sido ->
                 sidoTrips.value = SidoTrips(sido, if (sido == null) emptyList() else repository.publicTrips(sido))
@@ -81,6 +98,7 @@ class RecommendationsViewModel @Inject constructor(
         savedStateHandle[KEY_ENTRY] = entryKey
         updateSelection { Selection.START }
         guidance.value = GuidanceProgress()
+        ratingDraft.value = null
     }
 
     /** B-01 시도 칩. */
@@ -127,8 +145,13 @@ class RecommendationsViewModel @Inject constructor(
         val sel = selection.value
         val place = currentTrip()?.places?.firstOrNull { it.placeNo == sel.confirmPlaceNo } ?: return
         guidance.value = GuidanceProgress(requesting = true)
+        val trip = currentTrip() ?: return
         viewModelScope.launch {
             val result = requestRouteGuidance(place)
+            // 별점 자격 — 요청이 성공했을 때만 남김(release 는 내비 연결 전이라 늘 실패 → 남기지 않음 · 보고서 결정)
+            if (result == GuidanceRequestResult.Started) {
+                ratingRepository.recordGuidance(trip.tripNo, trip.tripNm, trip.nicknameNm)
+            }
             updateSelection { it.copy(confirmPlaceNo = null) }
             guidance.value = GuidanceProgress(
                 message = when (result) {
@@ -141,8 +164,50 @@ class RecommendationsViewModel @Inject constructor(
 
     fun onMessageShown() = guidance.update { it.copy(message = null) }
 
+    /** B-04 「별점 주기」 · 「내 별점 ★n · 고치기」 → B-06 팝업(이미 준 별점이면 그 값으로 채움). 안내 기록이 없으면 아무 일 없음. */
+    fun openRating() {
+        val tripNo = selection.value.tripNo ?: return
+        val records = ratingRecords.value
+        if (!RecommendationRules.canRate(records, tripNo)) return
+        ratingDraft.value = RatingDraft.of(tripNo, records.ratingOf(tripNo))
+    }
+
+    fun selectRatingScore(score: Int) = ratingDraft.update { it?.copy(ratingScore = score) }
+
+    fun toggleRatingTag(tagNo: Long) = ratingDraft.update { it?.toggleTag(tagNo) }
+
+    /** B-06 「나중에」 · 바깥 · 뒤로 — 닫기 · 그 로드맵의 자동 팝업도 끝난 것으로. */
+    fun dismissRating() {
+        val tripNo = ratingDraft.value?.tripNo ?: return
+        ratingDraft.value = null
+        viewModelScope.launch { ratingRepository.markPrompted(tripNo) }
+    }
+
+    /** B-06 「별점 주기」 — 저장되면 닫고 한 줄 안내 · 평균 · 참여 수 · 태그 수는 저장소 기록이 바뀌며 바로 다시 계산됨. */
+    fun submitRating() {
+        val draft = ratingDraft.value ?: return
+        val score = draft.ratingScore ?: return
+        if (ratingSaving.value) return
+        ratingSaving.value = true
+        viewModelScope.launch {
+            if (ratingRepository.saveRating(draft.tripNo, score, draft.tagNos)) {
+                ratingDraft.value = null
+                guidance.update { it.copy(message = UiMessage.RATING_SAVED) }
+            }
+            ratingSaving.value = false
+        }
+    }
+
     /** 시스템 뒤로 — 팝업 닫기 → 상세에서 온 화면 → B-03 에서 B-02 → B-02 에서 B-01. B-01 에선 앱 틀이 받음. */
-    fun onBack() = updateSelection { sel ->
+    fun onBack() {
+        if (ratingDraft.value != null) {
+            dismissRating()
+            return
+        }
+        updateSelection { sel -> backFrom(sel) }
+    }
+
+    private fun backFrom(sel: Selection): Selection =
         when {
             sel.confirmPlaceNo != null -> sel.copy(confirmPlaceNo = null)
             sel.page == RecommendationPage.DETAIL -> sel.copy(page = sel.detailFrom, tripNo = null)
@@ -150,7 +215,6 @@ class RecommendationsViewModel @Inject constructor(
             sel.page == RecommendationPage.RANKING -> sel.copy(page = RecommendationPage.REGION)
             else -> sel
         }
-    }
 
     private fun currentTrip(): RecommendedTrip? {
         val sel = selection.value
@@ -162,9 +226,14 @@ class RecommendationsViewModel @Inject constructor(
     private fun buildState(
         sel: Selection,
         regions: List<SidoRegion>,
-        trips: List<RecommendedTrip>,
+        rawTrips: List<RecommendedTrip>,
         progress: GuidanceProgress,
+        ratingInputs: RatingInputs,
     ): RecommendationsUiState {
+        val records = ratingInputs.records
+        val myRatings = records.ratingsByTrip
+        // 내 별점을 평균 · 참여 수에 더한 값으로 모든 계산(정렬 · 카드 · 상세)
+        val trips = RecommendationRules.withMyRatings(rawTrips, myRatings)
         val sigunguNms = regions.firstOrNull { it.sidoNm == sel.sidoNm }?.sigunguNms.orEmpty()
         val sigunguCnts = if (sel.sidoNm == null) emptyMap() else RecommendationRules.sigunguTripCnts(trips, sel.sidoNm, sigunguNms)
         val sigunguCards = if (sel.sidoNm == null || sigunguNms.isEmpty()) {
@@ -176,9 +245,9 @@ class RecommendationsViewModel @Inject constructor(
         val regionTrips = if (sel.sidoNm == null) emptyList() else RecommendationRules.inRegion(trips, Region(sel.sidoNm, sel.sigunguNm))
         val ranked = RecommendationRules.rank(regionTrips, sel.sort, sel.companion).toCards()
 
-        val tagCounts = RecommendationRules.tagCounts(regionTrips)
+        val tagCounts = RecommendationRules.tagCounts(regionTrips, myRatings, ratingInputs.tags)
         val selectedTagNo = sel.tagNo?.takeIf { no -> tagCounts.any { it.tag.tagNo == no } } ?: tagCounts.firstOrNull()?.tag?.tagNo
-        val tagged = selectedTagNo?.let { RecommendationRules.withTag(regionTrips, it).toCards() }.orEmpty()
+        val tagged = selectedTagNo?.let { RecommendationRules.withTag(regionTrips, it, myRatings).toCards() }.orEmpty()
 
         val trip = trips.firstOrNull { it.tripNo == sel.tripNo }
         val confirmPlace = trip?.places?.firstOrNull { it.placeNo == sel.confirmPlaceNo }
@@ -199,7 +268,10 @@ class RecommendationsViewModel @Inject constructor(
             tagCounts = tagCounts.map { TagCountItem(it.tag.tagNo, it.tag.tagNm, it.cnt) },
             selectedTagNo = selectedTagNo,
             taggedTrips = tagged,
-            detail = trip?.toDetail(),
+            detail = trip?.toDetail(records),
+            rating = ratingInputs.draft?.let { draft ->
+                records.guided(draft.tripNo)?.let { guided -> draft.toItem(guided, ratingInputs.tags, ratingInputs.saving) }
+            },
             confirm = confirmPlace?.let { place ->
                 GuidanceConfirmItem(
                     placeNo = place.placeNo,
@@ -229,7 +301,7 @@ class RecommendationsViewModel @Inject constructor(
         )
     }
 
-    private fun RecommendedTrip.toDetail(): TripDetailItem {
+    private fun RecommendedTrip.toDetail(records: RatingRecords): TripDetailItem {
         val ordered = places.sortedBy { it.placeOrd }
         return TripDetailItem(
             tripNo = tripNo,
@@ -243,6 +315,8 @@ class RecommendationsViewModel @Inject constructor(
             sigunguNm = region.sigunguNm,
             places = ordered.map { PlaceItem(it.placeNo, it.placeOrd, it.placeNm, it.tags.map { tag -> tag.tagNm }) },
             sketch = RecommendationRules.sketch(ordered),
+            canRate = RecommendationRules.canRate(records, tripNo),
+            myRatingScore = records.ratingOf(tripNo)?.ratingScore,
         )
     }
 
@@ -299,6 +373,13 @@ class RecommendationsViewModel @Inject constructor(
             )
         }
     }
+
+    private data class RatingInputs(
+        val records: RatingRecords,
+        val draft: RatingDraft?,
+        val saving: Boolean,
+        val tags: List<Tag>,
+    )
 
     private data class SidoTrips(val sidoNm: String?, val trips: List<RecommendedTrip>)
 

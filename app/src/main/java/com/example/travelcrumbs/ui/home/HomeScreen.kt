@@ -25,6 +25,7 @@ import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripStatusText
@@ -38,6 +39,7 @@ import com.example.travelcrumbs.ui.theme.Dimens
  * 맨 위 영역은 진행 중 여행 여부로 둘 중 하나 —
  * 아님: 「여행 시작」 · 「최근 여행이 없어요」 · 「추천 보러 가기」 / 진행 중: 기록 상태 · 경과 · 「기록된 장소 n」 · 「이 장소 기록」.
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「설정」(D35) · 「기록 일시정지」 · 「음성」 · 「여행 종료」는 두지 않음(#6 D10 · N12).
+ * 추천 안내 뒤 진행한 여행을 끝냈으면 별점 팝업(#41 B-06)을 로드맵마다 한 번 띄움(중간 정차 · 안내만 받음엔 없음).
  * 「추천 보러 가기」 누름 = 앱 틀의 목적지를 「추천」으로 바꾸는 사용자 행동([onOpenRecommendations] · 이벤트 Flow 없음).
  *
  * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
@@ -108,6 +110,17 @@ fun HomeScreen(
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    // 다녀온 로드맵 별점(#41 B-06) — 이 화면은 정차일 때만 그려짐
+    uiState.ratingPrompt?.let { prompt ->
+        RatingDialog(
+            item = prompt,
+            onSelectScore = viewModel::selectRatingScore,
+            onToggleTag = viewModel::toggleRatingTag,
+            onLater = viewModel::dismissRatingPrompt,
+            onSubmit = viewModel::submitRating,
+        )
     }
 }
 

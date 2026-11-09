@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.recommendations
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.SketchPoint
+import com.example.travelcrumbs.ui.components.RatingDialogItem
 import com.example.travelcrumbs.ui.components.UiMessage
 
 /** 「추천」 칸 안의 화면(와이어프레임 v6) — 목적지 안에서만 오가고 시스템 뒤로로 한 단계씩 돌아감. */
@@ -53,11 +54,13 @@ data class RecommendationsUiState(
     val guidanceRequesting: Boolean = false,
     /** 실제 차량 내비로 안내가 가는지 — 아니면 팝업에 「시연용 · 실제 안내는 준비 중」. */
     val guidanceAvailable: Boolean = true,
-    /** 안내 요청 결과 한 줄(요청함 · 시작 못 함) — 화면이 보여 준 뒤 지움. */
+    /** B-06 별점 팝업(#41) — B-04 에서 열었을 때만. */
+    val rating: RatingDialogItem? = null,
+    /** 안내 요청 결과 · 별점 저장 한 줄(요청함 · 시작 못 함 · 남겼어요) — 화면이 보여 준 뒤 지움. */
     val message: UiMessage? = null,
 ) {
     /** 시스템 뒤로를 이 칸이 받는지 — 팝업이 떠 있거나 B-01 이 아닐 때. 아니면 앱 틀이 받음(「기록」으로). */
-    val handlesBack: Boolean get() = confirm != null || page != RecommendationPage.REGION
+    val handlesBack: Boolean get() = confirm != null || rating != null || page != RecommendationPage.REGION
 
     /** 선택 태그의 이름(B-03 목록 제목). */
     val selectedTagNm: String? get() = tagCounts.firstOrNull { it.tagNo == selectedTagNo }?.tagNm
@@ -105,6 +108,10 @@ data class TripDetailItem(
     val places: List<PlaceItem>,
     /** 경로 그림 점 — 장소 순서대로 · 0 ~ 1 상대 위치. */
     val sketch: List<SketchPoint>,
+    /** 안내를 요청한 로드맵인지(별점 자격 · #41) — 아니면 별점 버튼 없음. */
+    val canRate: Boolean = false,
+    /** 내가 준 별 수 — 있으면 「내 별점 ★n · 고치기」. */
+    val myRatingScore: Int? = null,
 )
 
 /** B-04 장소 하나. */

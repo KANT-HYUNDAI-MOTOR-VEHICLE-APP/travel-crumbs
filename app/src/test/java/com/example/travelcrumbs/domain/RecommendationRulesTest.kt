@@ -1,12 +1,16 @@
 package com.example.travelcrumbs.domain
 
 import com.example.travelcrumbs.domain.model.CompanionType
+import com.example.travelcrumbs.domain.model.GuidedTrip
+import com.example.travelcrumbs.domain.model.MyRating
+import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.RecommendedPlace
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.domain.model.Tag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -116,5 +120,54 @@ class RecommendationRulesTest {
         val single = RecommendationRules.sketch(c.places, margin = 0f).single()
         assertEquals(0.5f, single.x, 0.0001f)
         assertEquals(0.5f, single.y, 0.0001f)
+    }
+
+    @Test
+    fun `R19 내 별점 반영 — 평균에 한 표 더함 · 참여 수 +1 · 정렬이 바뀜 · 별점 없으면 그대로`() {
+        val mine = mapOf(2L to MyRating(2, 5, emptySet(), 0))
+        val rated = RecommendationRules.withMyRatings(all, mine)
+        val b2 = rated.first { it.tripNo == 2L }
+        assertEquals(10, b2.ratingCnt)
+        assertEquals((4.6 * 9 + 5) / 10, b2.ratingAvg, 1e-9)
+        assertEquals(a, rated.first { it.tripNo == 1L })
+        assertEquals(b, RecommendationRules.withMyRating(b, null))
+
+        val low = RecommendationRules.withMyRatings(all, mapOf(1L to MyRating(1, 1, emptySet(), 0)))
+        assertEquals(listOf(3L, 2L, 1L), RecommendationRules.rank(low.filter { it.region.sigunguNm == "속초시" }, RankingSort.RATING, null).map { it.tripNo })
+    }
+
+    @Test
+    fun `R20 태그별 개수 — 내 별점의 좋았던 점 태그를 로드맵마다 하나씩 더함 · 그 태그로 거르면 그 로드맵도 나옴`() {
+        val tags = listOf(kids, parking, again)
+        val mine = mapOf(3L to MyRating(3, 4, setOf(kids.tagNo, 99L), 0))
+        val counts = RecommendationRules.tagCounts(listOf(a, b, c), mine, tags).associate { it.tag.tagNo to it.cnt }
+        assertEquals(4, counts[kids.tagNo]) // 장소 3 + 내 별점 1
+        assertEquals(3, counts[parking.tagNo])
+        assertEquals(2, counts[again.tagNo])
+        assertEquals(listOf(1L, 2L, 3L), RecommendationRules.withTag(listOf(a, b, c), kids.tagNo, mine).map { it.tripNo }.sorted())
+    }
+
+    @Test
+    fun `R21 자격 · 범위 · 자동 팝업 — 안내받은 로드맵만 · 별 1 ~ 5 · 여행 종료 뒤 · 한 번만 · 별점 주면 안 뜸`() {
+        val guided = GuidedTrip(1, "여행1", "닉1", guidedAt = 100)
+        val records = RatingRecords(guidedTrips = listOf(guided))
+        assertTrue(RecommendationRules.canRate(records, 1))
+        assertFalse(RecommendationRules.canRate(records, 2))
+        assertFalse(RecommendationRules.isValidScore(0))
+        assertFalse(RecommendationRules.isValidScore(6))
+        assertTrue(RecommendationRules.isValidScore(5))
+
+        // 안내만 받음(중간 정차) → 자동 팝업 없음
+        assertNull(RecommendationRules.pendingRatingPrompt(records))
+        // 안내 전에 끝난 여행은 셈하지 않음
+        assertNull(RecommendationRules.pendingRatingPrompt(RecommendationRules.markGuidedTripsEnded(records, 50)))
+
+        val ended = RecommendationRules.markGuidedTripsEnded(records, 200)
+        assertEquals(1L, RecommendationRules.pendingRatingPrompt(ended)?.tripNo)
+        // 두 번째 종료가 시각을 덮지 않음
+        assertEquals(200L, RecommendationRules.markGuidedTripsEnded(ended, 300).guided(1)?.tripEndedAt)
+
+        assertNull(RecommendationRules.pendingRatingPrompt(ended.copy(promptedTripNos = setOf(1))))
+        assertNull(RecommendationRules.pendingRatingPrompt(ended.copy(ratings = listOf(MyRating(1, 3, emptySet(), 0)))))
     }
 }

@@ -2,13 +2,16 @@ package com.example.travelcrumbs.ui.driving
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeStartVoiceInputUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +36,7 @@ class DrivingViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val driving = FakeDrivingSignalRepository(DrivingState.DRIVING)
+    private val ratings = ratingRepositoryOf()
 
     @Before
     fun setUp() {
@@ -55,6 +59,7 @@ class DrivingViewModelTest {
         startVoiceInput = FakeStartVoiceInputUseCase(voice),
         drivingSignalRepository = driving,
         savedStateHandle = handle,
+        ratingRepository = ratings,
     )
 
     @Test
@@ -149,6 +154,23 @@ class DrivingViewModelTest {
         vm.onVoice()
         runCurrent()
         assertEquals(UiMessage.NOT_READY, vm.uiState.value.message)
+    }
+
+    @Test
+    fun `R25 추천 안내 뒤 여행 종료 → 그 로드맵이 별점 자동 팝업 대상 · 종료 전(중간 정차)엔 아님`() = runTest(dispatcher) {
+        ratings.recordGuidance(101, "속초 가족여행", "민지네")
+        val vm = viewModel()
+        subscribe(vm)
+        var records: RatingRecords? = null
+        backgroundScope.launch { ratings.records.collect { records = it } }
+        runCurrent()
+        assertNull(RecommendationRules.pendingRatingPrompt(records!!))
+
+        vm.onEndTrip()
+        vm.onConfirmEndTrip()
+        runCurrent()
+
+        assertEquals(101L, RecommendationRules.pendingRatingPrompt(records!!)?.tripNo)
     }
 
     @Test

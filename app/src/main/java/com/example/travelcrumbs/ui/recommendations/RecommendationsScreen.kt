@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
@@ -50,6 +51,7 @@ fun RecommendationsScreen(
             onOpenTrip = viewModel::openTrip,
             onGuideFromFirst = viewModel::askGuidanceFromFirst,
             onGuideHere = viewModel::askGuidance,
+            onOpenRating = viewModel::openRating,
         )
     }
 
@@ -79,6 +81,16 @@ fun RecommendationsScreen(
             available = uiState.guidanceAvailable,
             onCancel = viewModel::dismissGuidance,
             onStart = viewModel::startGuidance,
+        )
+    }
+
+    uiState.rating?.let { rating ->
+        RatingDialog(
+            item = rating,
+            onSelectScore = viewModel::selectRatingScore,
+            onToggleTag = viewModel::toggleRatingTag,
+            onLater = viewModel::dismissRating,
+            onSubmit = viewModel::submitRating,
         )
     }
 }

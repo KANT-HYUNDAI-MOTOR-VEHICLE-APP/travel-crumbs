@@ -22,6 +22,9 @@ internal object RecommendationSeed {
     private val WAITING = Tag(tagNo = 4, tagNm = "웨이팅 있어요")
     private val RESTROOM = Tag(tagNo = 5, tagNm = "화장실 깨끗해요")
 
+    /** 태그 마스터(tag_mst) — 별점 「좋았던 점」 칩(#41). */
+    val tags: List<Tag> = listOf(KIDS, PARKING, AGAIN, WAITING, RESTROOM)
+
     private const val GANGWON = "강원"
     private val SOKCHO = Region(GANGWON, "속초시")
     private val GANGNEUNG = Region(GANGWON, "강릉시")

@@ -1,5 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
+import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
+import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
@@ -82,6 +84,8 @@ class HomeRouteFallbackViewModelTest {
             pinRepository = pins,
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
+            ratingRepository = ratingRepositoryOf(),
+            recommendationRepository = SeedRecommendationRepository(),
         )
     }
 
