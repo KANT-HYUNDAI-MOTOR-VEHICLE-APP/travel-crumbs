@@ -162,6 +162,59 @@ class AppShellScreenTest {
     }
 
     @Test
+    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 내비 연결 전이면 안내 팝업에 시연용 안내`() {
+        graph.guidance.available = false
+        show()
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
+
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
+        compose.onNodeWithText("속초 가족여행").performClick()
+        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
+        button(R.string.reco_guide_from_first).performClick()
+        compose.onNodeWithText(text(R.string.guidance_demo_only)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `R18 레일 추천 · 추천 보러 가기는 늘 B-01 부터 — 주행 뒤 정차는 보던 화면`() {
+        show()
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+
+        // 같은 칸 레일을 다시 누름 → B-01 · 고른 시도 없음
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.reco_pick_sido)).assertIsDisplayed()
+
+        // 다른 칸 → 추천 → B-01
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        rail(AppDestination.RECORDS).performClick()
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNodeWithText(text(R.string.reco_pick_sido)).assertIsDisplayed()
+
+        // 주행 → 정차 → 보던 화면(B-02) 그대로
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        drive(DrivingState.DRIVING)
+        drive(DrivingState.PARKED)
+        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+
+        // 기록 칸 「추천 보러 가기」 → B-01(진행 중 여행을 끝내 버튼이 보이게)
+        drive(DrivingState.DRIVING)
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        drive(DrivingState.PARKED)
+        rail(AppDestination.RECORDS).performClick()
+        button(R.string.action_open_recommendations).performClick()
+        compose.onNodeWithText(text(R.string.reco_pick_sido)).assertIsDisplayed()
+    }
+
+    @Test
     fun `R15 주행 중 추천 칸 — 정차 후 볼 수 있어요 · 정차하면 고른 화면 그대로`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()

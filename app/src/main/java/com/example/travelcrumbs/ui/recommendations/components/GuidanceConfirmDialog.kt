@@ -26,12 +26,13 @@ import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
  * B-05 안내 확인 팝업 — 「○○까지 안내할까요?」 · 주소 · 누구의 어느 로드맵 몇 번째 장소 / 「취소」(Secondary) · 「안내 시작」(Primary).
- * 바깥 누름 · 시스템 뒤로 = 취소. 창 애니메이션 끔. 요청 중엔 「안내 시작」을 다시 받지 않음.
+ * [available] 이 거짓(release · 내비 연결 전)이면 버튼 아래 「시연용 · 실제 안내는 준비 중」. 바깥 누름 · 시스템 뒤로 = 취소. 창 애니메이션 끔. 요청 중엔 「안내 시작」을 다시 받지 않음.
  */
 @Composable
 fun GuidanceConfirmDialog(
     item: GuidanceConfirmItem,
     requesting: Boolean,
+    available: Boolean,
     onCancel: () -> Unit,
     onStart: () -> Unit,
 ) {
@@ -87,6 +88,14 @@ fun GuidanceConfirmDialog(
                     ) {
                         Text(text = stringResource(R.string.guidance_start), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
+                }
+                if (!available) {
+                    // 실제 내비 연결 전(release) — 안내 실패가 버그처럼 보이지 않게
+                    Text(
+                        text = stringResource(R.string.guidance_demo_only),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

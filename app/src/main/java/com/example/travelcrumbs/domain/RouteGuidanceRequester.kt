@@ -6,7 +6,10 @@ package com.example.travelcrumbs.domain
  * #4(`navigation/main`)의 NaviRepository.requestRoute 가 develop 에 들어오면 그것을 감싼 구현으로 바인딩만 바꿈.
  * 모양은 #4 의 Place(name · address · latitude · longitude) → RouteRequestResult(Started · Failed) 와 1:1.
  */
-fun interface RouteGuidanceRequester {
+interface RouteGuidanceRequester {
+    /** 실제 차량 내비로 안내가 가는지 — 아니면 화면이 「시연용 · 실제 안내는 준비 중」을 함께 보임(release 연결 전). */
+    val available: Boolean
+
     suspend fun requestRoute(destination: GuidanceDestination): GuidanceRequestResult
 }
 

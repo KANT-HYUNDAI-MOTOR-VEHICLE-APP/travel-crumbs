@@ -108,7 +108,7 @@ private fun TagBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (selected) "✓ ${item.tagNm}" else item.tagNm,
+                    text = if (selected) stringResource(R.string.reco_selected, item.tagNm) else item.tagNm,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleLarge,
                     color = if (selected) colors.secondary else colors.onSurface,

@@ -6,7 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 추천 화면이 공개 로드맵에 닿는 유일한 길(#37). 지금은 앱 안 시연용 시드([RecommendationSeed]) ·
+ * 추천 화면이 공개 로드맵에 닿는 유일한 길(#37). 지금은 앱 안 시연용 시드([RecommendationSeed] · 서버 API 전 임시 · 서버가 생기면 시드는 debug 로 옮김) ·
  * 서버 API(지역 · 별점 · 랭킹 — 표준 등록 뒤)가 생기면 이 인터페이스의 구현만 바꿈(di/RecommendationModule).
  */
 interface RecommendationRepository {
@@ -20,6 +20,7 @@ interface RecommendationRepository {
     suspend fun publicTrips(sidoNm: String): List<RecommendedTrip>
 }
 
+/** 시드 저장소 — 서버 API 전 임시 · 모든 빌드에서 「시연용 데이터」 표시. 서버가 생기면 debug source set 으로 옮김. */
 @Singleton
 class SeedRecommendationRepository @Inject constructor() : RecommendationRepository {
 

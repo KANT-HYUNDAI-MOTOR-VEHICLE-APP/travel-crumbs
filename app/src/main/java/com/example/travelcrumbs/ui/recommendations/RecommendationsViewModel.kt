@@ -56,7 +56,10 @@ class RecommendationsViewModel @Inject constructor(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
-        initialValue = RecommendationsUiState(demoData = repository.isDemoData),
+        initialValue = RecommendationsUiState(
+            demoData = repository.isDemoData,
+            guidanceAvailable = requestRouteGuidance.available,
+        ),
     )
 
     init {
@@ -67,6 +70,17 @@ class RecommendationsViewModel @Inject constructor(
                 sidoTrips.value = SidoTrips(sido, if (sido == null) emptyList() else repository.publicTrips(sido))
             }
         }
+    }
+
+    /**
+     * 앱 틀의 진입 값(레일 「추천」 · 「추천 보러 가기」마다 오름)이 지난번과 다르면 B-01 부터 · 고른 것 초기화.
+     * 같으면(주행 → 정차 · 화면 재구성 · 프로세스 재생성) 보던 화면 그대로.
+     */
+    fun onEntry(entryKey: Int) {
+        if (savedStateHandle.get<Int>(KEY_ENTRY) == entryKey) return
+        savedStateHandle[KEY_ENTRY] = entryKey
+        updateSelection { Selection.START }
+        guidance.value = GuidanceProgress()
     }
 
     /** B-01 시도 칩. */
@@ -197,6 +211,7 @@ class RecommendationsViewModel @Inject constructor(
                 )
             },
             guidanceRequesting = progress.requesting,
+            guidanceAvailable = requestRouteGuidance.available,
             message = progress.message,
         )
     }
@@ -246,7 +261,7 @@ class RecommendationsViewModel @Inject constructor(
     }
 
     private fun restoreSelection(): Selection = Selection(
-        page = enumOrNull<RecommendationPage>(savedStateHandle[KEY_PAGE]) ?: RecommendationPage.REGION,
+        page = enumOrNull<RecommendationPage>(savedStateHandle[KEY_PAGE]) ?: Selection.START.page,
         sidoNm = savedStateHandle[KEY_SIDO],
         sigunguNm = savedStateHandle[KEY_SIGUNGU],
         sort = enumOrNull<RankingSort>(savedStateHandle[KEY_SORT]) ?: RankingSort.RATING,
@@ -268,7 +283,22 @@ class RecommendationsViewModel @Inject constructor(
         val tripNo: Long?,
         val detailFrom: RecommendationPage,
         val confirmPlaceNo: Long?,
-    )
+    ) {
+        companion object {
+            /** B-01 · 아무것도 고르지 않음. */
+            val START = Selection(
+                page = RecommendationPage.REGION,
+                sidoNm = null,
+                sigunguNm = null,
+                sort = RankingSort.RATING,
+                companion = null,
+                tagNo = null,
+                tripNo = null,
+                detailFrom = RecommendationPage.RANKING,
+                confirmPlaceNo = null,
+            )
+        }
+    }
 
     private data class SidoTrips(val sidoNm: String?, val trips: List<RecommendedTrip>)
 
@@ -287,6 +317,7 @@ class RecommendationsViewModel @Inject constructor(
         const val KEY_TRIP = "reco_trip_no"
         const val KEY_DETAIL_FROM = "reco_detail_from"
         const val KEY_CONFIRM_PLACE = "reco_confirm_place_no"
+        const val KEY_ENTRY = "reco_entry_key"
 
         inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
             enumValues<E>().firstOrNull { it.name == name }

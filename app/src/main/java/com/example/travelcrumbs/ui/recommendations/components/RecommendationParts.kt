@@ -59,7 +59,7 @@ fun RecoChip(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (selected) "✓ $label" else label,
+                text = if (selected) stringResource(R.string.reco_selected, label) else label,
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
             )
@@ -79,7 +79,7 @@ fun RatingText(ratingAvg: Double, ratingCnt: Int, modifier: Modifier = Modifier)
     )
 }
 
-/** debug 빌드에서만 화면 맨 위 한 줄 「시연용 데이터」. */
+/** 화면 맨 위 한 줄 「시연용 데이터」 — 시드를 쓰는 동안 모든 빌드에서(공모전 제출 APK 가 release · 사람 결정). */
 @Composable
 fun DemoDataLine(modifier: Modifier = Modifier) {
     Text(

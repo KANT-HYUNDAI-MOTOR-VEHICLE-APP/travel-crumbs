@@ -23,7 +23,7 @@ enum class RecommendationPage {
 /** 「추천」 칸이 그릴 것(#37) — 불변 · 화면 문구는 strings.xml · 데이터 값(이름 · 태그명)은 저장소가 준 그대로. 좌표 없음. */
 data class RecommendationsUiState(
     val page: RecommendationPage = RecommendationPage.REGION,
-    /** debug 표시 한 줄 「시연용 데이터」. */
+    /** 화면 맨 위 「시연용 데이터」 한 줄(모든 빌드). */
     val demoData: Boolean = false,
 
     // B-01
@@ -51,6 +51,8 @@ data class RecommendationsUiState(
     val confirm: GuidanceConfirmItem? = null,
     /** 「안내 시작」을 누른 뒤 답을 기다리는 중 — 버튼을 한 번만 받음. */
     val guidanceRequesting: Boolean = false,
+    /** 실제 차량 내비로 안내가 가는지 — 아니면 팝업에 「시연용 · 실제 안내는 준비 중」. */
+    val guidanceAvailable: Boolean = true,
     /** 안내 요청 결과 한 줄(요청함 · 시작 못 함) — 화면이 보여 준 뒤 지움. */
     val message: UiMessage? = null,
 ) {

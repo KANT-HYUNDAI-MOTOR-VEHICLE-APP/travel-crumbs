@@ -14,6 +14,9 @@ import javax.inject.Singleton
 @Singleton
 class DemoRouteGuidanceRequester @Inject constructor() : RouteGuidanceRequester {
 
+    /** debug 는 지금처럼 성공 답 · 안내 확인 팝업에 따로 표시하지 않음(리뷰 결정). */
+    override val available: Boolean = true
+
     private val _requested = mutableListOf<Long>()
 
     /** 지금까지 요청한 장소 번호(순서대로). */

@@ -107,7 +107,7 @@ fun TripDetailContent(
                 .fillMaxWidth()
                 .height(Dimens.HomeButtonHeight),
         ) {
-            Text(text = "★ " + stringResource(R.string.reco_guide_from_first), style = MaterialTheme.typography.labelLarge)
+            Text(text = stringResource(R.string.reco_guide_from_first), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
