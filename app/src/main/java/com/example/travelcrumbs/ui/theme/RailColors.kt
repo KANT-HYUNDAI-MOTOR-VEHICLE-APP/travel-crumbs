@@ -22,4 +22,7 @@ object RailColors {
 
     /** 기본 칸 배경(투명 · 10절). */
     val UnselectedBackground = Color.Transparent
+
+    /** Material 선택 알약(아이콘 뒤) — 쓰지 않음(선택 배경은 칸 전체 [BackgroundSelected]) · 투명. */
+    val Indicator = Color.Transparent
 }

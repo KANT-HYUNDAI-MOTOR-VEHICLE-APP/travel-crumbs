@@ -16,7 +16,6 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -70,7 +69,7 @@ fun AppNavigationRail(
                     selectedIconColor = RailColors.BrandSecondary,
                     selectedTextColor = RailColors.BrandSecondary,
                     // 선택 배경은 알약 모양이 아니라 칸 전체(아래 background) — 알약은 투명
-                    indicatorColor = Color.Transparent,
+                    indicatorColor = RailColors.Indicator,
                     unselectedIconColor = RailColors.Unselected,
                     unselectedTextColor = RailColors.Unselected,
                 ),
