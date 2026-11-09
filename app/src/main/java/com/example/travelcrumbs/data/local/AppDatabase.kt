@@ -1,17 +1,36 @@
 package com.example.travelcrumbs.data.local
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * 기기 안 Room — 지금은 핀 표 하나(스펙 navigation U43). 백업 대상 아님(allowBackup=false).
+ * 기기 안 Room — 핀 표(스펙 navigation U43) + 여행 표(#51 U1). 백업 대상 아님(allowBackup=false).
  * 판 2 = 핀 표 이름을 데이터 표준(`navi_req_log`)으로 — 판 1 기기의 핀은 [MIGRATION_1_2] 로 옮김.
+ * 판 3 = 여행 표 7개(user_mst · user_consent_hist · trip_mst · trip_companion_dtl · trip_place_dtl · tag_mst · trip_place_tag_rel) 추가 —
+ * 표만 늘어 Room 자동 마이그레이션(schemas/…/2.json → 3.json)으로 · 핀 표는 그대로.
  */
-@Database(entities = [NaviReqLogEntity::class], version = 2, exportSchema = true)
+@Database(
+    entities = [
+        NaviReqLogEntity::class,
+        UserMstEntity::class,
+        UserConsentHistEntity::class,
+        TripMstEntity::class,
+        TripCompanionDtlEntity::class,
+        TripPlaceDtlEntity::class,
+        TagMstEntity::class,
+        TripPlaceTagRelEntity::class,
+    ],
+    version = 3,
+    exportSchema = true,
+    autoMigrations = [AutoMigration(from = 2, to = 3)],
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun naviReqLogDao(): NaviReqLogDao
+
+    abstract fun travelDao(): TravelDao
 
     companion object {
         const val FILE_NAME = "travel_crumbs.db"

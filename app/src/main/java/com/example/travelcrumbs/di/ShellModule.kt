@@ -1,6 +1,6 @@
 package com.example.travelcrumbs.di
 
-import com.example.travelcrumbs.data.recording.DataStoreRecordingLocalDataSource
+import com.example.travelcrumbs.data.recording.RoomRecordingLocalDataSource
 import com.example.travelcrumbs.data.recording.DefaultRecordingRepository
 import com.example.travelcrumbs.data.recording.RecordingLocalDataSource
 import com.example.travelcrumbs.data.recording.RecordingRepository
@@ -35,7 +35,7 @@ abstract class ShellModule {
     @Binds
     @Singleton
     abstract fun bindRecordingLocalDataSource(
-        impl: DataStoreRecordingLocalDataSource,
+        impl: RoomRecordingLocalDataSource,
     ): RecordingLocalDataSource
 
     @Binds

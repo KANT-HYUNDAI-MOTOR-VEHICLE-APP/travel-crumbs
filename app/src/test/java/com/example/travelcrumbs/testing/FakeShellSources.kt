@@ -29,8 +29,9 @@ class FakeRecordingLocalDataSource(
 
     val current: CurrentTrip? get() = state.value
 
-    override suspend fun update(transform: (CurrentTrip?) -> CurrentTrip) {
-        mutex.withLock { state.value = transform(state.value) }
+    /** null 이면 그대로(#51 U1 — 여행이 없는데 일시정지 · 종료). 번호는 붙이지 않음(Room 판은 trip_no 를 붙임). */
+    override suspend fun update(transform: (CurrentTrip?) -> CurrentTrip?) {
+        mutex.withLock { transform(state.value)?.let { state.value = it } }
     }
 }
 
@@ -75,7 +76,8 @@ class FakeStartVoiceInputUseCase(private val result: ActionResult = ActionResult
 /** ui 패키지의 테스트가 DataSource 를 직접 들지 않게(구조 규칙 4) 저장소를 여기서 조립. */
 fun recordingRepositoryOf(
     timeSource: TimeSource,
-    local: RecordingLocalDataSource = FakeRecordingLocalDataSource(),
+    /** 기본 = 지금 시각에 시작한 기록 중 여행 하나(v6 는 여행을 자동으로 만들지 않음 — 옛 시험의 「첫 실행」 자리). */
+    local: RecordingLocalDataSource = FakeRecordingLocalDataSource(CurrentTrip.start(timeSource.nowMillis())),
 ): RecordingRepository = DefaultRecordingRepository(local, timeSource)
 
 fun unfinishedInputRepositoryOf(

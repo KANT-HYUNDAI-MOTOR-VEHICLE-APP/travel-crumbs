@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.recording
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.CurrentTrip
+import com.example.travelcrumbs.domain.model.NewTrip
 import com.example.travelcrumbs.domain.model.RecordingProgress
 import com.example.travelcrumbs.domain.model.TripStatus
 import javax.inject.Inject
@@ -11,11 +12,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.onEach
 
 /**
  * 지금 여행 상태 · 경과의 단일 출처(#6 D1 · 스펙 app-shell-v5 3-4) — 홈 · 주행 화면이 같은 값을 봄.
@@ -33,8 +32,16 @@ interface RecordingRepository {
      */
     suspend fun endTrip(): Long?
 
-    /** 임시 「새 여행 시작」(D26) — 진행 중 여행이 아닐 때만 새 여행 RECORDING · RECORDING · PAUSED 면 아무 일도 안 함(N19). */
-    suspend fun startNewTrip()
+    /** 이름 없는 새 여행 시작 — [startTrip] 과 같은 규칙(시험 · 옛 호출 자리). */
+    suspend fun startNewTrip() {
+        startTrip(NewTrip(tripNm = null, companions = emptySet(), destPlaceNm = null))
+    }
+
+    /**
+     * A-01 「기록 시작」(#51 U3) — 진행 중 여행이 아닐 때만 새 여행 RECORDING · PRIVATE(이름 · 동행자 · 목적지).
+     * 진행 중(RECORDING · PAUSED)이면 아무 일도 안 하고 false(N19).
+     */
+    suspend fun startTrip(newTrip: NewTrip): Boolean
 }
 
 @Singleton
@@ -44,40 +51,37 @@ class DefaultRecordingRepository @Inject constructor(
 ) : RecordingRepository {
 
     @OptIn(ExperimentalCoroutinesApi::class)
+    // v6(#51): 여행이 없으면 만들지 않음 — 「여행 시작」(A-01)으로만 생김 · 없음은 [RecordingProgress.NONE]
     override val progress: Flow<RecordingProgress> = local.trip
-        .onEach { stored ->
-            // 저장된 여행이 없으면(설치 뒤 첫 실행 · #6 판 값만 있음) 옮기거나 기록 중 · 0분으로 시작(#6 D2 · N10)
-            if (stored == null) {
-                local.update { current -> current ?: CurrentTrip.start(timeSource.nowMillis()) }
-            }
-        }
-        .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { trip -> trip.ticks() }
+        .flatMapLatest { trip -> trip?.ticks() ?: flowOf(RecordingProgress.NONE) }
         .distinctUntilChanged()
 
     override suspend fun togglePause() {
-        local.update { current ->
-            val now = timeSource.nowMillis()
-            (current ?: CurrentTrip.start(now)).pauseToggled(now)
-        }
+        local.update { current -> current?.pauseToggled(timeSource.nowMillis()) }
     }
 
     override suspend fun endTrip(): Long? {
         var endedAt: Long? = null
         local.update { current ->
-            val now = timeSource.nowMillis()
-            val before = current ?: CurrentTrip.start(now)
+            val before = current ?: return@update null
             // 이번에 끝냈나 = 종료 전 상태가 진행 중(RECORDING · PAUSED)이었나 — 그때만 종료 시각을 돌려줌
-            before.ended(now).also { after -> endedAt = if (before.status.inProgress) after.endAtMillis else null }
+            before.ended(timeSource.nowMillis()).also { after -> endedAt = if (before.status.inProgress) after.endAtMillis else null }
         }
         return endedAt
     }
 
-    override suspend fun startNewTrip() {
+    override suspend fun startTrip(newTrip: NewTrip): Boolean {
+        var started = false
         local.update { current ->
-            if (current != null && current.status.inProgress) current else CurrentTrip.start(timeSource.nowMillis())
+            if (current != null && current.status.inProgress) {
+                null
+            } else {
+                started = true
+                CurrentTrip.start(timeSource.nowMillis(), newTrip)
+            }
         }
+        return started
     }
 
     private fun CurrentTrip.ticks(): Flow<RecordingProgress> {
@@ -99,6 +103,8 @@ class DefaultRecordingRepository @Inject constructor(
         elapsedMinutes = elapsedMillis(nowMillis) / UNIT,
         tripName = tripName,
         placeCount = placeCount,
+        tripNo = tripNo,
+        destPlaceNm = destPlaceNm,
     )
 
     private companion object {

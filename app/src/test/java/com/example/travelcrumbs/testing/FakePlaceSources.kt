@@ -190,7 +190,7 @@ class FakeRecordingStatusRepository(initial: RecordingProgress?) : RecordingRepo
 
     override suspend fun endTrip(): Long? = null
 
-    override suspend fun startNewTrip() = Unit
+    override suspend fun startTrip(newTrip: com.example.travelcrumbs.domain.model.NewTrip): Boolean = false
 }
 
 fun pinRepositoryOf(

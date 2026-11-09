@@ -1,0 +1,220 @@
+package com.example.travelcrumbs.data.trip
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import com.example.travelcrumbs.data.local.AppPreferencesKeys
+import com.example.travelcrumbs.data.local.TravelDao
+import com.example.travelcrumbs.data.local.TripCompanionDtlEntity
+import com.example.travelcrumbs.data.local.TripMstEntity
+import com.example.travelcrumbs.data.local.TripPlaceDtlEntity
+import com.example.travelcrumbs.data.local.TripPlaceTagRelEntity
+import com.example.travelcrumbs.data.user.CurrentUserRepository
+import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.TimeSource
+import com.example.travelcrumbs.domain.model.CompanionType
+import com.example.travelcrumbs.domain.model.CurrentLocation
+import com.example.travelcrumbs.domain.model.TripPlace
+import com.example.travelcrumbs.domain.model.TripRecord
+import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.domain.model.Visibility
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+
+/**
+ * 내 여행 · 장소 · 태그 · 공개 범위의 유일한 출처(#51 U1 · A-03 · A-05 ~ A-08 · C-03 철회 · U7 추천).
+ * 지금은 기기 안 Room(서버 API 전 임시 원본) — 데이터 원본은 서버(ADR 0015)라 서버 API 가 생기면 이 인터페이스의 구현만 바꿈
+ * (di/TripModule). 좌표 · 주소 · 메모는 로그에 남기지 않음.
+ */
+interface TripRepository {
+    /** 지금 사용자의 여행 전부(모든 상태) — 최근 시작 순. */
+    val trips: Flow<List<TripRecord>>
+
+    /** 여행 하나 — 없으면 null. */
+    fun trip(tripNo: Long): Flow<TripRecord?>
+
+    /** 로드맵 검토(A-05)를 기다리는 여행 — 가장 최근 여행이 끝났고(COMPLETED) 장소가 있고 아직 검토 안 했으면 그 번호. */
+    val pendingReviewTripNo: Flow<Long?>
+
+    /** 검토 끝(「저장」 · 「나중에」) — 그 여행은 다시 검토 화면에 안 뜸. */
+    suspend fun markReviewed(tripNo: Long)
+
+    /** 장소 한 곳 기록(「이 장소 기록」) — [draft] 면 위치만(태그는 나중에) · 장소 순서는 그 여행의 다음 번호. 새 행 번호. */
+    suspend fun addPlace(tripNo: Long, location: CurrentLocation?, draft: Boolean): Long
+
+    /** 장소 고치기(A-03 「저장」 · A-05 · A-08) — 이름 · 메모 · 태그(통째로) · 임시저장 해제. */
+    suspend fun savePlace(tripPlaceNo: Long, userPlaceNm: String?, memo: String?, tagNos: Set<Long>)
+
+    /** 여행명 고치기(A-08) — 비었으면 바꾸지 않음. */
+    suspend fun rename(tripNo: Long, tripNm: String)
+
+    /** 공개 범위 바꾸기(A-06 · A-07 · A-08 토글). */
+    suspend fun setVisibility(tripNo: Long, visibility: Visibility)
+
+    /** 추천 공개 동의 철회(C-03) — 내 공개 여행을 모두 비공개로. */
+    suspend fun makeAllPrivate()
+}
+
+@Singleton
+class LocalTripRepository @Inject constructor(
+    private val dao: TravelDao,
+    private val users: CurrentUserRepository,
+    private val dataStore: DataStore<Preferences>,
+    private val timeSource: TimeSource,
+) : TripRepository {
+
+    override val trips: Flow<List<TripRecord>> = flow {
+        val userNo = users.currentUserNo()
+        emitAll(
+            combine(dao.trips(), dao.companions(), dao.places(), dao.placeTags()) { trips, companions, places, tags ->
+                assembleTrips(trips.filter { it.userNo == userNo }, companions, places, tags)
+            },
+        )
+    }.distinctUntilChanged()
+
+    override fun trip(tripNo: Long): Flow<TripRecord?> =
+        trips.map { list -> list.firstOrNull { it.tripNo == tripNo } }.distinctUntilChanged()
+
+    private val reviewed: Flow<Set<Long>> = dataStore.data.map { prefs ->
+        prefs[AppPreferencesKeys.REVIEWED_TRIP_NOS].orEmpty().split(',').mapNotNull { it.trim().toLongOrNull() }.toSet()
+    }
+
+    override val pendingReviewTripNo: Flow<Long?> = combine(trips, reviewed) { list, done ->
+        list.firstOrNull()?.takeIf { it.status == TripStatus.COMPLETED && it.placeCnt > 0 && it.tripNo !in done }?.tripNo
+    }.distinctUntilChanged()
+
+    override suspend fun markReviewed(tripNo: Long) {
+        dataStore.edit { prefs ->
+            val before = prefs[AppPreferencesKeys.REVIEWED_TRIP_NOS].orEmpty().split(',').filter { it.isNotBlank() }
+            if (tripNo.toString() !in before) prefs[AppPreferencesKeys.REVIEWED_TRIP_NOS] = (before + tripNo.toString()).joinToString(",")
+        }
+    }
+
+    override suspend fun addPlace(tripNo: Long, location: CurrentLocation?, draft: Boolean): Long {
+        val userNo = users.currentUserNo()
+        val now = timeSource.nowMillis()
+        return dao.insertPlace(
+            TripPlaceDtlEntity(
+                tripNo = tripNo,
+                placeOrd = dao.lastPlaceOrd(tripNo) + 1,
+                userPlaceNm = location?.addr?.let(::placeNameFromAddr),
+                memo = null,
+                draftYn = if (draft) YES else NO,
+                lat = location?.lat,
+                lng = location?.lng,
+                addr = location?.addr,
+                recordedAt = now,
+                createdAt = now,
+                createdUserNo = userNo,
+                updatedAt = now,
+                updatedUserNo = userNo,
+            ),
+        )
+    }
+
+    override suspend fun savePlace(tripPlaceNo: Long, userPlaceNm: String?, memo: String?, tagNos: Set<Long>) {
+        val userNo = users.currentUserNo()
+        val now = timeSource.nowMillis()
+        dao.savePlace(
+            tripPlaceNo = tripPlaceNo,
+            userPlaceNm = userPlaceNm?.trim()?.take(AppConfig.PLACE_NAME_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
+            memo = memo?.trim()?.take(AppConfig.MEMO_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
+            draftYn = NO,
+            tags = tagNos.sorted().map {
+                TripPlaceTagRelEntity(
+                    tripPlaceNo = tripPlaceNo,
+                    tagNo = it,
+                    createdAt = now,
+                    createdUserNo = userNo,
+                    updatedAt = now,
+                    updatedUserNo = userNo,
+                )
+            },
+            now = now,
+        )
+    }
+
+    override suspend fun rename(tripNo: Long, tripNm: String) {
+        val trimmed = tripNm.trim().take(AppConfig.TRIP_NAME_MAX_LENGTH)
+        if (trimmed.isNotEmpty()) dao.renameTrip(tripNo, trimmed, timeSource.nowMillis())
+    }
+
+    override suspend fun setVisibility(tripNo: Long, visibility: Visibility) {
+        dao.setVisibility(tripNo, visibility.name, timeSource.nowMillis())
+    }
+
+    override suspend fun makeAllPrivate() {
+        dao.changeVisibility(
+            userNo = users.currentUserNo(),
+            from = Visibility.ANONYMOUS_PUBLIC.name,
+            to = Visibility.PRIVATE.name,
+            now = timeSource.nowMillis(),
+        )
+    }
+
+    private companion object {
+        const val YES = "Y"
+        const val NO = "N"
+    }
+}
+
+/** 표 행들 → 여행 목록(최근 시작 순 · 장소는 순서대로 · 태그는 붙인 순). 모르는 코드값은 안전 쪽(비공개 · 동행자 버림). */
+internal fun assembleTrips(
+    trips: List<TripMstEntity>,
+    companions: List<TripCompanionDtlEntity>,
+    places: List<TripPlaceDtlEntity>,
+    tags: List<TripPlaceTagRelEntity>,
+): List<TripRecord> {
+    val companionsByTrip = companions.groupBy { it.tripNo }
+    val placesByTrip = places.groupBy { it.tripNo }
+    val tagsByPlace = tags.groupBy({ it.tripPlaceNo }, { it.tagNo })
+    return trips.sortedByDescending { it.tripNo }.map { row ->
+        TripRecord(
+            tripNo = row.tripNo,
+            tripNm = row.tripNm,
+            status = TripStatus.entries.firstOrNull { it.name == row.tripStatusCd } ?: TripStatus.INTERRUPTED,
+            visibility = Visibility.entries.firstOrNull { it.name == row.visibilityCd } ?: Visibility.PRIVATE,
+            startAt = row.startAt,
+            endAt = row.endAt,
+            durationMillis = row.duration?.let { it * MILLIS_PER_SECOND },
+            destPlaceNm = row.destPlaceNm,
+            companions = companionsByTrip[row.tripNo].orEmpty()
+                .mapNotNull { c -> CompanionType.entries.firstOrNull { it.name == c.companionTypeCd } }
+                .toSet(),
+            places = placesByTrip[row.tripNo].orEmpty().sortedBy { it.placeOrd }.map { p ->
+                TripPlace(
+                    tripPlaceNo = p.tripPlaceNo,
+                    tripNo = p.tripNo,
+                    placeOrd = p.placeOrd,
+                    userPlaceNm = p.userPlaceNm,
+                    memo = p.memo,
+                    draft = p.draftYn == "Y",
+                    lat = p.lat,
+                    lng = p.lng,
+                    addr = p.addr,
+                    recordedAt = p.recordedAt,
+                    tagNos = tagsByPlace[p.tripPlaceNo].orEmpty(),
+                )
+            },
+        )
+    }
+}
+
+/**
+ * 주소 → 장소 이름 처음 값(A-03 「장소 이름 = 주소에서 · 고칠 수 있음」) — 시도 · 시군구를 뺀 나머지(도로명 · 번지).
+ * 둘 이하로 끊기면 주소 그대로. 장소 검색(POI) 이 없어 이름 대신 주소 끝부분을 씀(보고서 남은 결정).
+ */
+internal fun placeNameFromAddr(addr: String): String? {
+    val parts = addr.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return null
+    val rest = if (parts.size > 2) parts.drop(2) else parts
+    return rest.joinToString(" ").take(AppConfig.PLACE_NAME_MAX_LENGTH)
+}
+
+private const val MILLIS_PER_SECOND = 1_000L
