@@ -35,10 +35,12 @@ fun AppShellScreen(
     modifier: Modifier = Modifier,
     viewModel: AppShellViewModel = viewModel(),
     destinationContent: @Composable (AppDestination) -> Unit = { destination ->
+        val shell = viewModel.uiState.collectAsStateWithLifecycle().value
         ParkedDestinationContent(
             destination = destination,
             onOpenRecommendations = viewModel::openRecommendations,
-            recommendationsEntry = viewModel.uiState.collectAsStateWithLifecycle().value.recommendationsEntry,
+            onOpenTrip = viewModel::openTrip,
+            recommendationsEntry = shell.recommendationsEntry,
         )
     },
 ) {
@@ -93,11 +95,12 @@ private fun DrivingContent(destination: AppDestination) {
 private fun ParkedDestinationContent(
     destination: AppDestination,
     onOpenRecommendations: () -> Unit,
+    onOpenTrip: (Long?) -> Unit,
     recommendationsEntry: Int,
 ) {
     when (destination) {
         // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
-        AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations)
+        AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations, onOpenTrip = onOpenTrip)
         AppDestination.TRIPS -> TripsScreen()
         AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry)
         AppDestination.SETTINGS -> SettingsScreen()

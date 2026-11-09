@@ -22,6 +22,13 @@ object Dimens {
      */
     val DrivingButtonsRowMinWidth = 940.dp
 
+    /** C-02 「여행 시작」 · 「추천 보러 가기」 카드 — 이 폭보다 좁으면(나눈 칸) 위아래로 · 카드 최소 높이(#51 U2). */
+    val HomeChoiceRowMinWidth = 900.dp
+    val HomeChoiceCardHeight = 160.dp
+
+    /** 설정 카드 오른쪽 버튼(「수정」 · 「철회」) 최소 폭(#51 U2). */
+    val SettingsActionMinWidth = 160.dp
+
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 

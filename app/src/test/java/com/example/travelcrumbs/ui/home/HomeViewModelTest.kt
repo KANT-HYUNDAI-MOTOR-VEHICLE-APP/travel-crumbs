@@ -1,5 +1,9 @@
 package com.example.travelcrumbs.ui.home
 
+import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
+import com.example.travelcrumbs.testing.FakeTagRepository
+import com.example.travelcrumbs.testing.FakeTripRepository
+import com.example.travelcrumbs.testing.FakeCurrentUserRepository
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
@@ -77,6 +81,10 @@ class HomeViewModelTest {
         recommendationRepository = SeedRecommendationRepository(),
         timeSource = FakeTimeSource(),
         savedStateHandle = saved,
+        userRepository = FakeCurrentUserRepository(),
+        tripRepository = FakeTripRepository(),
+        tagRepository = FakeTagRepository(),
+        unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
     )
 
     @Test

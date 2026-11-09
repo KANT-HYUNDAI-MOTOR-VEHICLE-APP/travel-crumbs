@@ -11,6 +11,10 @@ import com.example.travelcrumbs.data.place.PlaceStatsRepository
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.trip.TagRepository
+import com.example.travelcrumbs.data.trip.TripRepository
+import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
+import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuideRequestState
@@ -25,6 +29,8 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.ui.rating.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
+import com.example.travelcrumbs.ui.components.toSummary
+import com.example.travelcrumbs.domain.model.TripStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,10 +66,14 @@ class HomeViewModel @Inject constructor(
     private val placeStatsRepository: PlaceStatsRepository,
     private val guideRequests: GuideRequestTracker,
     private val demoFeatures: DemoFeatures,
-    ratingRepository: RatingRepository,
+    private val ratingRepository: RatingRepository,
     recommendationRepository: RecommendationRepository,
-    timeSource: TimeSource,
-    savedStateHandle: SavedStateHandle,
+    private val timeSource: TimeSource,
+    private val savedStateHandle: SavedStateHandle,
+    userRepository: CurrentUserRepository,
+    private val tripRepository: TripRepository,
+    private val tagRepository: TagRepository,
+    private val unfinishedInputRepository: UnfinishedInputRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -133,15 +143,41 @@ class HomeViewModel @Inject constructor(
         PlacesPart.of(all, pinnedIds, request, stats, marks.guideScreenFrom, marks.dummyRouteAttempt)
     }
 
+    /** v6 첫 화면(C-02 · #51 U2) — 닉네임 · 최근 끝난 여행 1개 · 여행 종료 확인 팝업. */
+    private val v6Part = combine(
+        userRepository.user,
+        tripRepository.trips,
+        savedStateHandle.getStateFlow(KEY_END_CONFIRM, false),
+    ) { user, trips, endConfirm ->
+        V6Part(
+            nicknameNm = user.nicknameNm,
+            recentTrip = trips.firstOrNull { it.status == TripStatus.COMPLETED }?.toSummary(timeSource.zoneId()),
+            endConfirmVisible = endConfirm,
+        )
+    }
+
+    private data class V6Part(
+        val nicknameNm: String,
+        val recentTrip: com.example.travelcrumbs.ui.components.TripSummaryItem?,
+        val endConfirmVisible: Boolean,
+    )
+
+    private val extras = combine(rating.item, v6Part) { prompt, part -> prompt to part }
+
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
         message,
         sdkCheck,
         places,
-        rating.item,
-    ) { progress, shown, sdk, part, prompt ->
+        extras,
+    ) { progress, shown, sdk, part, (prompt, v6) ->
         val parked = sdk.drivingState == DrivingState.PARKED
         sdk.copy(
+            hasTrip = progress.hasTrip,
+            tripName = progress.tripName,
+            nicknameNm = v6.nicknameNm,
+            recentTrip = v6.recentTrip,
+            endConfirmVisible = v6.endConfirmVisible && progress.status.inProgress,
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             placeCount = progress.placeCount,
@@ -196,6 +232,24 @@ class HomeViewModel @Inject constructor(
     /** 임시 「여행 시작」(D26 · D34) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행이면 저장소가 아무 일도 안 함. */
     fun onStartTrip() {
         viewModelScope.launch { recordingRepository.startNewTrip() }
+    }
+
+    /** 정차 「여행 종료」(C-02 진행 중 · #51 U2) — A-04 확인 팝업만 엶. */
+    fun onEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = true
+    }
+
+    /** A-04 「계속 기록」 · 바깥 · 뒤로 — 팝업만 닫음. */
+    fun onContinueRecording() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+    }
+
+    /** A-04 「종료」 — COMPLETED · 안내받은 추천 로드맵이 있으면 별점 자동 팝업 대상(#41) · 이어서 A-05 검토(#51 U5). */
+    fun onConfirmEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+        viewModelScope.launch {
+            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+        }
     }
 
     fun onMessageShown() {
@@ -291,6 +345,10 @@ class HomeViewModel @Inject constructor(
                 onFailure = { SdkStatus.Failed(it.toCode()) },
             )
         }
+    }
+
+    private companion object {
+        const val KEY_END_CONFIRM = "home_end_confirm_visible"
     }
 
     private fun Throwable.toCode(): String =

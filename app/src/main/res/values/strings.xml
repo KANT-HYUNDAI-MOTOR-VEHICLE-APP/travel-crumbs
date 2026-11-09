@@ -179,4 +179,44 @@
 
     <string name="yes">예</string>
     <string name="no">아니요</string>
+
+    <!-- #51 v6 공통 한 줄 안내 -->
+    <string name="notice_place_draft_saved">위치를 저장했어요 · 태그는 정차 후에</string>
+    <string name="notice_place_saved">장소를 저장했어요</string>
+    <string name="notice_location_unavailable">위치를 못 읽었어요 · 장소는 저장했어요</string>
+    <string name="notice_navi_start_failed">내비를 열지 못했어요 · 기록은 시작했어요</string>
+    <string name="notice_roadmap_saved">로드맵을 저장했어요</string>
+    <string name="notice_nickname_saved">닉네임을 바꿨어요</string>
+    <string name="notice_location_withdrawn">위치정보 수집 동의를 철회했어요</string>
+    <string name="notice_reco_withdrawn">추천 공개를 철회했어요 · 공개 로드맵은 모두 비공개</string>
+    <string name="action_save">저장</string>
+    <string name="action_cancel">취소</string>
+    <string name="trip_date">%1$d.%2$02d.%3$02d</string>
+    <string name="trip_place_cnt_short">장소 %1$d곳</string>
+    <string name="trip_public_badge">공개 중</string>
+    <string name="trip_private_badge">비공개</string>
+    <string name="trip_status_none">여행 전</string>
+
+    <!-- C-02 기록 첫 화면(#51 U2) -->
+    <string name="home_greeting">안녕하세요, %1$s님</string>
+    <string name="home_greeting_sub">오늘은 어디로 떠나요?</string>
+    <string name="home_start_trip_sub">목적지가 있어요 · 가는 길을 기록할게요</string>
+    <string name="home_open_reco_sub">목적지가 없어요 · 지역 코스를 추천받을게요</string>
+    <string name="home_recent_title">최근 여행</string>
+    <string name="home_dev_area_title">개발용 · 길안내 시험(#4)</string>
+
+    <!-- C-03 설정(#51 U2) -->
+    <string name="settings_nickname">닉네임</string>
+    <string name="settings_nickname_sub">%1$s · 공개 로드맵에 보이는 이름</string>
+    <string name="settings_edit">수정</string>
+    <string name="settings_location">위치정보 수집</string>
+    <string name="settings_location_agreed">%1$d.%2$02d.%3$02d 동의 · 여행 기록에 사용</string>
+    <string name="settings_location_none">동의 안 함 · 여행을 시작할 때 물어요</string>
+    <string name="settings_reco">추천 공개</string>
+    <string name="settings_reco_agreed">공개한 로드맵을 추천에 보여 줌</string>
+    <string name="settings_reco_none">동의 안 함 · 로드맵을 공개할 때 물어요</string>
+    <string name="settings_withdraw">철회</string>
+    <string name="settings_account">계정</string>
+    <string name="settings_account_sub">이 기기에만 저장돼요 · 로그인은 준비 중이에요</string>
+    <string name="nickname_dialog_title">닉네임 수정</string>
 </resources>

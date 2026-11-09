@@ -125,8 +125,9 @@ class AppShellScreenTest {
             rail(destination).performClick()
             assertHighlighted(destination)
             compose.onAllNodes(hasText(text(destination.labelRes))).assertCountEquals(2)
-            compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
         }
+        // 설정(C-03 · #51 U2) — 닉네임 · 동의 카드
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
     }
 
     @Test
@@ -235,7 +236,7 @@ class AppShellScreenTest {
         show()
         rail(AppDestination.SETTINGS).performClick()
 
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
         pressBack()
         assertHighlighted(AppDestination.RECORDS)
         compose.onNodeWithText(text(R.string.action_record_place)).assertIsDisplayed()
@@ -293,7 +294,7 @@ class AppShellScreenTest {
 
         drive(DrivingState.PARKED)
         assertHighlighted(AppDestination.SETTINGS)
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
     }
 
     @Test
@@ -532,7 +533,7 @@ class AppShellScreenTest {
         button(R.string.action_pause_recording).assertDoesNotExist()
         button(R.string.action_resume_recording).assertDoesNotExist()
         button(R.string.action_voice).assertDoesNotExist()
-        button(R.string.action_end_trip).assertDoesNotExist()
+        // 「여행 종료」는 v6 C-02 정차 진행 중 화면에도 있음(#51 U2 · A-04 팝업)
         compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(1)
     }
 
