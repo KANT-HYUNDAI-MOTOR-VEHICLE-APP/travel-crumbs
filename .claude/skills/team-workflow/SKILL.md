@@ -1,6 +1,6 @@
 ---
 name: team-workflow
-description: <앱 이름> 저장소(<owner>/<repo> · 앱 + 서버 + 문서 + 하네스 한 저장소)에서 두 사람 이상이 같은 하네스로 작업하고 푸시 · 병합하는 규칙 — GitHub 이슈 티켓 · 브랜치 전략(develop · <기능명>/main · /spec · /impl · bug/) · 커밋 메시지 · 스펙 PR → 구현 PR → develop PR · rebase · squash 머지 · 충돌 핫스팟(버전 카탈로그 · Alembic · openapi.json · uv.lock · 매니페스트 · CI) 해소법 · 머지 뒤 할 일 · 맥 ↔ 윈도우 위생(LF · 대소문자 · 경로 길이 · Python 스크립트) · doctor · main 지키는 약속 · CI 잡 정의. 브랜치를 만들거나 커밋 · 푸시 · PR · rebase · 충돌 해소를 하기 전, 새 사람이 합류할 때, CI 를 쓰거나 고칠 때 반드시 읽는다. 코드 구조 규칙은 android-architecture · server-architecture.
+description: travel-crumbs 저장소(<owner>/<repo> · 앱 + 서버 + 문서 + 하네스 한 저장소)에서 두 사람 이상이 같은 하네스로 작업하고 푸시 · 병합하는 규칙 — GitHub 이슈 티켓 · 브랜치 전략(develop · <기능명>/main · /spec · /impl · bug/) · 커밋 메시지 · 스펙 PR → 구현 PR → develop PR · rebase · squash 머지 · 충돌 핫스팟(버전 카탈로그 · Alembic · openapi.json · uv.lock · 데이터 표준 정의서 · 매니페스트 · CI) 해소법 · 머지 뒤 할 일 · 맥 ↔ 윈도우 위생(LF · 대소문자 · 경로 길이 · Python 스크립트) · doctor · main 지키는 약속 · CI 잡 정의. 브랜치를 만들거나 커밋 · 푸시 · PR · rebase · 충돌 해소를 하기 전, 새 사람이 합류할 때, CI 를 쓰거나 고칠 때 반드시 읽는다. 코드 구조 규칙은 android-architecture · server-architecture.
 ---
 
 # 두 사람이 한 저장소에서 — 협업 규칙
@@ -122,6 +122,7 @@ login/main → develop        ← 기획 · 스펙 · 코드가 한꺼번에 dev
 | `server/alembic/versions/` | 스키마 PR 먼저 · 작게 · 머지된 리비전 수정 금지 | rebase 뒤 `uv run alembic heads` 둘 → `uv run alembic merge -m "merge" <a> <b>` → `upgrade head` → `alembic check` |
 | `docs/api/openapi.json` | 서버만 만듦 · 앱은 읽기만 · 손으로 안 고침 | rebase 뒤 `uv run python -m app.tools.export_openapi ../docs/api/openapi.json` 재생성 |
 | `server/uv.lock` | 의존성 추가는 작은 PR 로 | 손으로 안 고침 · rebase 뒤 `uv lock` 재생성 |
+| `docs/data/standard.md` · `erd.md` | 사람만 고침(AI 는 읽기만) · 한 PR 에 한 절 · 판을 올릴 땐 지금 판을 `docs/data/archive/` 로 먼저 내림 | 표 행 단위로 둘 다 살림 · 같은 단어를 다르게 정의했으면 ADR 로 하나 고름 · 고친 뒤 `check_data_standard.py` |
 | `AndroidManifest.xml` · `strings.xml` | 권한은 스펙에 적힌 것만 · 문구는 화면별로 묶어 추가 | 둘 다 살림 → `check_manifest.py` |
 | `di/*Module.kt` | 도메인별 파일로 쪼갬 | 둘 다 살림 → 빌드 |
 | `.github/workflows/ci.yml` · `.claude/` · `CLAUDE.md` | `harness/…` 브랜치(develop 에서)로 따로 · 기능 PR 에 섞지 않음 | 상대와 이슈에서 조율 |
@@ -182,11 +183,11 @@ JSON
 ```
 `contexts` 는 CI 잡 이름과 같게.
 
-## 9. CI 잡 정의(`.github/workflows/ci.yml` — builder 가 첫 이슈에서 만듦 · 로컬 센서와 같은 명령)
+## 9. CI 잡 정의(`.github/workflows/ci.yml` · 로컬 센서와 같은 명령 · compileSdk · buildTools · JDK 판을 바꾸면 이 잡도 함께)
 
 | 잡 | 트리거(경로 필터) | 명령 |
 |---|---|---|
-| `app` | `app/**` · `gradle/**` · `*.gradle.kts` | JDK(JBR 과 같은 메이저) · `./gradlew lint testDebugUnitTest assembleRelease` · `python .claude/skills/sensors/scripts/check_manifest.py app/src/main/AndroidManifest.xml --gradle app/build.gradle.kts` · APK 아티팩트 |
+| `app` | `app/**` · `gradle/**` · `*.gradle.kts` · `gradle.properties` · `check_manifest.py` · `ci.yml` | JDK(JBR 과 같은 메이저 · 지금 25) · `sdkmanager` 로 `app/build.gradle.kts` 의 compileSdk · buildTools 판 설치 · `./gradlew lint testDebugUnitTest assembleRelease` · 서명 없는 release APK 아티팩트 · `python .claude/skills/sensors/scripts/check_manifest.py app/src/main/AndroidManifest.xml --gradle app/build.gradle.kts`(빌드 결과가 먼저 보이도록 마지막) |
 | `server` | `server/**` | uv · `uv sync --frozen` · ruff · mypy · lint-imports · pytest(testcontainers — ubuntu 러너 Docker) · `alembic check` · `check_alembic_heads.py` · `check_sql_comments.py` · `check_routes.py` · `export_openapi` → `git diff --exit-code docs/api/openapi.json` |
 | `common` | 항상 | `check_repo_hygiene.py` · `check_secrets.py` · `check_skill_frontmatter.py` · `check_api_contract.py docs/api/openapi.json app/src/main/java` · `python .claude/guardrails/tests/test_guard.py` · `python .claude/guardrails/tests/test_trace.py` · `python .claude/guardrails/tests/test_check_manifest.py` |
 

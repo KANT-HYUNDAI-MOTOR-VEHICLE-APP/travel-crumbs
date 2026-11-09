@@ -1,51 +1,51 @@
 package com.example.travelcrumbs.testing
 
-import com.example.travelcrumbs.data.draft.DefaultDraftRepository
-import com.example.travelcrumbs.data.draft.DraftLocalDataSource
-import com.example.travelcrumbs.data.draft.DraftRepository
 import com.example.travelcrumbs.data.recording.DefaultRecordingRepository
 import com.example.travelcrumbs.data.recording.RecordingLocalDataSource
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.unfinishedinput.DefaultUnfinishedInputRepository
+import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputLocalDataSource
+import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ActionResult
-import com.example.travelcrumbs.domain.model.Draft
-import com.example.travelcrumbs.domain.model.RecordingSession
+import com.example.travelcrumbs.domain.model.CurrentTrip
+import com.example.travelcrumbs.domain.model.UnfinishedInput
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** 기기 안 저장 대역 — 앱 종료 뒤 복원(T33)은 같은 대역을 새 저장소에 다시 넘겨 흉내 냄. */
+/** 기기 안 저장 대역 — 앱 종료 뒤 복원(V22 · V37)은 같은 대역을 새 저장소에 다시 넘겨 흉내 냄. */
 class FakeRecordingLocalDataSource(
-    initial: RecordingSession? = null,
+    initial: CurrentTrip? = null,
 ) : RecordingLocalDataSource {
 
     private val state = MutableStateFlow(initial)
     private val mutex = Mutex()
 
-    override val session: Flow<RecordingSession?> = state
+    override val trip: Flow<CurrentTrip?> = state
 
-    val current: RecordingSession? get() = state.value
+    val current: CurrentTrip? get() = state.value
 
-    override suspend fun update(transform: (RecordingSession?) -> RecordingSession) {
+    override suspend fun update(transform: (CurrentTrip?) -> CurrentTrip) {
         mutex.withLock { state.value = transform(state.value) }
     }
 }
 
-class FakeDraftLocalDataSource(
-    initial: Draft? = null,
-) : DraftLocalDataSource {
+class FakeUnfinishedInputLocalDataSource(
+    initial: UnfinishedInput? = null,
+) : UnfinishedInputLocalDataSource {
 
     private val state = MutableStateFlow(initial)
 
-    override val draft: Flow<Draft?> = state
+    override val unfinishedInput: Flow<UnfinishedInput?> = state
 
-    val current: Draft? get() = state.value
+    val current: UnfinishedInput? get() = state.value
 
-    override suspend fun save(draft: Draft) {
-        state.value = draft
+    override suspend fun save(input: UnfinishedInput) {
+        state.value = input
     }
 
     override suspend fun clear() {
@@ -78,7 +78,7 @@ fun recordingRepositoryOf(
     local: RecordingLocalDataSource = FakeRecordingLocalDataSource(),
 ): RecordingRepository = DefaultRecordingRepository(local, timeSource)
 
-fun draftRepositoryOf(
+fun unfinishedInputRepositoryOf(
     timeSource: TimeSource,
-    local: DraftLocalDataSource = FakeDraftLocalDataSource(),
-): DraftRepository = DefaultDraftRepository(local, timeSource)
+    local: UnfinishedInputLocalDataSource = FakeUnfinishedInputLocalDataSource(),
+): UnfinishedInputRepository = DefaultUnfinishedInputRepository(local, timeSource)

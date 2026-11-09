@@ -1,0 +1,84 @@
+package com.example.travelcrumbs.ui.recommendations
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
+import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
+import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
+import com.example.travelcrumbs.ui.recommendations.components.RecommendationPageContent
+import com.example.travelcrumbs.ui.theme.Dimens
+
+/**
+ * 「추천」 칸 정차 화면(#37 · 와이어프레임 v6 B-01 → B-02 → B-03 → B-04 → B-05). 칸 안에서만 화면이 바뀜(레일 강조는 「추천」 그대로).
+ * 시스템 뒤로: 팝업 닫기 → 한 단계 앞 화면 · B-01 에선 이 칸이 받지 않아 앱 틀이 「기록」으로 보냄.
+ * [entryKey] — 앱 틀이 레일 「추천」 · 「추천 보러 가기」를 누를 때마다 올리는 값. 바뀌면 B-01 부터(고른 것 초기화).
+ * 주행 → 정차는 값이 그대로라 보던 화면이 복원됨.
+ * 시드를 쓰는 동안 맨 위에 「시연용 데이터」 한 줄(모든 빌드 · 공모전 제출 APK 가 release).
+ */
+@Composable
+fun RecommendationsScreen(
+    entryKey: Int,
+    modifier: Modifier = Modifier,
+    viewModel: RecommendationsViewModel = viewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(entryKey) { viewModel.onEntry(entryKey) }
+    BackHandler(enabled = uiState.handlesBack) { viewModel.onBack() }
+
+    val actions = remember(viewModel) {
+        RecommendationActions(
+            onSelectSido = viewModel::selectSido,
+            onSelectRegion = viewModel::selectRegion,
+            onChangeRegion = viewModel::changeRegion,
+            onSelectSort = viewModel::selectSort,
+            onSelectCompanion = viewModel::selectCompanion,
+            onOpenTags = viewModel::openTags,
+            onSelectTag = viewModel::selectTag,
+            onOpenTrip = viewModel::openTrip,
+            onGuideFromFirst = viewModel::askGuidanceFromFirst,
+            onGuideHere = viewModel::askGuidance,
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = Dimens.ScreenPadding),
+    ) {
+        if (uiState.demoData) {
+            DemoDataLine(modifier = Modifier.padding(top = Dimens.ItemSpacing))
+        }
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(top = Dimens.ItemSpacing),
+        ) {
+            RecommendationPageContent(uiState = uiState, actions = actions)
+        }
+        NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    uiState.confirm?.let { confirm ->
+        GuidanceConfirmDialog(
+            item = confirm,
+            requesting = uiState.guidanceRequesting,
+            available = uiState.guidanceAvailable,
+            onCancel = viewModel::dismissGuidance,
+            onStart = viewModel::startGuidance,
+        )
+    }
+}

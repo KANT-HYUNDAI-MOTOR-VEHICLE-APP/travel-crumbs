@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""<앱 이름> AndroidManifest 검사 — 허용 밖 권한 · minSdk · cleartext · exported · allowBackup · 네트워크 보안 설정."""
+"""travel-crumbs AndroidManifest 검사 — 허용 밖 권한 · minSdk · cleartext · exported · allowBackup · 네트워크 보안 설정."""
 import argparse
 import re
 import sys
@@ -15,8 +15,10 @@ ANDROID = "{http://schemas.android.com/apk/res/android}"
 # 다음 사람이 판단할 수 있게 함께 적음.
 ALLOWED = {
     "pleos.car.permission.CAR_DRIVE": "기어(DrivingMode) 읽기 · pleos-vehicle-sdk 2절",
-    "android.permission.INTERNET": "서버 API 호출",
+    "android.permission.INTERNET": "서버 API 호출 · 안내 시작 기록 전송(docs/spec/navigation/artifacts/set-destination.md 4.3 · #4)",
     "android.permission.ACCESS_NETWORK_STATE": "연결 유무 확인 · 오프라인 처리",
+    "pleos.car.permission.NAVI_ROUTE": "NaviHelper 경로 상태 조회(get*Info) · docs/spec/navigation/artifacts/set-destination.md 4.3 · #4",
+    "pleos.car.permission.NAVI_ROUTE_SEARCH": "NaviHelper 길안내 요청(requestRoute) · docs/spec/navigation/artifacts/set-destination.md 4.3 · #4",
 }
 MIN_SDK = 28
 
@@ -71,9 +73,8 @@ def main() -> int:
                 bad.append(f"{a.manifest}:0 · exported · {comp.tag} {attr(comp, 'name')} 가 exported=true — LAUNCHER 하나만 허용")
         if len(launchers) != 1:
             bad.append(f"{a.manifest}:0 · 구조 · LAUNCHER 액티비티는 하나 (지금 {len(launchers)}: {launchers})")
-        for m in app.iter("meta-data"):
-            if "distraction" in (attr(m, "name") or "").lower():
-                bad.append(f"{a.manifest}:0 · 메타데이터 · 주행 중 사용 선언 meta-data 는 두지 않음 (제한은 코드가 — 샘플 앱 기준)")
+        # 주행 중 사용 선언(DO · distractionOptimized)은 허용 — Pleos 주행 규제 정책: DO 를 선언하지 않은 앱은 주행 중 사용 불가.
+        # 선언한 화면의 제한은 코드가 CarUxRestrictions 로 함(pleos-vehicle-sdk 5절 · ADR 0013).
     sdk = root.find("uses-sdk")
     min_sdk = None
     if sdk is not None and attr(sdk, "minSdkVersion"):

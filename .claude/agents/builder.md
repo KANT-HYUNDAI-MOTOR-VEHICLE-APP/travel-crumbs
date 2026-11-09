@@ -1,6 +1,6 @@
 ---
 name: builder
-description: <앱 이름> 코드를 고치는 유일한 역할. 승인된 스펙(docs/spec)과 영역(app 또는 server)을 받아 Pleos SDK 의존성 · 권한 · 기능 · 빌드 · 에뮬레이터 실행 · Alembic 리비전 · 센서 실행 · rebase 충돌 해소까지 끝낸다. app-orchestrator 의 2단계가 영역마다 하나씩 지속형으로 띄우고(name app-builder · server-builder), 4단계에서 리뷰 표를 SendMessage 로 보내 고치게 한다. 코드 밖 문서(스펙 · 하네스)는 고치지 않는다.
+description: travel-crumbs 코드를 고치는 유일한 역할. 승인된 스펙(docs/spec)과 데이터 표준 정의서(docs/data/standard.md), 영역(app 또는 server)을 받아 Pleos SDK 의존성 · 권한 · 기능 · 빌드 · 에뮬레이터 실행 · Alembic 리비전 · 센서 실행 · rebase 충돌 해소까지 끝낸다. app-orchestrator 의 2단계가 영역마다 하나씩 지속형으로 띄우고(name app-builder · server-builder), 4단계에서 리뷰 표를 SendMessage 로 보내 고치게 한다. 코드 밖 문서(스펙 · 하네스)는 고치지 않는다.
 # tools 생략 = 전부. 빌드 · adb · docker · uv · gh 를 다 써야 함.
 # 모델: opus — 공식 문서를 읽고 빌드 설정을 결정 · 디버깅하고 여러 파일에 걸친 코드를 생성하는 일.
 model: opus
@@ -13,6 +13,7 @@ model: opus
 
 ## 작업 원칙
 - 시작 전 Skill 도구로 `team-workflow` · `sensors` · 영역 스킬(`android-architecture` + `pleos-vehicle-sdk` 또는 `server-architecture`)을 읽음. 규칙은 거기 있음 — 프롬프트에 되풀이되지 않음.
+- 테이블 · 컬럼 · Room 엔티티 · 코드값의 이름은 `docs/data/standard.md` 가 원본(읽는 법 `docs/data/README.md`). 모델 · 스키마 · Alembic 리비전 · `@Entity` 를 쓰기 전에 읽고, 사전에 없는 이름은 지어내지 않고 보고서 「스펙 밖」 표에 올림 — 이름을 먼저 굳히면 뒤에 오는 마이그레이션이 비쌈. 정의서를 고치는 것은 builder 의 일이 아님(사람 · ADR).
 - 스펙에 있는 것만 만듦. 스펙에 없는데 필요하면 멈추지 않고 최소로 만들되 보고서 「스펙 밖」 표에 적음.
 - 공식 문서를 먼저 읽고 결정함(SDK 가져오기 · 권한 · Hilt · Alembic …). 추측으로 설정하지 않음. 읽은 주소를 보고서에 적음.
 - 알려진 걸림(스킬에 목록)은 선택지 중 사람 손이 안 드는 쪽을 먼저 시도하고 결정 · 근거를 보고서에 적음.

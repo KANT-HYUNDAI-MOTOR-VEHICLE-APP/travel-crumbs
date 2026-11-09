@@ -43,13 +43,14 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * 홈(스펙 app-shell 2-2 · navigation 2.1 · 2.2) — 기록 상태는 주행 화면과 같은 출처(RecordingRepository · D1).
+ * 기록 칸 정차 화면(스펙 app-shell-v5 2-2 · D34 · 파일 자리는 N28 · navigation 2.1 · 2.2) — 여행 상태는 주행 화면과
+ * 같은 출처(RecordingRepository · #6 D1).
  * 「여기로 안내」 · 「고정」 · 「고정 해제」 · 실패 폴백(「다시 시도」 · 「더미 경로」 · 닫기)은 정차일 때만
  * (navigation 3.1 · U35 · U18 · U51 ~ U56) — 결과는 상태 칸으로.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    recordingRepository: RecordingRepository,
+    private val recordingRepository: RecordingRepository,
     private val recordPlace: RecordPlaceUseCase,
     drivingSignalRepository: DrivingSignalRepository,
     gleoActionRepository: GleoActionRepository,
@@ -103,8 +104,9 @@ class HomeViewModel @Inject constructor(
         places,
     ) { progress, shown, sdk, part ->
         sdk.copy(
-            recording = progress.status,
+            tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
+            placeCount = progress.placeCount,
             message = shown,
             pinnedPlaces = part.pinnedPlaces,
             candidates = part.candidates,
@@ -136,6 +138,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (recordPlace() == ActionResult.NOT_READY) message.value = UiMessage.NOT_READY
         }
+    }
+
+    /** 임시 「여행 시작」(D26 · D34) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행이면 저장소가 아무 일도 안 함. */
+    fun onStartTrip() {
+        viewModelScope.launch { recordingRepository.startNewTrip() }
     }
 
     fun onMessageShown() {

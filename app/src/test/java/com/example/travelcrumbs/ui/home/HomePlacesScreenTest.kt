@@ -49,7 +49,7 @@ class HomePlacesScreenTest {
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
-                    HomeScreen(showSdkCard = sdkCard)
+                    HomeScreen(onOpenRecommendations = {}, showSdkCard = sdkCard)
                 }
             }
         }
