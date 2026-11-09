@@ -82,6 +82,28 @@ class Blocked(unittest.TestCase):
                              allow=["android.permission.ACCESS_BACKGROUND_LOCATION"]), 1)
 
 
+class DistractionOptimized(unittest.TestCase):
+    """주행 중 사용 선언(DO)은 허용 — Pleos 주행 규제 정책: 선언하지 않은 앱은 주행 중 사용 불가(ADR 0013)."""
+
+    def run_with_activity_meta(self):
+        do = '<meta-data android:name="distractionOptimized" android:value="true" />'
+        path = manifest(["android.permission.INTERNET"])
+        try:
+            with open(path, encoding="utf-8") as fh:
+                src = fh.read()
+            src = src.replace("</intent-filter>\n", "</intent-filter>\n      " + do + "\n", 1)
+            self.assertIn("distractionOptimized", src)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(src)
+            return subprocess.run([sys.executable, SCRIPT, path], capture_output=True,
+                                  text=True, encoding="utf-8").returncode
+        finally:
+            os.unlink(path)
+
+    def test_do_meta_data_on_activity_passes(self):
+        self.assertEqual(self.run_with_activity_meta(), 0)
+
+
 class TemporaryAllow(unittest.TestCase):
     def test_allow_lets_an_unlisted_permission_through(self):
         """--allow 는 스펙 승인 전 손으로 확인할 때만 — 커밋 · CI 명령에는 쓰지 않음."""

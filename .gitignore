@@ -1,18 +1,32 @@
+# Android Studio · IntelliJ
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
+*.ipr
+*.iws
+.navigation/
+captures/
+
+# Gradle · 빌드
+.gradle/
+build/
+local.properties
+.kotlin/
 .externalNativeBuild
 .cxx
-local.properties
+
+# 빌드 산출물 · 서명 키
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.jks
+*.keystore
+output.json
+
+# OS
+.DS_Store
+Thumbs.db
 
 # 하네스 중간 산출물
 _workspace/

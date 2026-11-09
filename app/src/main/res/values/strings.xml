@@ -2,28 +2,51 @@
 <resources>
     <string name="app_name">Travel Crumbs</string>
 
-    <!-- 레일 목적지(스펙 app-shell 2-1) — 여행 · 설정 화면 제목도 같은 문자열 -->
-    <string name="nav_home">홈</string>
-    <string name="nav_trips">여행</string>
+    <!-- 목적지(스펙 app-shell-v5 2-1 · D33) — 레일 글자 · 화면 제목 공통 -->
+    <string name="nav_records">기록</string>
+    <string name="nav_trips">내 여행</string>
+    <string name="nav_recommendations">추천</string>
     <string name="nav_settings">설정</string>
 
-    <!-- 「이어서 쓰기」 띠 -->
-    <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
-    <string name="draft_banner_action">이어서 쓰기</string>
+    <!-- 「이어서 쓰기」 띠 — 작성 중 내용(D27) -->
+    <string name="unfinished_input_banner_text">작성 중이던 내용이 있어요</string>
+    <string name="unfinished_input_banner_action">이어서 쓰기</string>
 
-    <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
-    <string name="recording_status_recording">기록 중</string>
+    <!-- 여행 상태(표준 v0.4 TRIP_STATUS 코드명 · N8 · N25) · 경과(홈 · 주행 화면 공통). 일시정지는 #6 이름 그대로(N16) -->
+    <string name="trip_status_recording">기록 중</string>
     <string name="recording_status_paused">일시정지</string>
+    <string name="trip_status_completed">완료</string>
+    <string name="trip_status_interrupted">중단</string>
+    <string name="trip_status_canceled">취소</string>
     <string name="elapsed_minutes">경과 %1$d분</string>
     <string name="elapsed_hours_minutes">경과 %1$d시간 %2$d분</string>
 
+    <!-- 주행 화면(스펙 app-shell-v5 2-5) -->
+    <string name="trip_name_default">새 여행</string>
+    <string name="trip_place_count">기록된 장소 %1$d</string>
+    <string name="map_placeholder">지도 준비 중</string>
+
     <!-- 버튼 -->
     <string name="action_record_place">이 장소 기록</string>
-    <string name="action_voice_input">음성 입력</string>
+    <string name="action_voice">음성</string>
     <string name="action_pause_recording">기록 일시정지</string>
     <string name="action_resume_recording">기록 재개</string>
+    <string name="action_end_trip">여행 종료</string>
+    <string name="action_start_trip">여행 시작</string>
+    <string name="action_open_recommendations">추천 보러 가기</string>
 
-    <!-- 「준비 중」 — 안내 한 줄 · 여행 · 설정 화면 안내 공통 -->
+    <!-- 기록 칸 최근 여행 자리(스펙 app-shell-v5 2-2 · N26) -->
+    <string name="recent_trip_empty">최근 여행이 없어요</string>
+
+    <!-- 여행 종료 확인 팝업(와이어프레임 A-08 · 스펙 app-shell-v5 2-6) -->
+    <string name="end_trip_confirm_body">현재 여행 기록을 종료할까요?</string>
+    <string name="end_trip_confirm_continue">계속 기록</string>
+    <string name="end_trip_confirm_end">종료</string>
+
+    <!-- 주행 제한 안내(스펙 app-shell-v5 2-8) -->
+    <string name="driving_restricted">정차 후 볼 수 있어요</string>
+
+    <!-- 「준비 중」 — 안내 한 줄 · 준비 중 화면 안내 공통 -->
     <string name="not_ready">준비 중</string>
 
     <!-- debug 빌드 SDK 확인 카드(스펙 D9) -->
@@ -82,6 +105,53 @@
     <string name="picker_limit">가 볼 장소는 최대 %1$d곳까지 고정할 수 있어요</string>
     <string name="picker_pin">고정</string>
     <string name="picker_unpin">고정 해제</string>
+    <!-- 추천(#37 · 와이어프레임 v6 B-01 ~ B-05) — 이름 · 태그명 · 주소는 데이터 값이라 여기 없음 -->
+    <string name="reco_demo_data">시연용 데이터</string>
+    <string name="reco_selected">✓ %1$s</string>
+    <string name="reco_region_title">어느 지역으로 갈까요?</string>
+    <string name="reco_sido_label">시도</string>
+    <string name="reco_sigungu_label">%1$s · 시군구</string>
+    <string name="reco_pick_sido">시도를 고르면 시군구가 보여요</string>
+    <string name="reco_region_empty">아직 공개된 로드맵이 없어요</string>
+    <string name="reco_region_all">전체</string>
+    <string name="reco_trip_cnt">로드맵 %1$d</string>
+    <string name="reco_region_name">%1$s %2$s</string>
+    <string name="reco_change_region">지역 바꾸기</string>
+    <string name="reco_sort_rating">별점순</string>
+    <string name="reco_sort_latest">최신순</string>
+    <string name="reco_filter_all">전체</string>
+    <string name="reco_filter_child">아이와</string>
+    <string name="reco_filter_spouse">부부</string>
+    <string name="reco_filter_solo">혼자</string>
+    <string name="reco_open_tags"># 태그별로 보기</string>
+    <string name="reco_rating">★ %1$.1f · %2$d명</string>
+    <string name="reco_place_cnt">장소 %1$d곳</string>
+    <string name="reco_card_sub">장소 %1$d곳 · %2$s</string>
+    <string name="reco_ranking_empty">조건에 맞는 로드맵이 없어요</string>
+    <string name="reco_tags_title">%1$s · 이런 점이 좋았어요</string>
+    <string name="reco_tags_sub">공개 로드맵 %1$d개 · 장소에 붙은 태그 기준</string>
+    <string name="reco_tagged_title">「%1$s」 로드맵 · %2$d개</string>
+    <string name="reco_tags_empty">아직 붙은 태그가 없어요</string>
+    <string name="reco_guide_here">여기로 안내</string>
+    <string name="reco_guide_from_first">★ 첫 장소부터 안내</string>
+    <string name="reco_meta_separator">" · "</string>
+
+    <!-- 동행자 유형(표준 v0.4 COMPANION_TYPE 코드명) -->
+    <string name="companion_solo">혼자</string>
+    <string name="companion_spouse">배우자</string>
+    <string name="companion_child">아이</string>
+    <string name="companion_parent">부모님</string>
+    <string name="companion_pet">반려동물</string>
+
+    <!-- 안내 확인 팝업(B-05) · 결과 한 줄 -->
+    <string name="guidance_confirm_title">%1$s까지 안내할까요?</string>
+    <string name="guidance_confirm_body_first">%1$s · %2$s의 「%3$s」 첫 장소</string>
+    <string name="guidance_confirm_body_nth">%1$s · %2$s의 「%3$s」 %4$d번째 장소</string>
+    <string name="guidance_cancel">취소</string>
+    <string name="guidance_start">안내 시작</string>
+    <string name="guidance_requested">차량 내비에 길안내를 요청했어요</string>
+    <string name="guidance_failed">길안내를 시작할 수 없어요</string>
+    <string name="guidance_demo_only">시연용 · 실제 안내는 준비 중</string>
 
     <string name="yes">예</string>
     <string name="no">아니요</string>

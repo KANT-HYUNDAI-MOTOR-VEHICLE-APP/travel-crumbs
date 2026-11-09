@@ -139,3 +139,11 @@
 - 남은 결정: `_workspace/4/05_open_findings_screen.md` — 심사 1(release 지도 박스 「예시」 표시) · 심사 2 · X2(a) · X3 · X4 · 희주 님과 맞출 U64 ~ U67
 - 막힘: 없음
 - 다음: 푸시(스택 순서 · PR #20 머지 확인) · 희주 님께 U64 ~ U67 질문 · release 지도 박스 표시 결정
+
+## develop 받기(충돌 해소) — 2026-11-09 · 노희주(성호님 동의 · 토큰 소진으로 대신)
+- 산출물: navigation/sync 머지 커밋 46dde72(origin/navigation/main bdf25b0 + origin/develop 0f85033) · sync PR(→ navigation/main) → develop PR #38 충돌 해소
+- 에이전트: builder(sync-builder-38) × 1(이어서 1)
+- 충돌 38파일: 앱 틀 · 레일 4칸 · 주행 화면 · 테마(#34) · 추천(#37) · TripStatus · UnfinishedInput 은 develop 판 · 성호님 기능(가 볼 장소 · 길안내 요청 · 여행 핀 · 서버 보내기 · A-14 · NAVI_REQ_STATUS)은 모두 살림 · 「기록」 칸 안 기존 자리. #14 안 #6 사본 때문에 공통 조상을 1ff08ab 로 잡고 3자 비교(develop 이 지운 옛 파일 되살아남 막음)
+- 데이터 표준(T02) 위반 해소: Room 표 `pins` → `navi_req_log`(정의서 2-2 로그 예시 · 한 행 = 안내 시작 1건 · 전송 대기 큐) · PK navi_req_log_no · Room 1 → 2 마이그레이션(복사 방식 · minSdk 28) · 시험 AppDatabaseMigrationTest · 서버 DTO 이름은 그대로(API 계약 불변)
+- 센서: gradle lint · 시험 287 · assembleRelease 녹색 · 매니페스트 · 비밀 · 위생 · 데이터 표준 위반 0(경고 1: 로그 표 created_user_no — 정의서 「제안」 · 기기 큐에 계정 칸 없음)
+- 남은 것: placeId · utcOffsetSeconds · uploadState 표준 단어 등록(지수님) · navigation 스펙의 표 이름 고침 · 추천 「안내 시작」 포트를 NaviRepository 로 잇기(#38 머지 뒤)

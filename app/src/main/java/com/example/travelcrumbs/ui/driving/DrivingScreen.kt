@@ -1,33 +1,43 @@
 package com.example.travelcrumbs.ui.driving
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.domain.model.RecordingStatus
+import com.example.travelcrumbs.ui.components.DangerButton
 import com.example.travelcrumbs.ui.components.NoticeLine
-import com.example.travelcrumbs.ui.components.TcButton
-import com.example.travelcrumbs.ui.components.TcButtonKind
-import com.example.travelcrumbs.ui.components.TripStatusCard
+import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
-import com.example.travelcrumbs.ui.components.recordingStatusText
+import com.example.travelcrumbs.ui.components.tripNameText
+import com.example.travelcrumbs.ui.components.tripStatusText
+import com.example.travelcrumbs.ui.driving.components.EndTripConfirmDialog
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * 주행 전용 화면(스펙 app-shell 2-5) — 상태 · 경과 · 큰 버튼 3개만.
- * 입력 칸 · 스크롤 · 애니메이션 · 레일 · 길안내 버튼 없음. 좁으면 버튼을 세로로 쌓음.
+ * 주행 전용 화면(스펙 app-shell-v5 2-5) — 레일 오른쪽 내용 영역에 그림(D29).
+ * 1 여행명 · 상태 · 경과 → 2 기록된 장소 수 → 3 지도 자리(남는 공간 · 창이 작으면 높이 0 까지 줄어듦) → 4 버튼 4개(D31).
+ * 입력 칸 · 스크롤 · 애니메이션 · 길안내 버튼 · 「새 여행 시작」 없음. 버튼은 한 줄 4개 · 좁으면 2 × 2(순서 그대로).
  */
 @Composable
 fun DrivingScreen(
@@ -37,74 +47,124 @@ fun DrivingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val stackButtons = maxWidth < Dimens.DrivingButtonsRowMinWidth
+        val twoByTwo = maxWidth < Dimens.DrivingButtonsRowMinWidth
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            // 여행 상태(지시서 14장) — 상태 점 + 상태명 + 경과
-            TripStatusCard(
-                statusText = recordingStatusText(uiState.recording),
-                active = uiState.recording == RecordingStatus.RECORDING,
-                elapsedText = elapsedText(uiState.elapsedMinutes),
+            Text(
+                text = tripNameText(uiState.tripName),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.weight(1f))
-            // 큰 버튼 3개 — 「이 장소 기록」만 Primary(한 화면에 주요 행동 하나 · 지시서 4장)
-            val buttons: List<DrivingAction> = listOf(
-                DrivingAction(R.string.action_record_place, R.drawable.ic_place, TcButtonKind.PRIMARY, viewModel::onRecordPlace),
-                DrivingAction(R.string.action_voice_input, R.drawable.ic_mic, TcButtonKind.SECONDARY, viewModel::onVoiceInput),
-                DrivingAction(
-                    uiState.recording.toggleLabelRes(),
-                    uiState.recording.toggleIconRes(),
-                    TcButtonKind.SECONDARY,
-                    viewModel::onTogglePause,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Dimens.ScreenPadding),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = tripStatusText(uiState.tripStatus),
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+                Text(
+                    text = elapsedText(uiState.elapsedMinutes),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+            }
+            Text(
+                text = stringResource(R.string.trip_place_count, uiState.placeCount),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+            )
+            MapPlaceholder(modifier = Modifier.weight(1f))
+            val buttons = listOf(
+                DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace, DrivingButtonKind.PRIMARY),
+                DrivingButtonSpec(R.string.action_voice, enabled = true, onClick = viewModel::onVoice),
+                DrivingButtonSpec(
+                    labelRes = if (uiState.pauseButtonShowsResume) R.string.action_resume_recording else R.string.action_pause_recording,
+                    enabled = uiState.pauseButtonEnabled,
+                    onClick = viewModel::onTogglePause,
                 ),
+                DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip, DrivingButtonKind.DANGER),
             )
-            if (stackButtons) {
-                Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { DrivingButton(it, Modifier.fillMaxWidth()) }
-                }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { DrivingButton(it, Modifier.weight(1f)) }
+            val rows = if (twoByTwo) buttons.chunked(2) else listOf(buttons)
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing)) {
+                rows.forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing),
+                    ) {
+                        row.forEach { DrivingButton(it, Modifier.weight(1f)) }
+                    }
                 }
             }
             NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
         }
     }
+
+    if (uiState.endConfirmVisible) {
+        EndTripConfirmDialog(
+            onContinue = viewModel::onContinueRecording,
+            onEnd = viewModel::onConfirmEndTrip,
+        )
+    }
 }
 
-private class DrivingAction(
+/** 지도 자리(N15) — 테두리 영역 + 한 줄 「지도 준비 중」 · 누를 수 없음 · 움직임 없음. */
+@Composable
+private fun MapPlaceholder(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clipToBounds()
+            .border(Dimens.MapPlaceholderBorder, MaterialTheme.colorScheme.outline),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.map_placeholder),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+/** 버튼 모양(디자인 시스템 12절) — 주요 행동 「이 장소 기록」 하나만 Primary · 「여행 종료」는 Danger · 나머지 Secondary. */
+private enum class DrivingButtonKind { PRIMARY, SECONDARY, DANGER }
+
+private data class DrivingButtonSpec(
     val labelRes: Int,
-    val iconRes: Int,
-    val kind: TcButtonKind,
+    val enabled: Boolean,
     val onClick: () -> Unit,
+    val kind: DrivingButtonKind = DrivingButtonKind.SECONDARY,
 )
 
 @Composable
 private fun DrivingButton(
-    action: DrivingAction,
+    spec: DrivingButtonSpec,
     modifier: Modifier = Modifier,
 ) {
-    TcButton(
-        text = stringResource(action.labelRes),
-        onClick = action.onClick,
-        kind = action.kind,
-        iconRes = action.iconRes,
-        minHeight = Dimens.DrivingButtonHeight,
-        textStyle = MaterialTheme.typography.headlineMedium,
-        modifier = modifier,
-    )
-}
-
-private fun RecordingStatus.toggleLabelRes(): Int = when (this) {
-    RecordingStatus.RECORDING -> R.string.action_pause_recording
-    RecordingStatus.PAUSED -> R.string.action_resume_recording
-}
-
-private fun RecordingStatus.toggleIconRes(): Int = when (this) {
-    RecordingStatus.RECORDING -> R.drawable.ic_pause
-    RecordingStatus.PAUSED -> R.drawable.ic_play
+    val label: @Composable RowScope.() -> Unit = {
+        Text(
+            text = stringResource(spec.labelRes),
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    val sized = modifier.height(Dimens.DrivingButtonHeight)
+    when (spec.kind) {
+        DrivingButtonKind.PRIMARY -> PrimaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
+        DrivingButtonKind.SECONDARY -> SecondaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
+        DrivingButtonKind.DANGER -> DangerButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
+    }
 }

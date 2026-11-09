@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +16,7 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.ui.home.PlaceStatItem
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
@@ -58,7 +58,7 @@ fun SdkCheckCard(
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(text = naviText(navi), style = MaterialTheme.typography.bodyLarge)
-                Button(onClick = onRefreshNavi) {
+                SecondaryButton(onClick = onRefreshNavi) {
                     Text(text = stringResource(R.string.navi_refresh))
                 }
             }

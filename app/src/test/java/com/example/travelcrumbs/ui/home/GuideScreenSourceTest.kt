@@ -25,7 +25,8 @@ class GuideScreenSourceTest {
         val root = projectRoot()
         val releaseText = File(root, "app/src/release").walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
         val mainStrings = File(root, "app/src/main/res/values/strings.xml").readText()
-        listOf("더미 경로", "시연용", "연동 실패").forEach { word ->
+        // 「시연용」 단독은 추천(#37)의 시드 데이터 표시 · 주석이 씀 — #4 더미 경로 문구만 잼
+        listOf("더미 경로", "시연용 더미", "연동 실패").forEach { word ->
             assertTrue("release 에 「$word」", word !in releaseText)
             assertTrue("main strings.xml 에 「$word」", word !in mainStrings)
         }

@@ -3,7 +3,7 @@ package com.example.travelcrumbs.data.pin
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.PinUploadState
 import com.example.travelcrumbs.domain.model.RecordingProgress
-import com.example.travelcrumbs.domain.model.RecordingStatus
+import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.domain.uploadRetryDelayMillis
 import com.example.travelcrumbs.testing.FakeAccessTokenSource
 import com.example.travelcrumbs.testing.FakeAppApi
@@ -27,7 +27,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PinRepositoryTest {
 
-    private val recording = FakeRecordingStatusRepository(RecordingProgress(RecordingStatus.RECORDING, 0))
+    private val recording = FakeRecordingStatusRepository(RecordingProgress(TripStatus.RECORDING, 0))
     private val local = FakePinLocalDataSource()
     private val api = FakeAppApi()
     private val tokens = FakeAccessTokenSource()
@@ -192,7 +192,7 @@ class PinRepositoryTest {
 
     @Test
     fun `T80 일시정지 — 핀 0건`() = runTest {
-        recording.set(RecordingProgress(RecordingStatus.PAUSED, 3))
+        recording.set(RecordingProgress(TripStatus.PAUSED, 3))
         val repo = repository()
 
         assertFalse(repo.recordGuidanceStart("a"))
@@ -230,9 +230,9 @@ class PinRepositoryTest {
         val repo = repository()
 
         repo.recordGuidanceStart("a")
-        recording.set(RecordingProgress(RecordingStatus.PAUSED, 1))
+        recording.set(RecordingProgress(TripStatus.PAUSED, 1))
         repo.recordGuidanceStart("b")
-        recording.set(RecordingProgress(RecordingStatus.RECORDING, 1))
+        recording.set(RecordingProgress(TripStatus.RECORDING, 1))
         repo.recordGuidanceStart("c")
 
         val pins = repo.pins.first()

@@ -8,9 +8,12 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.travelcrumbs.domain.model.DemoFeatures
+import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
+import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
+import com.example.travelcrumbs.ui.recommendations.RecommendationsViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
 
 /**
@@ -27,12 +30,14 @@ class ShellTestGraph(
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
     val recording = recordingRepositoryOf(time)
-    val drafts = draftRepositoryOf(time)
+    val inputs = unfinishedInputRepositoryOf(time)
     val savedState = SavedStateHandle()
     val navi = FakeNaviRepository()
     val catalog = FakePlaceCatalogRepository(places)
     val pinnedStore = FakePinnedPlacesStore(pinned, catalog)
     val pins = FakePinRepository()
+    val drivingSavedState = SavedStateHandle()
+    val guidance = FakeRouteGuidanceRequester()
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -45,11 +50,13 @@ class ShellTestGraph(
     }
 
     private fun create(modelClass: Class<*>): ViewModel = when (modelClass) {
-        AppShellViewModel::class.java -> AppShellViewModel(driving, drafts, savedState)
+        AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState)
         DrivingViewModel::class.java -> DrivingViewModel(
-            recording,
-            FakeRecordPlaceUseCase(),
-            FakeStartVoiceInputUseCase(),
+            recordingRepository = recording,
+            recordPlace = FakeRecordPlaceUseCase(),
+            startVoiceInput = FakeStartVoiceInputUseCase(),
+            drivingSignalRepository = driving,
+            savedStateHandle = drivingSavedState,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,
@@ -62,6 +69,11 @@ class ShellTestGraph(
             guideRequests = guideTrackerOf(navi, pins),
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
+        )
+        RecommendationsViewModel::class.java -> RecommendationsViewModel(
+            repository = SeedRecommendationRepository(),
+            requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
+            savedStateHandle = SavedStateHandle(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

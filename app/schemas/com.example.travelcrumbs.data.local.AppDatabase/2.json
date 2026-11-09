@@ -1,0 +1,55 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "4b1ffb2595401a5e9e9fe501ca5621b8",
+    "entities": [
+      {
+        "tableName": "navi_req_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`navi_req_log_no` INTEGER NOT NULL, `placeId` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `utcOffsetSeconds` INTEGER NOT NULL, `uploadState` TEXT NOT NULL, PRIMARY KEY(`navi_req_log_no`))",
+        "fields": [
+          {
+            "fieldPath": "sequence",
+            "columnName": "navi_req_log_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placeId",
+            "columnName": "placeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utcOffsetSeconds",
+            "columnName": "utcOffsetSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadState",
+            "columnName": "uploadState",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "navi_req_log_no"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4b1ffb2595401a5e9e9fe501ca5621b8')"
+    ]
+  }
+}

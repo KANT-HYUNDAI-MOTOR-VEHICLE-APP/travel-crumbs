@@ -5,7 +5,7 @@ import androidx.room.Room
 import com.example.travelcrumbs.data.auth.AccessTokenSource
 import com.example.travelcrumbs.data.auth.DebugSeedAccessTokenSource
 import com.example.travelcrumbs.data.local.AppDatabase
-import com.example.travelcrumbs.data.local.PinDao
+import com.example.travelcrumbs.data.local.NaviReqLogDao
 import com.example.travelcrumbs.data.pin.DefaultPinRepository
 import com.example.travelcrumbs.data.pin.JobSchedulerPinUploadScheduler
 import com.example.travelcrumbs.data.pin.PinLocalDataSource
@@ -48,9 +48,11 @@ abstract class PinModule {
         @Provides
         @Singleton
         fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.FILE_NAME).build()
+            Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.FILE_NAME)
+                .addMigrations(AppDatabase.MIGRATION_1_2)
+                .build()
 
         @Provides
-        fun providePinDao(database: AppDatabase): PinDao = database.pinDao()
+        fun provideNaviReqLogDao(database: AppDatabase): NaviReqLogDao = database.naviReqLogDao()
     }
 }

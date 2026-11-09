@@ -26,7 +26,7 @@ class RoomPinLocalDataSourceTest {
         database?.close()
         val db = Room.databaseBuilder(context, AppDatabase::class.java, FILE).allowMainThreadQueries().build()
         database = db
-        return RoomPinLocalDataSource(db.pinDao())
+        return RoomPinLocalDataSource(db.naviReqLogDao())
     }
 
     @After

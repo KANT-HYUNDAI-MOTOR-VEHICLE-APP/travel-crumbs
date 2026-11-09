@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
@@ -23,13 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.ui.components.TcButton
-import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
 import com.example.travelcrumbs.ui.home.RouteRequestState
 import com.example.travelcrumbs.ui.theme.Dimens
-import com.example.travelcrumbs.ui.theme.TcColors
 
 /** 길안내 연결 화면의 사용자 행동 — 모두 ViewModel 메서드(navigation 3.1). */
 data class GuideScreenActions(
@@ -82,6 +83,9 @@ fun GuideConnectionContent(
  */
 @Composable
 private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifier = Modifier) {
+    // 지도 · 경로(디자인 시스템 17절) — 목적지 Brand/Primary · 현재 위치와 이동 경로 Brand/Secondary(Oat Beige)
+    val destinationColor = MaterialTheme.colorScheme.primary
+    val routeColor = MaterialTheme.colorScheme.secondary
     OutlinedCard(modifier = modifier.testTag(GUIDE_MAP_TAG)) {
         Box(modifier = Modifier.fillMaxSize()) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -90,10 +94,10 @@ private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifie
                 val destination = Offset(size.width - inset, inset)
                 val origin = Offset(inset, size.height - inset)
                 if (dummyRoute) {
-                    drawLine(TcColors.RouteOatBeige, origin, destination, strokeWidth = Dimens.GuideMapLineWidth.toPx())
+                    drawLine(routeColor, origin, destination, strokeWidth = Dimens.GuideMapLineWidth.toPx())
                 }
-                drawCircle(color = TcColors.BrandPrimary, radius = radius, center = destination)
-                drawCircle(color = TcColors.BrandSecondary, radius = radius, center = origin)
+                drawCircle(color = destinationColor, radius = radius, center = destination)
+                drawCircle(color = routeColor, radius = radius, center = origin)
             }
             if (dummyRoute) {
                 DummyRouteNotice(
@@ -199,7 +203,7 @@ private fun GuideFailureBox(state: HomeUiState, actions: GuideScreenActions) {
                 text = stringResource(R.string.guide_retry),
                 enabled = state.retryEnabled,
                 onClick = actions.onRetry,
-                kind = TcButtonKind.PRIMARY,
+                primary = true,
             )
             if (state.dummyRouteVisible) {
                 DummyRouteButton(enabled = state.dummyRouteEnabled, onClick = actions.onShowDummyRoute)
@@ -214,16 +218,20 @@ internal fun GuideActionButton(
     text: String,
     enabled: Boolean,
     onClick: () -> Unit,
-    kind: TcButtonKind = TcButtonKind.SECONDARY,
+    primary: Boolean = false,
 ) {
-    TcButton(
-        text = text,
-        onClick = onClick,
-        enabled = enabled,
-        kind = kind,
-        modifier = Modifier.widthIn(min = Dimens.PlaceButtonMinWidth),
-        minHeight = Dimens.HomeButtonHeight,
-    )
+    val modifier = Modifier
+        .heightIn(min = Dimens.HomeButtonHeight)
+        .widthIn(min = Dimens.PlaceButtonMinWidth)
+    val label: @Composable RowScope.() -> Unit = {
+        Text(text = text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    }
+    // 「다시 시도」만 Primary(실패 박스의 주요 행동 하나 · 디자인 시스템 12절) · 나머지는 Secondary
+    if (primary) {
+        PrimaryButton(onClick = onClick, enabled = enabled, modifier = modifier, content = label)
+    } else {
+        SecondaryButton(onClick = onClick, enabled = enabled, modifier = modifier, content = label)
+    }
 }
 
 /** 테스트가 화면 · 박스 위치를 재는 이름표. */

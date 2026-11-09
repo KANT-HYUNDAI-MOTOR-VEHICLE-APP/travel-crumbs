@@ -54,7 +54,7 @@ class HomeGuideScreenTest {
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
-                    HomeScreen(showSdkCard = false)
+                    HomeScreen(onOpenRecommendations = {}, showSdkCard = false)
                 }
             }
         }
@@ -236,11 +236,11 @@ class HomeGuideScreenTest {
 
         compose.onNodeWithText(text(R.string.nav_trips)).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText(text(R.string.nav_home)).performClick()
+        compose.onNodeWithText(text(R.string.nav_records)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(GUIDE_SCREEN_TAG).assertIsDisplayed()
 
-        compose.onNodeWithText(text(R.string.nav_home)).performClick()
+        compose.onNodeWithText(text(R.string.nav_records)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(GUIDE_SCREEN_TAG).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.guide_retry)).assertIsDisplayed()
@@ -259,7 +259,7 @@ class HomeGuideScreenTest {
         val close = compose.onNodeWithText(text(R.string.guide_close)).getBoundsInRoot()
         assertTrue("실패 박스가 화면 안", failure.bottom <= screen.bottom)
         assertTrue("닫기가 화면 안", close.top >= screen.top)
-        compose.onNodeWithText(text(R.string.nav_home)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.nav_records)).assertIsDisplayed()
         assertTrue(compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isEmpty())
         val scrollable = SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollBy)
         assertTrue("전용 화면 안 스크롤 없음", compose.onAllNodes(scrollable and hasAnyAncestor(hasTestTag(GUIDE_SCREEN_TAG))).fetchSemanticsNodes().isEmpty())

@@ -3,40 +3,28 @@ package com.example.travelcrumbs.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * 컬러 토큰 — 디자인 시스템 지시서 5장(docs/design/design-system.md).
- * 화면은 MaterialTheme.colorScheme 을 먼저 쓰고, Material 자리에 없는 값(선택 배경 · 지도 핀 등)만 여기서 꺼냄.
+ * 색 토큰 — 디자인 시스템 5절 이름 그대로(#34). 화면은 이 객체를 직접 쓰지 않고 [TravelCrumbsTheme] 의
+ * `MaterialTheme.colorScheme` 를 거쳐 씀(매핑은 Theme.kt 한 곳).
+ * 대비(WCAG 4.5:1 이상 · Base 기준): Text/Primary 16.5 · Text/Secondary 10.7 · Text/Muted 6.1 ·
+ * Text/OnPrimary on Brand/Primary 8.9 · Brand/Secondary on Background/Selected 7.9 · Danger on Background/Surface 4.8.
+ * Danger 는 Background/Elevated 위(4.3)에 쓰지 않음.
  */
-object TcColors {
-    // Brand
+object TravelCrumbsColors {
     val BrandPrimary = Color(0xFFF2A766)
     val BrandSecondary = Color(0xFFE8D3A8)
-    val BrandLavender = Color(0xFFBDB8E8)
-    val BrandBlueGray = Color(0xFFA9B0BA)
 
-    // Background
     val BackgroundBase = Color(0xFF101922)
     val BackgroundSurface = Color(0xFF18232D)
     val BackgroundElevated = Color(0xFF202C36)
     val BackgroundSelected = Color(0xFF3A3935)
-    val BackgroundDim = Color(0x99000000)
 
-    // Text
     val TextPrimary = Color(0xFFF7F7F5)
     val TextSecondary = Color(0xFFC4CAD0)
     val TextMuted = Color(0xFF8F99A3)
     val TextOnPrimary = Color(0xFF101922)
 
-    // Border
     val BorderDefault = Color(0xFF65717C)
     val BorderSubtle = Color(0xFF35424D)
-    val BorderFocus = Color(0xFFE8D3A8)
 
-    // Semantic
-    val Success = Color(0xFF55A091)
-    val Warning = Color(0xFFE6B85C)
     val Danger = Color(0xFFD96C68)
-    val Info = Color(0xFFBDB8E8)
-
-    /** 지도 · 경로(17장) — 이동 경로 · 출발지는 Oat Beige(= Brand/Secondary 값). */
-    val RouteOatBeige = BrandSecondary
 }
