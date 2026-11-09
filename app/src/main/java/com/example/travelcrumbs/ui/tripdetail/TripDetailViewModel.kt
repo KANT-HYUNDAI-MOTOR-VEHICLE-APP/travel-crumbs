@@ -15,7 +15,7 @@ import com.example.travelcrumbs.ui.components.UiMessage
 import com.example.travelcrumbs.ui.components.roadmapPlaces
 import com.example.travelcrumbs.ui.components.sketchPins
 import com.example.travelcrumbs.ui.components.toSummary
-import com.example.travelcrumbs.ui.tagsheet.PlaceTagSheetHolder
+import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,11 +58,23 @@ class TripDetailViewModel @Inject constructor(
     private val trip = savedStateHandle.getStateFlow<Long?>(KEY_TRIP, null)
         .flatMapLatest { no -> if (no == null) flowOf(null) else tripRepository.trip(no) }
 
+    private val deleted = MutableStateFlow(false)
+
     private val dialogs = combine(
         savedStateHandle.getStateFlow<String?>(KEY_RENAME, null),
         savedStateHandle.getStateFlow(KEY_CONSENT_ASK, false),
         message,
-    ) { rename, ask, shown -> Triple(rename, ask, shown) }
+        savedStateHandle.getStateFlow(KEY_DELETE_ASK, false),
+        deleted,
+    ) { rename, ask, shown, deleteAsk, gone -> Dialogs(rename, ask, shown, deleteAsk, gone) }
+
+    private data class Dialogs(
+        val rename: String?,
+        val consentAsk: Boolean,
+        val message: UiMessage?,
+        val deleteAsk: Boolean,
+        val deleted: Boolean,
+    )
 
     val uiState: StateFlow<TripDetailUiState> = combine(
         trip,
@@ -70,7 +82,7 @@ class TripDetailViewModel @Inject constructor(
         ratingRepository.records,
         dialogs,
         tagSheet.item,
-    ) { record, tags, ratings, (rename, ask, shown), sheet ->
+    ) { record, tags, ratings, d, sheet ->
         val names = tags.associate { it.tagNo to it.tagNm }
         val mine = record?.let { ratings.ratingOf(AppConfig.LOCAL_TRIP_RECO_NO_OFFSET + it.tripNo) }
         TripDetailUiState(
@@ -80,10 +92,12 @@ class TripDetailViewModel @Inject constructor(
             sketch = record?.sketchPins().orEmpty(),
             ratingAvg = mine?.ratingScore?.toDouble() ?: 0.0,
             ratingCnt = if (mine == null) 0 else 1,
-            renameDraft = rename,
-            consentAsk = ask,
+            renameDraft = d.rename,
+            consentAsk = d.consentAsk,
+            deleteAsk = d.deleteAsk,
+            deleted = d.deleted,
             tagSheet = sheet,
-            message = shown,
+            message = d.message,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -159,6 +173,31 @@ class TripDetailViewModel @Inject constructor(
 
     fun onSheetSave() = tagSheet.save()
 
+    /** 「여행 삭제」 — 확인 팝업만 엶. */
+    fun onAskDelete() {
+        savedStateHandle[KEY_DELETE_ASK] = true
+    }
+
+    fun onDismissDelete() {
+        savedStateHandle[KEY_DELETE_ASK] = false
+    }
+
+    /** 확인 「지우기」 — 논리 삭제(deleted_yn = Y) · 보관함 · 추천에서 빠짐 · 화면은 목록으로. */
+    fun onConfirmDelete() {
+        val tripNo = savedStateHandle.get<Long>(KEY_TRIP) ?: return
+        savedStateHandle[KEY_DELETE_ASK] = false
+        viewModelScope.launch {
+            tripRepository.deleteTrip(tripNo)
+            deleted.value = true
+        }
+    }
+
+    /** 화면이 삭제 끝을 받음. */
+    fun onDeletedHandled() {
+        deleted.value = false
+        savedStateHandle[KEY_TRIP] = null
+    }
+
     fun onMessageShown() {
         message.value = null
     }
@@ -167,5 +206,6 @@ class TripDetailViewModel @Inject constructor(
         const val KEY_TRIP = "trip_detail_trip_no"
         const val KEY_RENAME = "trip_detail_rename"
         const val KEY_CONSENT_ASK = "trip_detail_consent_ask"
+        const val KEY_DELETE_ASK = "trip_detail_delete_ask"
     }
 }

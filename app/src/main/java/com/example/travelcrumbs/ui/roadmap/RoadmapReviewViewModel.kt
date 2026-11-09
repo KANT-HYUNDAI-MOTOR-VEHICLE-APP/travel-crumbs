@@ -14,7 +14,7 @@ import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.Visibility
 import com.example.travelcrumbs.ui.components.roadmapPlaces
 import com.example.travelcrumbs.ui.components.sketchPins
-import com.example.travelcrumbs.ui.tagsheet.PlaceTagSheetHolder
+import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi

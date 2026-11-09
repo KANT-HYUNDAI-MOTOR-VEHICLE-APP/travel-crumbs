@@ -1,13 +1,10 @@
-package com.example.travelcrumbs.ui.tagsheet
+package com.example.travelcrumbs.ui.components
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
-import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
-import com.example.travelcrumbs.ui.components.TagChipItem
-import com.example.travelcrumbs.ui.components.UiMessage
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow

@@ -2,6 +2,7 @@ package com.example.travelcrumbs.data.trip
 
 import com.example.travelcrumbs.data.local.TagMstEntity
 import com.example.travelcrumbs.data.local.TravelDao
+import com.example.travelcrumbs.data.local.YesNo
 import com.example.travelcrumbs.data.recommendation.RecommendationSeed
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
@@ -36,7 +37,7 @@ class LocalTagRepository @Inject constructor(
                 TagMstEntity(
                     tagNo = tag.tagNo,
                     tagNm = tag.tagNm,
-                    useYn = "Y",
+                    useYn = YesNo.YES,
                     sortOrd = index + 1,
                     createdAt = now,
                     createdUserNo = AppConfig.LOCAL_USER_NO,

@@ -19,7 +19,7 @@
 
     <!-- 「내비 보기」 — 차량 내비 앱의 실행 Intent 를 찾음(패키지 공개 범위 · targetSdk 30+) · data/navi/NaviAppDataSource(#51 U0) -->
     <queries>
-        <package android:name="ai.umos.maps.android.navigation.app" />
+        <package android:name="${naviPackage}" />
     </queries>
 
     <application

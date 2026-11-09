@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.user
 import com.example.travelcrumbs.data.local.TravelDao
 import com.example.travelcrumbs.data.local.UserConsentHistEntity
 import com.example.travelcrumbs.data.local.UserMstEntity
+import com.example.travelcrumbs.data.local.YesNo
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentState
@@ -101,7 +102,7 @@ class LocalCurrentUserRepository @Inject constructor(
             UserConsentHistEntity(
                 userNo = userNo,
                 consentTypeCd = type.name,
-                consentYn = if (agreed) YES else NO,
+                consentYn = YesNo.of(agreed),
                 createdAt = now,
                 createdUserNo = userNo,
                 updatedAt = now,
@@ -109,16 +110,11 @@ class LocalCurrentUserRepository @Inject constructor(
             ),
         )
     }
-
-    private companion object {
-        const val YES = "Y"
-        const val NO = "N"
-    }
 }
 
 /** 동의 이력(오래된 순) → 유형별 마지막 행. 모르는 코드는 버림. */
 internal fun latestByType(rows: List<UserConsentHistEntity>): Map<ConsentType, ConsentState> =
     rows.mapNotNull { row ->
         ConsentType.entries.firstOrNull { it.name == row.consentTypeCd }
-            ?.let { ConsentState(it, row.consentYn == "Y", row.createdAt) }
+            ?.let { ConsentState(it, row.consentYn == YesNo.YES, row.createdAt) }
     }.associateBy { it.type }

@@ -4,6 +4,7 @@ import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RecommendedPlace
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
+import com.example.travelcrumbs.domain.model.SidoNames
 import com.example.travelcrumbs.domain.model.SidoRegion
 import com.example.travelcrumbs.domain.model.Tag
 
@@ -30,18 +31,10 @@ internal object RecommendationSeed {
     private val GANGNEUNG = Region(GANGWON, "강릉시")
     private val YANGYANG = Region(GANGWON, "양양군")
 
-    val sidoRegions: List<SidoRegion> = listOf(
-        SidoRegion("서울", emptyList()),
-        SidoRegion("경기", emptyList()),
-        SidoRegion(GANGWON, listOf("속초시", "강릉시", "양양군", "춘천시", "평창군")),
-        SidoRegion("충북", emptyList()),
-        SidoRegion("충남", emptyList()),
-        SidoRegion("전북", emptyList()),
-        SidoRegion("전남", emptyList()),
-        SidoRegion("경북", emptyList()),
-        SidoRegion("경남", emptyList()),
-        SidoRegion("제주", emptyList()),
-    )
+    /** 시도 목록은 앱 안 한 곳(SidoNames) — 시드는 강원 시군구만 채움. */
+    val sidoRegions: List<SidoRegion> = SidoNames.ALL.map { sido ->
+        SidoRegion(sido, if (sido == GANGWON) listOf("속초시", "강릉시", "양양군", "춘천시", "평창군") else emptyList())
+    }
 
     val trips: List<RecommendedTrip> = listOf(
         RecommendedTrip(

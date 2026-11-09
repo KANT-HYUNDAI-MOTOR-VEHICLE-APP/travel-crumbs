@@ -31,7 +31,10 @@ object AppPreferencesKeys {
     /** 별점 기록(#41) — 안내 요청한 로드맵 · 내 별점 · 자동 팝업을 띄운 로드맵(JSON 한 덩어리 · 읽기 변환은 RatingLocalDataSource 한 곳). */
     val RATING_RECORDS_JSON = stringPreferencesKey("rating_records_json")
 
-    /** 로드맵 검토(A-05 · A-06)를 끝낸(저장 · 나중에) 여행 번호들(쉼표로 이음 · #51 U5) — 끝난 최근 여행이 여기 없으면 검토 화면. */
+    /**
+     * 로드맵 검토(A-05 · A-06)를 끝낸(저장 · 나중에) 여행 번호들(쉼표로 이음 · #51 U5) — 끝난 최근 여행이 여기 없으면 검토 화면.
+     * 서버 이행 때 trip 쪽(서버 여행 상태)으로 옮길 임시 자리.
+     */
     val REVIEWED_TRIP_NOS = stringPreferencesKey("reviewed_trip_nos")
 
     /** #6 판 키 — 앱 업데이트 직후 한 번 옮기거나(기록 상태 · N10) 지우기만(작성 중 내용 · D27) 함. */

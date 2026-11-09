@@ -118,6 +118,20 @@ class FakeTripRepository(
         state.value = state.value.map { it.copy(visibility = Visibility.PRIVATE) }
     }
 
+    override suspend fun clearLocations() {
+        state.value = state.value.map { trip ->
+            trip.copy(places = trip.places.map { it.copy(lat = null, lng = null, addr = null) })
+        }
+    }
+
+    override suspend fun deleteTrip(tripNo: Long) {
+        state.value = state.value.filterNot { it.tripNo == tripNo }
+    }
+
+    override suspend fun deleteAll() {
+        state.value = emptyList()
+    }
+
     private fun edit(tripNo: Long, change: (TripRecord) -> TripRecord) {
         state.value = state.value.map { if (it.tripNo == tripNo) change(it) else it }
     }

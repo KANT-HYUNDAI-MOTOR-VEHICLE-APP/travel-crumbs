@@ -11,6 +11,14 @@ import androidx.room.PrimaryKey
  * 일시 칸(*_at)은 epoch 밀리초(UTC) · 여부 칸(*_yn)은 "Y" / "N" · 코드 칸(*_cd)은 표준 코드값 영문 대문자.
  */
 
+/** 여부 칸(*_yn) 값 — 표준 도메인 「여부」 Y / N(코드 테이블 안 씀). 기기 안 표 · 저장소가 이 두 글자만 씀(#51 리뷰 K3). */
+object YesNo {
+    const val YES: String = "Y"
+    const val NO: String = "N"
+
+    fun of(value: Boolean): String = if (value) YES else NO
+}
+
 /**
  * 사용자 마스터(user_mst) — 기기 안 기본 사용자 1명(로그인 화면 전 · #51 U1). 로그인이 생기면 서버 user_mst 의 캐시.
  */
@@ -32,7 +40,7 @@ data class UserMstEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -58,7 +66,7 @@ data class UserConsentHistEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -99,7 +107,7 @@ data class TripMstEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -123,7 +131,7 @@ data class TripCompanionDtlEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -162,7 +170,7 @@ data class TripPlaceDtlEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -188,7 +196,7 @@ data class TagMstEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )
 
 /**
@@ -212,5 +220,5 @@ data class TripPlaceTagRelEntity(
     @ColumnInfo(name = "updated_user_no")
     val updatedUserNo: Long,
     @ColumnInfo(name = "deleted_yn")
-    val deletedYn: String = "N",
+    val deletedYn: String = YesNo.NO,
 )

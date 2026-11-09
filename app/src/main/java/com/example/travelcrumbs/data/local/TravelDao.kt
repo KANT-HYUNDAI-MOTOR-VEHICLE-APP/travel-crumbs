@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.Flow
 interface TravelDao {
     // 사용자 · 동의
 
-    @Query("SELECT * FROM user_mst WHERE user_no = :userNo AND deleted_yn = 'N'")
+    @Query("SELECT * FROM user_mst WHERE user_no = :userNo AND deleted_yn = '${YesNo.NO}'")
     fun user(userNo: Long): Flow<UserMstEntity?>
 
-    @Query("SELECT * FROM user_mst WHERE user_no = :userNo AND deleted_yn = 'N'")
+    @Query("SELECT * FROM user_mst WHERE user_no = :userNo AND deleted_yn = '${YesNo.NO}'")
     suspend fun userOnce(userNo: Long): UserMstEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -28,7 +28,7 @@ interface TravelDao {
     @Query("UPDATE user_mst SET nickname_nm = :nicknameNm, updated_at = :now, updated_user_no = :userNo WHERE user_no = :userNo")
     suspend fun updateNickname(userNo: Long, nicknameNm: String, now: Long)
 
-    @Query("SELECT * FROM user_consent_hist WHERE user_no = :userNo AND deleted_yn = 'N' ORDER BY user_consent_hist_no ASC")
+    @Query("SELECT * FROM user_consent_hist WHERE user_no = :userNo AND deleted_yn = '${YesNo.NO}' ORDER BY user_consent_hist_no ASC")
     fun consents(userNo: Long): Flow<List<UserConsentHistEntity>>
 
     @Insert
@@ -36,13 +36,13 @@ interface TravelDao {
 
     // 여행
 
-    @Query("SELECT * FROM trip_mst WHERE user_no = :userNo AND deleted_yn = 'N' ORDER BY trip_no DESC LIMIT 1")
+    @Query("SELECT * FROM trip_mst WHERE user_no = :userNo AND deleted_yn = '${YesNo.NO}' ORDER BY trip_no DESC LIMIT 1")
     fun latestTrip(userNo: Long): Flow<TripMstEntity?>
 
-    @Query("SELECT * FROM trip_mst WHERE user_no = :userNo AND deleted_yn = 'N' ORDER BY trip_no DESC LIMIT 1")
+    @Query("SELECT * FROM trip_mst WHERE user_no = :userNo AND deleted_yn = '${YesNo.NO}' ORDER BY trip_no DESC LIMIT 1")
     suspend fun latestTripOnce(userNo: Long): TripMstEntity?
 
-    @Query("SELECT * FROM trip_mst WHERE deleted_yn = 'N' ORDER BY trip_no DESC")
+    @Query("SELECT * FROM trip_mst WHERE deleted_yn = '${YesNo.NO}' ORDER BY trip_no DESC")
     fun trips(): Flow<List<TripMstEntity>>
 
     @Insert
@@ -63,7 +63,7 @@ interface TravelDao {
     )
     suspend fun changeVisibility(userNo: Long, from: String, to: String, now: Long)
 
-    @Query("SELECT * FROM trip_companion_dtl WHERE deleted_yn = 'N' ORDER BY trip_companion_no ASC")
+    @Query("SELECT * FROM trip_companion_dtl WHERE deleted_yn = '${YesNo.NO}' ORDER BY trip_companion_no ASC")
     fun companions(): Flow<List<TripCompanionDtlEntity>>
 
     @Insert
@@ -71,10 +71,10 @@ interface TravelDao {
 
     // 장소 · 태그
 
-    @Query("SELECT * FROM trip_place_dtl WHERE deleted_yn = 'N' ORDER BY trip_no ASC, place_ord ASC")
+    @Query("SELECT * FROM trip_place_dtl WHERE deleted_yn = '${YesNo.NO}' ORDER BY trip_no ASC, place_ord ASC")
     fun places(): Flow<List<TripPlaceDtlEntity>>
 
-    @Query("SELECT COUNT(*) FROM trip_place_dtl WHERE trip_no = :tripNo AND deleted_yn = 'N'")
+    @Query("SELECT COUNT(*) FROM trip_place_dtl WHERE trip_no = :tripNo AND deleted_yn = '${YesNo.NO}'")
     fun placeCount(tripNo: Long): Flow<Int>
 
     @Query("SELECT COALESCE(MAX(place_ord), 0) FROM trip_place_dtl WHERE trip_no = :tripNo")
@@ -89,7 +89,7 @@ interface TravelDao {
     )
     suspend fun updatePlace(tripPlaceNo: Long, userPlaceNm: String?, memo: String?, draftYn: String, now: Long)
 
-    @Query("SELECT * FROM trip_place_tag_rel WHERE deleted_yn = 'N' ORDER BY trip_place_tag_no ASC")
+    @Query("SELECT * FROM trip_place_tag_rel WHERE deleted_yn = '${YesNo.NO}' ORDER BY trip_place_tag_no ASC")
     fun placeTags(): Flow<List<TripPlaceTagRelEntity>>
 
     @Query("DELETE FROM trip_place_tag_rel WHERE trip_place_no = :tripPlaceNo")
@@ -113,7 +113,42 @@ interface TravelDao {
         if (tags.isNotEmpty()) insertPlaceTags(tags)
     }
 
-    @Query("SELECT * FROM tag_mst WHERE use_yn = 'Y' AND deleted_yn = 'N' ORDER BY sort_ord ASC")
+    /** 위치 칸 비우기(위치 수집 동의 철회 · #51 리뷰 P1) — 좌표 · 주소를 물리적으로 지움 · 장소 이름이 주소에서 온 처음 값이면 그것도. */
+    @Query(
+        "UPDATE trip_place_dtl SET lat = NULL, lng = NULL, addr = NULL, user_place_nm = :userPlaceNm, updated_at = :now " +
+            "WHERE trip_place_no = :tripPlaceNo",
+    )
+    suspend fun clearPlaceLocation(tripPlaceNo: Long, userPlaceNm: String?, now: Long)
+
+    /** 여행 하나 지우기(A-08 「여행 삭제」 · 논리 삭제 · #51 리뷰 P2) — 목록 · 추천 · 지금 여행에서 빠짐. */
+    @Query("UPDATE trip_mst SET deleted_yn = '${YesNo.YES}', updated_at = :now, updated_user_no = user_no WHERE trip_no = :tripNo")
+    suspend fun markTripDeleted(tripNo: Long, now: Long)
+
+    @Query(
+        "DELETE FROM trip_place_tag_rel WHERE trip_place_no IN (SELECT trip_place_no FROM trip_place_dtl " +
+            "WHERE trip_no IN (SELECT trip_no FROM trip_mst WHERE user_no = :userNo))",
+    )
+    suspend fun deletePlaceTagsOfUser(userNo: Long)
+
+    @Query("DELETE FROM trip_place_dtl WHERE trip_no IN (SELECT trip_no FROM trip_mst WHERE user_no = :userNo)")
+    suspend fun deletePlacesOfUser(userNo: Long)
+
+    @Query("DELETE FROM trip_companion_dtl WHERE trip_no IN (SELECT trip_no FROM trip_mst WHERE user_no = :userNo)")
+    suspend fun deleteCompanionsOfUser(userNo: Long)
+
+    @Query("DELETE FROM trip_mst WHERE user_no = :userNo")
+    suspend fun deleteTripsOfUser(userNo: Long)
+
+    /** 내 기록 모두 지우기(C-03 · 물리 삭제 · #51 리뷰 P2) — 여행 · 동행 · 장소 · 태그 관계. 동의 이력 · 사용자 · 태그 마스터는 남김. */
+    @Transaction
+    suspend fun deleteAllTripsOfUser(userNo: Long) {
+        deletePlaceTagsOfUser(userNo)
+        deletePlacesOfUser(userNo)
+        deleteCompanionsOfUser(userNo)
+        deleteTripsOfUser(userNo)
+    }
+
+    @Query("SELECT * FROM tag_mst WHERE use_yn = '${YesNo.YES}' AND deleted_yn = '${YesNo.NO}' ORDER BY sort_ord ASC")
     fun tags(): Flow<List<TagMstEntity>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

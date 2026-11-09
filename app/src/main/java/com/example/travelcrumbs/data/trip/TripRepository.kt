@@ -9,6 +9,7 @@ import com.example.travelcrumbs.data.local.TripCompanionDtlEntity
 import com.example.travelcrumbs.data.local.TripMstEntity
 import com.example.travelcrumbs.data.local.TripPlaceDtlEntity
 import com.example.travelcrumbs.data.local.TripPlaceTagRelEntity
+import com.example.travelcrumbs.data.local.YesNo
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -59,6 +61,15 @@ interface TripRepository {
 
     /** 추천 공개 동의 철회(C-03) — 내 공개 여행을 모두 비공개로. */
     suspend fun makeAllPrivate()
+
+    /** 위치 수집 동의 철회(C-03) — 내 장소의 좌표 · 주소(와 주소에서 온 이름)를 기기에서 지움(물리). */
+    suspend fun clearLocations()
+
+    /** A-08 「여행 삭제」 — 그 여행을 지움(논리 삭제 · 목록 · 추천에서 빠짐). */
+    suspend fun deleteTrip(tripNo: Long)
+
+    /** C-03 「내 기록 모두 지우기」 — 내 여행 · 동행 · 장소 · 태그 관계를 물리 삭제(진행 중 기록도 끝남 · 동의 이력은 남김). */
+    suspend fun deleteAll()
 }
 
 @Singleton
@@ -105,7 +116,7 @@ class LocalTripRepository @Inject constructor(
                 placeOrd = dao.lastPlaceOrd(tripNo) + 1,
                 userPlaceNm = location?.addr?.let(::placeNameFromAddr),
                 memo = null,
-                draftYn = if (draft) YES else NO,
+                draftYn = YesNo.of(draft),
                 lat = location?.lat,
                 lng = location?.lng,
                 addr = location?.addr,
@@ -125,7 +136,7 @@ class LocalTripRepository @Inject constructor(
             tripPlaceNo = tripPlaceNo,
             userPlaceNm = userPlaceNm?.trim()?.take(AppConfig.PLACE_NAME_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
             memo = memo?.trim()?.take(AppConfig.MEMO_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
-            draftYn = NO,
+            draftYn = YesNo.NO,
             tags = tagNos.sorted().map {
                 TripPlaceTagRelEntity(
                     tripPlaceNo = tripPlaceNo,
@@ -149,6 +160,32 @@ class LocalTripRepository @Inject constructor(
         dao.setVisibility(tripNo, visibility.name, timeSource.nowMillis())
     }
 
+    override suspend fun clearLocations() {
+        val userNo = users.currentUserNo()
+        val now = timeSource.nowMillis()
+        dao.places().first()
+            .filter { place -> place.lat != null || place.lng != null || place.addr != null }
+            .filter { place -> mineTripNos(userNo).contains(place.tripNo) }
+            .forEach { place ->
+                // 장소 이름이 주소에서 만든 처음 값 그대로면 그것도 위치 정보 — 비움. 사람이 고친 이름은 남김
+                val derived = place.addr?.let(::placeNameFromAddr)
+                val keep = place.userPlaceNm?.takeIf { it != derived }
+                dao.clearPlaceLocation(place.tripPlaceNo, keep, now)
+            }
+    }
+
+    private suspend fun mineTripNos(userNo: Long): Set<Long> =
+        dao.trips().first().filter { it.userNo == userNo }.map { it.tripNo }.toSet()
+
+    override suspend fun deleteTrip(tripNo: Long) {
+        dao.markTripDeleted(tripNo, timeSource.nowMillis())
+    }
+
+    override suspend fun deleteAll() {
+        dao.deleteAllTripsOfUser(users.currentUserNo())
+        dataStore.edit { it.remove(AppPreferencesKeys.REVIEWED_TRIP_NOS) }
+    }
+
     override suspend fun makeAllPrivate() {
         dao.changeVisibility(
             userNo = users.currentUserNo(),
@@ -158,10 +195,6 @@ class LocalTripRepository @Inject constructor(
         )
     }
 
-    private companion object {
-        const val YES = "Y"
-        const val NO = "N"
-    }
 }
 
 /** 표 행들 → 여행 목록(최근 시작 순 · 장소는 순서대로 · 태그는 붙인 순). 모르는 코드값은 안전 쪽(비공개 · 동행자 버림). */
@@ -194,7 +227,7 @@ internal fun assembleTrips(
                     placeOrd = p.placeOrd,
                     userPlaceNm = p.userPlaceNm,
                     memo = p.memo,
-                    draft = p.draftYn == "Y",
+                    draft = p.draftYn == YesNo.YES,
                     lat = p.lat,
                     lng = p.lng,
                     addr = p.addr,

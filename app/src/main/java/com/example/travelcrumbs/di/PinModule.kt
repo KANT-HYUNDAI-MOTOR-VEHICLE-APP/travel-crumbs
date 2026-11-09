@@ -6,7 +6,6 @@ import com.example.travelcrumbs.data.auth.AccessTokenSource
 import com.example.travelcrumbs.data.auth.DebugSeedAccessTokenSource
 import com.example.travelcrumbs.data.local.AppDatabase
 import com.example.travelcrumbs.data.local.NaviReqLogDao
-import com.example.travelcrumbs.data.local.TravelDao
 import com.example.travelcrumbs.data.pin.DefaultPinRepository
 import com.example.travelcrumbs.data.pin.JobSchedulerPinUploadScheduler
 import com.example.travelcrumbs.data.pin.PinLocalDataSource
@@ -55,8 +54,5 @@ abstract class PinModule {
 
         @Provides
         fun provideNaviReqLogDao(database: AppDatabase): NaviReqLogDao = database.naviReqLogDao()
-
-        @Provides
-        fun provideTravelDao(database: AppDatabase): TravelDao = database.travelDao()
     }
 }

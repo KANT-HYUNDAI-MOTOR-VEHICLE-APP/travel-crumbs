@@ -29,7 +29,7 @@ import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.ui.rating.RatingPopupHolder
-import com.example.travelcrumbs.ui.tagsheet.PlaceTagSheetHolder
+import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import com.example.travelcrumbs.ui.components.toSummary
 import com.example.travelcrumbs.domain.model.TripStatus

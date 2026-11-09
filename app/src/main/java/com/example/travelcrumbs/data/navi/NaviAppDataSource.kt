@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.navi
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.example.travelcrumbs.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,7 +41,7 @@ class NaviAppDataSource @Inject constructor(
     private companion object {
         const val TAG = "NaviAppDataSource"
 
-        /** Pleos Connect 차량 내비 앱 패키지(에뮬레이터 실측 · 매니페스트 <queries> 와 같은 글자). */
-        const val NAVI_PACKAGE = "ai.umos.maps.android.navigation.app"
+        /** Pleos Connect 차량 내비 앱 패키지(에뮬레이터 실측) — 값의 원본은 app/build.gradle.kts 하나(매니페스트 <queries> 와 공유). */
+        const val NAVI_PACKAGE = BuildConfig.NAVI_PACKAGE
     }
 }

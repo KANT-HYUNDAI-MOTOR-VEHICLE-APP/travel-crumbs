@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.domain
 
 import com.example.travelcrumbs.domain.model.Region
+import com.example.travelcrumbs.domain.model.SidoNames
 import com.example.travelcrumbs.domain.model.SketchPoint
 import com.example.travelcrumbs.domain.model.TripPlace
 
@@ -68,10 +69,7 @@ object RoadmapRules {
 
     private const val SKETCH_MARGIN = 0.12f
 
-    private val SHORT_SIDO = setOf(
-        "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
-        "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
-    )
+    private val SHORT_SIDO = SidoNames.ALL.toSet()
     private val SUFFIXES = listOf("특별자치시", "특별자치도", "특별시", "광역시", "도")
     private val FULL_SIDO = mapOf(
         "충청북도" to "충북",

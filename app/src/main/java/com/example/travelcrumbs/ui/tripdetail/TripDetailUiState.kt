@@ -18,6 +18,10 @@ data class TripDetailUiState(
     /** 여행명 고치기 팝업 입력 중 값 — null 이면 닫힘. */
     val renameDraft: String? = null,
     val consentAsk: Boolean = false,
+    /** 「여행 삭제」 확인 팝업. */
+    val deleteAsk: Boolean = false,
+    /** 삭제 끝 — 화면이 받아 보관함 목록으로. */
+    val deleted: Boolean = false,
     val tagSheet: PlaceTagSheetItem? = null,
     val message: UiMessage? = null,
 )

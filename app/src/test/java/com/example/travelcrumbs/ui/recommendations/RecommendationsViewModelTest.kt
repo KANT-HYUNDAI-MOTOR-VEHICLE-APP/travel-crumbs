@@ -74,7 +74,7 @@ class RecommendationsViewModelTest {
         start()
 
         assertEquals(RecommendationPage.REGION, state.page)
-        assertEquals(10, state.sidoNms.size)
+        assertEquals(com.example.travelcrumbs.domain.model.SidoNames.ALL, state.sidoNms)
         assertNull(state.selectedSidoNm)
         assertTrue(state.sigunguCards.isEmpty())
         assertTrue(state.demoData)
