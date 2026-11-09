@@ -38,13 +38,15 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle.getStateFlow(KEY_DESTINATION, AppDestination.START.id),
         savedStateHandle.getStateFlow(KEY_DRIVING_DESTINATION, AppDestination.DRIVING_START.id),
         unfinishedInputRepository.savedInput,
-    ) { driving, selected, drivingDestination, unfinished ->
+        savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
+    ) { driving, selected, drivingDestination, unfinished, recommendationsEntry ->
         AppShellUiState(
             // 첫 값 전엔 모름 → 주행처럼(안전 쪽 · #6 D12)
             drivingState = driving ?: DrivingState.UNKNOWN,
             selectedDestination = AppDestination.fromId(selected),
             drivingDestination = AppDestination.fromId(drivingDestination),
             unfinishedInputAvailable = unfinished != null,
+            recommendationsEntry = recommendationsEntry,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -85,11 +87,18 @@ class AppShellViewModel @Inject constructor(
     fun selectDestination(destination: AppDestination) {
         val parked = drivingState.value == DrivingState.PARKED
         savedStateHandle[if (parked) KEY_DESTINATION else KEY_DRIVING_DESTINATION] = destination.id
+        if (parked && destination == AppDestination.RECOMMENDATIONS) enterRecommendations()
     }
 
     /** 기록 칸 「추천 보러 가기」(진행 중 여행이 아닐 때만 보임 · D34) → 「추천」 칸. */
     fun openRecommendations() {
         savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
+        enterRecommendations()
+    }
+
+    /** 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정). 주행 → 정차 복원은 이 값을 바꾸지 않음. */
+    private fun enterRecommendations() {
+        savedStateHandle[KEY_RECOMMENDATIONS_ENTRY] = (savedStateHandle.get<Int>(KEY_RECOMMENDATIONS_ENTRY) ?: 0) + 1
     }
 
     /** 정차 중 시스템 뒤로 — 「기록」이 아닌 칸에서만 불림 → 「기록」. */
@@ -109,5 +118,6 @@ class AppShellViewModel @Inject constructor(
         const val KEY_DESTINATION = "selected_destination"
         const val KEY_DRIVING_DESTINATION = "driving_destination"
         const val KEY_WAS_DRIVING_MODE = "was_driving_mode"
+        const val KEY_RECOMMENDATIONS_ENTRY = "recommendations_entry"
     }
 }
