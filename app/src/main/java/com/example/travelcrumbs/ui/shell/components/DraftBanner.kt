@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -13,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /** 「작성 중이던 내용이 있어요」 + 「이어서 쓰기」 — 띠를 지우는 길은 이 버튼 하나(스펙 D13). */
@@ -23,7 +24,7 @@ fun DraftBanner(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.ItemSpacing),
@@ -33,13 +34,11 @@ fun DraftBanner(
             Text(
                 text = stringResource(R.string.draft_banner_text),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
             )
-            Button(onClick = onResume) {
-                Text(text = stringResource(R.string.draft_banner_action))
-            }
+            TcButton(text = stringResource(R.string.draft_banner_action), onClick = onResume, kind = TcButtonKind.PRIMARY)
         }
     }
 }

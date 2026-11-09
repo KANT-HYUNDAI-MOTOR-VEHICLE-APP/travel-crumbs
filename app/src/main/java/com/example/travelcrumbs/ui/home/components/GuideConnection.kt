@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,10 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
 import com.example.travelcrumbs.ui.home.RouteRequestState
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.theme.TcColors
 
 /** 길안내 연결 화면의 사용자 행동 — 모두 ViewModel 메서드(navigation 3.1). */
 data class GuideScreenActions(
@@ -81,7 +82,6 @@ fun GuideConnectionContent(
  */
 @Composable
 private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifier = Modifier) {
-    val color = MaterialTheme.colorScheme.primary
     OutlinedCard(modifier = modifier.testTag(GUIDE_MAP_TAG)) {
         Box(modifier = Modifier.fillMaxSize()) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -90,10 +90,10 @@ private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifie
                 val destination = Offset(size.width - inset, inset)
                 val origin = Offset(inset, size.height - inset)
                 if (dummyRoute) {
-                    drawLine(color, origin, destination, strokeWidth = Dimens.GuideMapLineWidth.toPx())
+                    drawLine(TcColors.RouteOatBeige, origin, destination, strokeWidth = Dimens.GuideMapLineWidth.toPx())
                 }
-                drawCircle(color = color, radius = radius, center = destination)
-                drawCircle(color = color, radius = radius, center = origin)
+                drawCircle(color = TcColors.BrandPrimary, radius = radius, center = destination)
+                drawCircle(color = TcColors.BrandSecondary, radius = radius, center = origin)
             }
             if (dummyRoute) {
                 DummyRouteNotice(
@@ -199,6 +199,7 @@ private fun GuideFailureBox(state: HomeUiState, actions: GuideScreenActions) {
                 text = stringResource(R.string.guide_retry),
                 enabled = state.retryEnabled,
                 onClick = actions.onRetry,
+                kind = TcButtonKind.PRIMARY,
             )
             if (state.dummyRouteVisible) {
                 DummyRouteButton(enabled = state.dummyRouteEnabled, onClick = actions.onShowDummyRoute)
@@ -209,16 +210,20 @@ private fun GuideFailureBox(state: HomeUiState, actions: GuideScreenActions) {
 
 /** 「다시 시도」 · 「더미 경로」 · 「닫기」 — 「여기로 안내」(E5)와 같은 크기 · 한 번 터치. */
 @Composable
-internal fun GuideActionButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
+internal fun GuideActionButton(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    kind: TcButtonKind = TcButtonKind.SECONDARY,
+) {
+    TcButton(
+        text = text,
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier
-            .heightIn(min = Dimens.HomeButtonHeight)
-            .widthIn(min = Dimens.PlaceButtonMinWidth),
-    ) {
-        Text(text = text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
-    }
+        kind = kind,
+        modifier = Modifier.widthIn(min = Dimens.PlaceButtonMinWidth),
+        minHeight = Dimens.HomeButtonHeight,
+    )
 }
 
 /** 테스트가 화면 · 박스 위치를 재는 이름표. */

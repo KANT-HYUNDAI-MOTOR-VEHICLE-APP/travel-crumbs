@@ -7,22 +7,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.RecordingStatus
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.TripStatusCard
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.recordingStatusText
 import com.example.travelcrumbs.ui.theme.Dimens
@@ -46,37 +44,31 @@ fun DrivingScreen(
                 .padding(Dimens.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = recordingStatusText(uiState.recording),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = elapsedText(uiState.elapsedMinutes),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
+            // 여행 상태(지시서 14장) — 상태 점 + 상태명 + 경과
+            TripStatusCard(
+                statusText = recordingStatusText(uiState.recording),
+                active = uiState.recording == RecordingStatus.RECORDING,
+                elapsedText = elapsedText(uiState.elapsedMinutes),
             )
             Spacer(modifier = Modifier.weight(1f))
-            val buttons: List<Pair<Int, () -> Unit>> = listOf(
-                R.string.action_record_place to viewModel::onRecordPlace,
-                R.string.action_voice_input to viewModel::onVoiceInput,
-                uiState.recording.toggleLabelRes() to viewModel::onTogglePause,
+            // 큰 버튼 3개 — 「이 장소 기록」만 Primary(한 화면에 주요 행동 하나 · 지시서 4장)
+            val buttons: List<DrivingAction> = listOf(
+                DrivingAction(R.string.action_record_place, R.drawable.ic_place, TcButtonKind.PRIMARY, viewModel::onRecordPlace),
+                DrivingAction(R.string.action_voice_input, R.drawable.ic_mic, TcButtonKind.SECONDARY, viewModel::onVoiceInput),
+                DrivingAction(
+                    uiState.recording.toggleLabelRes(),
+                    uiState.recording.toggleIconRes(),
+                    TcButtonKind.SECONDARY,
+                    viewModel::onTogglePause,
+                ),
             )
             if (stackButtons) {
                 Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { (label, onClick) ->
-                        DrivingButton(label, onClick, Modifier.fillMaxWidth())
-                    }
+                    buttons.forEach { DrivingButton(it, Modifier.fillMaxWidth()) }
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { (label, onClick) ->
-                        DrivingButton(label, onClick, Modifier.weight(1f))
-                    }
+                    buttons.forEach { DrivingButton(it, Modifier.weight(1f)) }
                 }
             }
             NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
@@ -84,26 +76,35 @@ fun DrivingScreen(
     }
 }
 
+private class DrivingAction(
+    val labelRes: Int,
+    val iconRes: Int,
+    val kind: TcButtonKind,
+    val onClick: () -> Unit,
+)
+
 @Composable
 private fun DrivingButton(
-    labelRes: Int,
-    onClick: () -> Unit,
+    action: DrivingAction,
     modifier: Modifier = Modifier,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.height(Dimens.DrivingButtonHeight),
-    ) {
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    TcButton(
+        text = stringResource(action.labelRes),
+        onClick = action.onClick,
+        kind = action.kind,
+        iconRes = action.iconRes,
+        minHeight = Dimens.DrivingButtonHeight,
+        textStyle = MaterialTheme.typography.headlineMedium,
+        modifier = modifier,
+    )
 }
 
 private fun RecordingStatus.toggleLabelRes(): Int = when (this) {
     RecordingStatus.RECORDING -> R.string.action_pause_recording
     RecordingStatus.PAUSED -> R.string.action_resume_recording
+}
+
+private fun RecordingStatus.toggleIconRes(): Int = when (this) {
+    RecordingStatus.RECORDING -> R.drawable.ic_pause
+    RecordingStatus.PAUSED -> R.drawable.ic_play
 }

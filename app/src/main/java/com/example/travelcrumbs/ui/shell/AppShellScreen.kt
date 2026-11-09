@@ -19,6 +19,7 @@ import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.settings.SettingsScreen
 import com.example.travelcrumbs.ui.shell.components.AppNavigationRail
 import com.example.travelcrumbs.ui.shell.components.DraftBanner
+import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.trips.TripsScreen
 
 /**
@@ -49,10 +50,11 @@ fun AppShellScreen(
                 AppNavigationRail(
                     selected = uiState.selectedDestination,
                     onSelect = viewModel::selectDestination,
+                    modifier = Modifier.weight(Dimens.RailWeight),
                 )
                 Column(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(Dimens.MapWeight + Dimens.InfoWeight)
                         .fillMaxHeight(),
                 ) {
                     if (uiState.draftAvailable) {

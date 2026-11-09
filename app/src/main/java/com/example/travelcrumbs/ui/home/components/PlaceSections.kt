@@ -4,13 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +17,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.RouteFailReason
+import com.example.travelcrumbs.ui.components.SectionTitle
+import com.example.travelcrumbs.ui.components.TcButton
+import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.TcCard
 import com.example.travelcrumbs.ui.home.CandidateItem
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
@@ -95,19 +94,14 @@ fun PlacePickerSection(
 @Composable
 private fun GuideButton(place: PlaceItem, state: HomeUiState, onGuide: (String) -> Unit) {
     val requesting = (state.routeRequest as? RouteRequestState.Requesting)?.placeId == place.id
-    Button(
+    TcButton(
+        text = stringResource(if (requesting) R.string.places_guide_requesting else R.string.places_guide),
         onClick = { onGuide(place.id) },
         enabled = state.guideEnabled,
-        modifier = Modifier
-            .heightIn(min = Dimens.HomeButtonHeight)
-            .widthIn(min = Dimens.PlaceButtonMinWidth),
-    ) {
-        Text(
-            text = stringResource(if (requesting) R.string.places_guide_requesting else R.string.places_guide),
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-        )
-    }
+        kind = TcButtonKind.PRIMARY,
+        modifier = Modifier.widthIn(min = Dimens.PlaceButtonMinWidth),
+        minHeight = Dimens.HomeButtonHeight,
+    )
 }
 
 @Composable
@@ -117,19 +111,13 @@ private fun PinButton(
     onPin: (String) -> Unit,
     onUnpin: (String) -> Unit,
 ) {
-    OutlinedButton(
+    TcButton(
+        text = stringResource(if (candidate.pinned) R.string.picker_unpin else R.string.picker_pin),
         onClick = { if (candidate.pinned) onUnpin(candidate.id) else onPin(candidate.id) },
         enabled = candidate.pinned || canPinMore,
-        modifier = Modifier
-            .heightIn(min = Dimens.HomeButtonHeight)
-            .widthIn(min = Dimens.PlaceButtonMinWidth),
-    ) {
-        Text(
-            text = stringResource(if (candidate.pinned) R.string.picker_unpin else R.string.picker_pin),
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-        )
-    }
+        modifier = Modifier.widthIn(min = Dimens.PlaceButtonMinWidth),
+        minHeight = Dimens.HomeButtonHeight,
+    )
 }
 
 /**
@@ -138,9 +126,8 @@ private fun PinButton(
  */
 @Composable
 private fun PlaceCard(place: PlaceItem, button: @Composable () -> Unit) {
-    OutlinedCard(modifier = Modifier.fillMaxWidth().testTag(PLACE_CARD_TAG)) {
+    TcCard(modifier = Modifier.fillMaxWidth().testTag(PLACE_CARD_TAG)) {
         Row(
-            modifier = Modifier.padding(Dimens.ItemSpacing),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
@@ -196,17 +183,6 @@ private fun PlaceRow(
         }
         button()
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
 }
 
 @Composable
