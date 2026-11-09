@@ -69,7 +69,7 @@ class ShellTestGraph(
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedStore.repository,
-            pinRepository = pins,
+            guideRequests = guideTrackerOf(navi, pins),
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratings,

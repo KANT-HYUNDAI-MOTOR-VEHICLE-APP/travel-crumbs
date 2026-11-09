@@ -22,6 +22,7 @@ import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
 import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.guideTrackerOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.testing.testPlace
 import kotlinx.coroutines.CompletableDeferred
@@ -80,7 +81,7 @@ class HomePlacesViewModelTest {
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedLocal.repository,
-            pinRepository = pins,
+            guideRequests = guideTrackerOf(navi, pins),
             placeStatsRepository = stats,
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratingRepositoryOf(),

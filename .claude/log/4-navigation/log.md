@@ -111,10 +111,34 @@
 - 센서: gradle lint · 단위 191 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest 이 브랜치 판 빨강 3 / develop(#9) 판 녹색
 - 에뮬레이터: T113(실패 → 더미 경로 → 닫기 → 다시 시도 → 안내 시작) · T103(주행 전환 뒤 패널 닫힘) 통과 · T109 일부 · T108 미실시
 - 리뷰 지적: 1회차 심사 반려 0 · 확인 3 · 구조 위반 0 · 확인 4 → 2회차 심사 해소 1 · 남은 확인 2 · 구조 해소 2 · 새 확인 1 · 센서 후보 3(심사 A1 release 잔존 2회 · 구조 N2 ViewModel 비대 2회 · S1 ViewModel Log 3회)
-- 사람 결정: U55 더미 경로 debug 빌드에만 · U57 와이어프레임 문구 그대로 · U51 ~ U54 · U56 추천대로
+- 사람 결정: U55 더미 경로 debug 빌드에만 · U57 와이어프레임 문구 그대로 — U51 ~ U54 · U56 은 스펙 작성자 추천을 기본값으로 쓴 것이고 사람이 확인한 것이 아님(2026-11-07 정정 · U52 패널 방식은 같은 날 사람이 「전용 화면까지」로 바꿈)
 - 남은 결정: `_workspace/4/05_open_findings_a14.md` — A1 · A3 · R3-2 · N2 · R4-1 · S1 · U58 ~ U62(팀) · 이슈 본문
 - 막힘: 없음(에뮬레이터에서 실패를 만들려고 요청 직후 기본 내비 앱 강제 종료 → TIMEOUT)
 - 다음: 푸시(PR #14 에 반영) · 이슈 #4 본문 고침 · 팀 결정 U58 ~ U62
+
+## 입구 분리(구조 정리) · 4 수정 끝 — 2026-11-07 · 최성호
+- 계기: 와이어프레임 v5 가 같은 길안내 동작을 음성 · A-13 「다시 가기」 · B-09 「이 장소만 추가」 에서도 부르게 함 + 구조 리뷰가 두 바퀴 연속 지적한 N2(HomeViewModel 비대) · R4-1 — 사람 선택 「안내 입구 분리」 · 동작 변화 0 · 스펙 문서 변경 없음
+- 산출물: navigation-guide/impl 5756e10(`domain/GuideRequestTracker` · `GuidePorts` · `di/GuideModule` · HomeViewModel 406 → 275줄) · 2f5cd83(리뷰 1회차) — 로컬 커밋 · 푸시 전 · navigation-a14/impl(PR #20) 위에 쌓음
+- 에이전트: builder(app) × 2 · pleos-reviewer × 1 · structure-reviewer × 2
+- 센서: gradle lint · 단위 198 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest develop 판 녹색
+- 에뮬레이터: T113 통과 · Activity 만 끝냈다 다시 열기(요청 중 · TIMEOUT 뒤 5분 안) 크래시 없음 · 핀 중복 없음
+- 리뷰 지적: 1회차 심사 반려 0 · 확인 1(P1 Activity 수명 → 에뮬레이터로 닫음) · 구조 위반 0 · 확인 4(G1 ~ G4) → 2회차 구조 해소 G3 · G4 · 새 확인 0 · 이전 N2 · R4-1 · S1 해소 · 센서 후보 1(ViewModel Log import 금지 · 재발 방지)
+- 사람 결정: 안내 입구 분리(2026-11-07)
+- 남은 결정: `_workspace/4/05_open_findings_guide.md` — G1 · G2=R3-2(하네스 규칙 문장) · 스펙 3.1 · 3.2(요청 상태 출처 · Activity 재진입 때 결과 문구 유지) · 정차 거르기(음성 · 다시 가기 붙일 때)
+- 막힘: 없음 · BACK 키가 이 플랫폼에서 MainActivity 를 끝내지 않아 `am start --activity-clear-task` 로 Activity 만 끝냄
+- 다음: 푸시 · PR(PR #20 머지 순서 확인) · 음성 · 「다시 가기」 · 장소 여러 곳 안내가 이 입구를 쓰도록
+
+## A-14 전용 화면 · 카드형 홈 · 1 스펙 · 2 구현 · 4 수정 끝 — 2026-11-07 · 최성호
+- 계기: 와이어프레임 v5 슬라이드(I-04 · A-13 · A-14)를 이미지로 그려 실제 화면과 비교 → 사람 선택 「전용 화면까지」(U63) — A-14 전용 화면 + 홈 카드형 · U52(패널 방식)를 뒤집음
+- 산출물: navigation-screen/impl eec0e2d(스펙 U63 ~ U77 · T115 ~ T134) · 7711ffc(전용 화면 · 카드형 홈 · 17파일) · e775aab(리뷰 1회차) · acd5980(결정 표기 정정) — 로컬 커밋 · 푸시 전 · navigation-guide/impl(입구 분리) → navigation-a14/impl(PR #20) 위에 쌓음
+- 에이전트: spec-writer × 2 · builder(app) × 2 · pleos-reviewer × 1 · structure-reviewer × 1
+- 센서: gradle lint · 단위 219 · assembleRelease 녹색 · hygiene · secrets · frontmatter 녹색 · check_api_contract 초안으로 녹색 · check_manifest develop 판 녹색 · #6 파일 변경 0줄
+- 에뮬레이터: 요청 → 성공 · 실패 → 다시 시도 · 더미 경로 → 닫기 · 시스템 뒤로 · 주행 → 정차 통과 · FATAL 0 · 캡처 `_workspace/4/screen_emulator/`
+- 리뷰 지적: 1회차 심사 반려 0 · 확인 2 · 구조 위반 0 · 확인 4(X1 ~ X4) → 고침 4건(X1 KDoc · X2(b) 이름 · Dimens 이름 · internal) · 재리뷰는 동작 변화 없는 정리라 생략(센서 녹색) · 센서 후보 1(심사 2 release 산출물 검사 · 3회)
+- 사람 결정: U55 · U57(2026-11-06) · U63 · U68 · U70 · U71 · U73(2026-11-07) — U54 · U64 ~ U67 · U69 · U72 는 추천 기본값(사람 미확인)으로 구현
+- 남은 결정: `_workspace/4/05_open_findings_screen.md` — 심사 1(release 지도 박스 「예시」 표시) · 심사 2 · X2(a) · X3 · X4 · 희주 님과 맞출 U64 ~ U67
+- 막힘: 없음
+- 다음: 푸시(스택 순서 · PR #20 머지 확인) · 희주 님께 U64 ~ U67 질문 · release 지도 박스 표시 결정
 
 ## develop 받기(충돌 해소) — 2026-11-09 · 노희주(성호님 동의 · 토큰 소진으로 대신)
 - 산출물: navigation/sync 머지 커밋 46dde72(origin/navigation/main bdf25b0 + origin/develop 0f85033) · sync PR(→ navigation/main) → develop PR #38 충돌 해소
@@ -123,3 +147,12 @@
 - 데이터 표준(T02) 위반 해소: Room 표 `pins` → `navi_req_log`(정의서 2-2 로그 예시 · 한 행 = 안내 시작 1건 · 전송 대기 큐) · PK navi_req_log_no · Room 1 → 2 마이그레이션(복사 방식 · minSdk 28) · 시험 AppDatabaseMigrationTest · 서버 DTO 이름은 그대로(API 계약 불변)
 - 센서: gradle lint · 시험 287 · assembleRelease 녹색 · 매니페스트 · 비밀 · 위생 · 데이터 표준 위반 0(경고 1: 로그 표 created_user_no — 정의서 「제안」 · 기기 큐에 계정 칸 없음)
 - 남은 것: placeId · utcOffsetSeconds · uploadState 표준 단어 등록(지수님) · navigation 스펙의 표 이름 고침 · 추천 「안내 시작」 포트를 NaviRepository 로 잇기(#38 머지 뒤)
+
+## #46 navigation/main 받기(충돌 해소) — 2026-11-09 · 노희주(성호님 동의)
+- 산출물: navigation-screen/sync 머지 커밋 5e0eca0(navigation-screen/impl 4ebc4f0 + navigation/main 2c5114a) · sync PR(→ navigation-screen/impl) → PR #46 충돌 해소
+- 에이전트: builder(sync-builder-46) × 1
+- 원칙: 바탕은 지금 판(레일 4칸 · 주행 버튼 4개 · 앱 틀 · #34 테마 · 버튼) + 성호님 새 기능(길안내 입구 분리 GuideRequestTracker · A-14 전용 화면 GuideConnection · 카드형 가 볼 장소 · Asta Sans 서체 · 아이콘)
+- 테마 한 벌: TcButton · TcCard 삭제 → `ui/components/AppCard.kt`(#34 토큰) · GuideConnection 색 · 버튼도 테마로 · Type.kt 는 #34 단계 + Asta Sans 서체
+- 시험 고침: HomeGuideScreenTest(레일 4칸 · 인자) · GuideScreenSourceTest T134 금지 낱말을 「시연용 더미」로 좁힘
+- 센서: gradle lint · 시험 315 · assembleRelease 녹색(--no-parallel · 병렬 실행 때 lint 가 release Hilt 생성 파일을 못 찾는 경쟁) · 매니페스트 · 비밀 · 위생 · 데이터 표준 위반 0
+- 남은 것: 추천 길안내 포트와 GuideRequestTracker 합치기 · 쓰지 않는 아이콘 4개 · Asta Sans 로 주행 버튼 폭 940dp 다시 재기 · 스펙 T134 문장

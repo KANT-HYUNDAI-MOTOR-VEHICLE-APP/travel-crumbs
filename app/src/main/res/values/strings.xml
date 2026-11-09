@@ -93,12 +93,12 @@
     <string name="places_reason_request_failed">요청을 보내지 못했어요</string>
     <string name="places_empty">아직 가 볼 장소가 없어요 · 아래에서 장소를 고정해 보세요</string>
 
-    <!-- 실패 폴백(스펙 navigation 2.1 E11 ~ E13 · 와이어프레임 A-14 · 문구 U57 (a) 초안 그대로) -->
-    <string name="places_retry">다시 시도</string>
-    <string name="places_dummy_route">더미 경로</string>
-    <string name="dummy_route_notice">시연용 더미 경로예요 · 실제 길안내가 아니에요</string>
-    <string name="dummy_route_origin">현재 위치</string>
-    <string name="dummy_route_close">닫기</string>
+    <!-- 길안내 연결 화면(스펙 navigation 2.3 G1 ~ G6 · 와이어프레임 A-14 · 결정 기록 U57) — 시연 부품 문구는 src/debug 의 strings_demo.xml(U55 · U70) -->
+    <string name="guide_route_started">NaviHelper 전달 완료 · 차량 내비게이션 시작</string>
+    <string name="guide_destination">목적지</string>
+    <string name="guide_origin">현재 위치</string>
+    <string name="guide_retry">다시 시도</string>
+    <string name="guide_close">닫기</string>
 
     <!-- 「장소 고르기」(스펙 navigation 2.2 · 초안 U24) -->
     <string name="picker_title">장소 고르기</string>

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
 import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.GuideRequestState
 import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRequestStatus
@@ -18,6 +19,7 @@ import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
 import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.guideTrackerOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.testing.testPlace
 import kotlinx.coroutines.Dispatchers
@@ -65,12 +67,20 @@ class HomeRouteFallbackViewModelTest {
         val catalog = FakePlaceCatalogRepository()
         val pinnedLocal = FakePinnedPlacesStore(pinned, catalog)
         val pins = FakePinRepository()
+        var guide = guideTrackerOf(navi, pins)
+            private set
         var vm = create()
             private set
         val state: HomeUiState get() = vm.uiState.value
 
-        /** 같은 저장소로 ViewModel 을 새로 만듦 — 프로세스 재생성 흉내(T108 · SavedStateHandle 없음). */
+        /** 같은 저장소로 ViewModel · 입구를 새로 만듦 — 프로세스 재생성 흉내(T108 · SavedStateHandle 없음). */
         fun recreate() {
+            guide = guideTrackerOf(navi, pins)
+            vm = create()
+        }
+
+        /** 같은 입구(앱 수명)에 ViewModel 만 새로 — Activity 만 끝났다 다시 열림(프로세스는 삶). */
+        fun recreateScreenOnly() {
             vm = create()
         }
 
@@ -82,7 +92,7 @@ class HomeRouteFallbackViewModelTest {
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedLocal.repository,
-            pinRepository = pins,
+            guideRequests = guide,
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratingRepositoryOf(),
@@ -134,7 +144,7 @@ class HomeRouteFallbackViewModelTest {
     }
 
     @Test
-    fun `T97 실패 이유 7개 모두 — 다시 시도 · 더미 경로 둘 다 누를 수 있음 · 패널 없음`() = runTest(dispatcher) {
+    fun `T118 옛 T97 실패 이유 7개 모두 — 전용 화면 열린 채 · 다시 시도 · 더미 경로 둘 다 누를 수 있음 · 더미 경로 모드 꺼짐`() = runTest(dispatcher) {
         val f = start(Fixture())
         listOf(
             RouteFailReason.TOO_CLOSE,
@@ -265,26 +275,55 @@ class HomeRouteFallbackViewModelTest {
     }
 
     @Test
-    fun `T102 닫기 — 패널 닫힘 · 결과 문구 · 두 버튼 그대로 · 다시 열 수 있음`() = runTest(dispatcher) {
+    fun `T122 옛 T102 실패 · 더미 경로 켜짐 → 길안내 화면 닫기 — 화면 · 더미 경로 닫힘 · 실패 그대로 · 홈엔 폴백 버튼 없음 · 카드로 다시 열림`() =
+        runTest(dispatcher) {
+            val f = start(Fixture())
+            failWith(f, "a")
+            f.vm.onShowDummyRoute()
+            runCurrent()
+
+            f.vm.onCloseGuideScreen()
+            runCurrent()
+
+            assertNull(f.state.guideScreen)
+            assertNull(f.state.dummyRoute)
+            assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
+            assertFalse("홈엔 「다시 시도」 없음(U71)", f.state.retryVisible)
+            assertFalse(f.state.dummyRouteVisible)
+            assertEquals("닫기는 내비 요청 · 취소 없음", 1, f.navi.routeRequests.size)
+            f.vm.onShowDummyRoute()
+            runCurrent()
+            assertNull("화면이 닫혀 있으면 더미 경로도 없음", f.state.dummyRoute)
+
+            // T130 — 카드 「여기로 안내」로 다시 열림(같은 길)
+            f.vm.onGuide("a")
+            runCurrent()
+            assertEquals("a", f.state.guideScreen?.id)
+            assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+        }
+
+    @Test
+    fun `T122 요청 중에 닫기 — 요청은 이어지고 결과는 홈 E3 에 · 전용 화면은 다시 열리지 않음`() = runTest(dispatcher) {
         val f = start(Fixture())
-        failWith(f, "a")
-        f.vm.onShowDummyRoute()
+        f.vm.onGuide("a")
         runCurrent()
+        assertEquals("a", f.state.guideScreen?.id)
 
-        f.vm.onCloseDummyRoute()
+        f.vm.onCloseGuideScreen()
         runCurrent()
+        assertNull(f.state.guideScreen)
+        assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+        assertFalse(f.state.guideEnabled)
 
-        assertNull(f.state.dummyRoute)
-        assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
-        f.state.assertFallbackShownAndPressable()
-
-        f.vm.onShowDummyRoute()
+        f.navi.answerRoute(RouteRequestResult.Started)
         runCurrent()
-        assertEquals("a", f.state.dummyRoute?.id)
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertNull(f.state.guideScreen)
+        assertEquals(listOf("a"), f.pins.recorded)
     }
 
     @Test
-    fun `T103 패널 열림 · 주행 → 다시 정차 — 패널 닫힌 채 · 실패 문구 · 두 버튼 남음`() = runTest(dispatcher) {
+    fun `T124 T125 옛 T103 전용 화면 · 더미 경로 켜짐 · 주행 또는 모름 → 다시 정차 — 홈 목록 · 화면 닫힌 채 · 실패 그대로`() = runTest(dispatcher) {
         listOf(DrivingState.DRIVING, DrivingState.UNKNOWN).forEach { notParked ->
             val f = start(Fixture())
             failWith(f, "a")
@@ -294,19 +333,21 @@ class HomeRouteFallbackViewModelTest {
             f.driving.emit(notParked)
             runCurrent()
             assertFalse(f.state.placesVisible)
+            assertNull(f.state.guideScreen)
             assertNull(f.state.dummyRoute)
 
             f.driving.emit(DrivingState.PARKED)
             runCurrent()
             assertTrue(f.state.placesVisible)
-            assertNull("$notParked 뒤 정차로 돌아와도 닫힌 채", f.state.dummyRoute)
+            assertNull("$notParked 뒤 정차로 돌아와도 홈 목록", f.state.guideScreen)
+            assertNull(f.state.dummyRoute)
             assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
-            f.state.assertFallbackShownAndPressable()
+            assertFalse(f.state.retryVisible)
         }
     }
 
     @Test
-    fun `T103 홈 구독이 멈춘 동안(주행 화면) 주행이 와도 패널 닫힘`() = runTest(dispatcher) {
+    fun `T124 홈 구독이 멈춘 동안(주행 화면) 주행이 와도 전용 화면 닫힘`() = runTest(dispatcher) {
         val f = Fixture()
         val subscription = backgroundScope.launch { f.vm.uiState.collect { } }
         runCurrent()
@@ -323,22 +364,42 @@ class HomeRouteFallbackViewModelTest {
         runCurrent()
 
         subscribe(f)
+        assertNull(f.state.guideScreen)
         assertNull(f.state.dummyRoute)
-        assertTrue(f.state.retryVisible)
+        assertTrue(f.state.routeRequest is RouteRequestState.Failed)
     }
 
     @Test
-    fun `T104 주행 · 모름 — 다시 시도 · 더미 경로 · 닫기 호출 무시 · 요청 0건`() = runTest(dispatcher) {
+    fun `T125 요청 중 · 전용 화면 열림 → 모름 → 정차 — 화면 닫힘 · 요청은 이어지고 결과는 E3 에`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        f.vm.onGuide("a")
+        runCurrent()
+        f.driving.emit(DrivingState.UNKNOWN)
+        runCurrent()
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+        f.driving.emit(DrivingState.PARKED)
+        runCurrent()
+
+        assertNull(f.state.guideScreen)
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+    }
+
+    @Test
+    fun `T104 T132 주행 · 모름 — 여기로 안내 · 다시 시도 · 더미 경로 · 길안내 화면 닫기 호출 무시 · 요청 0건`() = runTest(dispatcher) {
         listOf(DrivingState.DRIVING, DrivingState.UNKNOWN).forEach { notParked ->
             val f = start(Fixture())
             failWith(f, "a")
             f.driving.emit(notParked)
             runCurrent()
 
+            f.vm.onGuide("b")
             f.vm.onRetry()
             f.vm.onShowDummyRoute()
-            f.vm.onCloseDummyRoute()
+            f.vm.onCloseGuideScreen()
             runCurrent()
+
+            assertNull(f.state.guideScreen)
 
             assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
             assertNull(f.state.dummyRoute)
@@ -444,6 +505,20 @@ class HomeRouteFallbackViewModelTest {
     }
 
     @Test
+    fun `T107 R4-1 패널은 입구 상태에서 파생 — 요청 중 · 시작됨 · 다른 시도의 실패엔 어떤 번호로도 패널 없음`() {
+        val a = testPlace("a")
+        val failed = GuideRequestState.Failed(RouteFailReason.TIMEOUT, a, attempt = 3, seq = 9)
+        listOf(null, 1L, 2L, 3L, 4L).forEach { opened ->
+            assertNull(dummyRouteOf(GuideRequestState.Requesting(a, seq = 9), opened))
+            assertNull(dummyRouteOf(GuideRequestState.Started(a, seq = 9), opened))
+            assertNull(dummyRouteOf(GuideRequestState.Idle, opened))
+        }
+        assertEquals(PlaceItem("a", "a 이름", "a 주소"), dummyRouteOf(failed, 3L))
+        assertNull(dummyRouteOf(failed, 2L))
+        assertNull(dummyRouteOf(failed, null))
+    }
+
+    @Test
     fun `T107 보충 실패 A · 패널 열림 → B 여기로 안내가 미연결로 실패 — 실패 B · 패널 닫힘(장소가 바뀜)`() = runTest(dispatcher) {
         val f = start(Fixture())
         failWith(f, "a")
@@ -458,6 +533,37 @@ class HomeRouteFallbackViewModelTest {
         assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, "b"), f.state.routeRequest)
         assertNull(f.state.dummyRoute)
     }
+
+    @Test
+    fun `T108 보충 Activity 만 다시 열림(같은 입구) — 실패 · 요청 중 · 시작됨은 이어지고 전용 화면 · 더미 경로는 닫힘(홈 목록 + E3)`() =
+        runTest(dispatcher) {
+            val f = start(Fixture())
+            failWith(f, "a")
+            f.vm.onShowDummyRoute()
+            runCurrent()
+            assertEquals("a", f.state.dummyRoute?.id)
+
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Failed(RouteFailReason.ROUTE_NOT_FOUND, "a"), f.state.routeRequest)
+            assertNull(f.state.dummyRoute)
+            assertNull("새 ViewModel 은 화면을 열지 않음 — 홈 목록 + E3", f.state.guideScreen)
+            assertFalse(f.state.retryVisible)
+
+            f.vm.onRetry()
+            runCurrent()
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+            assertFalse(f.state.guideEnabled)
+
+            f.navi.answerRoute(RouteRequestResult.Started)
+            runCurrent()
+            f.recreateScreenOnly()
+            subscribe(f)
+            assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+            assertEquals("핀 1건 — 화면을 다시 만들어도 늘지 않음", listOf("a"), f.pins.recorded)
+        }
 
     @Test
     fun `T108 실패 A · 패널 열림 → 프로세스 재생성 — 대기 · 패널 없음 · 고정 목록 그대로`() = runTest(dispatcher) {
@@ -510,6 +616,153 @@ class HomeRouteFallbackViewModelTest {
         assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
         assertEquals(listOf("a", "a"), f.navi.routeRequests.map { it.id })
         assertNull(f.state.dummyRoute)
+    }
+
+    @Test
+    fun `T116 여기로 안내 → 요청 시작과 함께 전용 화면 열림(A) · 홈 목록 대신 · 요청 1건`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        assertNull(f.state.guideScreen)
+
+        f.vm.onGuide("a")
+        runCurrent()
+
+        assertEquals(PlaceItem("a", "a 이름", "a 주소"), f.state.guideScreen)
+        assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+        assertNull("잇는 선 없음", f.state.dummyRoute)
+        assertFalse(f.state.retryVisible)
+        assertEquals(1, f.navi.routeRequests.size)
+    }
+
+    @Test
+    fun `T116 그 순간 미연결 — 바로 실패(NOT_CONNECTED)와 함께 전용 화면 열림 · 다시 시도 비활성 · 더미 경로 누를 수 있음 · 요청 0건`() =
+        runTest(dispatcher) {
+            val f = start(Fixture(naviReady = false))
+            f.vm.onGuide("a")
+            runCurrent()
+
+            assertEquals("a", f.state.guideScreen?.id)
+            assertEquals(RouteRequestState.Failed(RouteFailReason.NOT_CONNECTED, "a"), f.state.routeRequest)
+            assertTrue(f.state.retryVisible)
+            assertFalse(f.state.retryEnabled)
+            assertTrue(f.state.dummyRouteEnabled)
+            assertEquals(0, f.navi.routeRequests.size)
+        }
+
+    @Test
+    fun `T116 사이값 없음 — 여기로 안내 전후 화면 상태에 「요청 중인데 화면 닫힘」 · 「화면 열림인데 대기」가 없음`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch(kotlinx.coroutines.test.UnconfinedTestDispatcher(testScheduler)) {
+            f.vm.uiState.collect { seen += it }
+        }
+        runCurrent()
+
+        f.vm.onGuide("a")
+        runCurrent()
+
+        assertTrue(seen.any { it.guideScreen != null })
+        assertTrue(seen.none { it.routeRequest is RouteRequestState.Requesting && it.guideScreen == null })
+        assertTrue(seen.none { it.routeRequest == RouteRequestState.Idle && it.guideScreen != null })
+        // 파생 함수 — 화면을 연 번호보다 앞선 상태(대기 · 옛 결과)엔 어떤 경우에도 화면 없음
+        val a = testPlace("a")
+        assertNull(guideScreenOf(GuideRequestState.Idle, 0L))
+        assertNull(guideScreenOf(GuideRequestState.Started(a, seq = 4), 5L))
+        assertEquals("a", guideScreenOf(GuideRequestState.Requesting(a, seq = 5), 5L)?.id)
+        assertNull(guideScreenOf(GuideRequestState.Requesting(a, seq = 5), null))
+    }
+
+    @Test
+    fun `T117 전용 화면 열림 · 시작 알림 — 시작됨 · 열린 채 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.answerRoute(RouteRequestResult.Started)
+        runCurrent()
+
+        assertEquals("a", f.state.guideScreen?.id)
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertFalse(f.state.retryVisible)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `T119 T120 실패 → 더미 경로 켜짐 · 다시 시도로 열린 채 요청 중 — 요청 · 핀 · 저장 0건`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        failWith(f, "a", RouteFailReason.TOO_FAR)
+        f.vm.onShowDummyRoute()
+        runCurrent()
+        assertEquals("a", f.state.dummyRoute?.id)
+        assertFalse(f.state.dummyRouteEnabled)
+        assertEquals(1, f.navi.routeRequests.size)
+        assertTrue(f.pins.recorded.isEmpty())
+        assertEquals(0, f.pinnedLocal.writes)
+
+        f.vm.onRetry()
+        runCurrent()
+        assertEquals("a", f.state.guideScreen?.id)
+        assertEquals(RouteRequestState.Requesting("a"), f.state.routeRequest)
+        assertNull(f.state.dummyRoute)
+        assertEquals(2, f.navi.routeRequests.size)
+    }
+
+    @Test
+    fun `T121 release — 전용 화면은 있음 · 다시 시도만 · 더미 경로 호출해도 없음`() = runTest(dispatcher) {
+        val f = start(Fixture(dummyRoute = false))
+        failWith(f, "a", RouteFailReason.TOO_FAR)
+        f.vm.onShowDummyRoute()
+        runCurrent()
+
+        assertEquals("a", f.state.guideScreen?.id)
+        assertTrue(f.state.retryEnabled)
+        assertFalse(f.state.dummyRouteVisible)
+        assertNull(f.state.dummyRoute)
+    }
+
+    @Test
+    fun `T126 요청 중 · 앱이 다시 앞으로 · 대조 일치 — 열린 채 시작됨 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        f.vm.onGuide("a")
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        advanceTimeBy(AppConfig.NAVI_QUERY_SETTLE_DELAY_MILLIS + 1)
+        runCurrent()
+
+        assertEquals("a", f.state.guideScreen?.id)
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `T127 TIMEOUT · 더미 경로 켜짐 → 늦은 시작 판정 — 열린 채 시작됨 · 더미 경로 꺼짐 · 핀 1건`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        timeOut(f, "a")
+        f.vm.onShowDummyRoute()
+        runCurrent()
+        f.navi.guidingTo(testPlace("a"))
+        f.vm.onScreenResumed()
+        settleNaviQuery()
+
+        assertEquals("a", f.state.guideScreen?.id)
+        assertEquals(RouteRequestState.Started("a 이름"), f.state.routeRequest)
+        assertNull(f.state.dummyRoute)
+        assertFalse(f.state.retryVisible)
+        assertEquals(listOf("a"), f.pins.recorded)
+    }
+
+    @Test
+    fun `T129 실패 · 더미 경로 켜짐 → 프로세스 재생성 — 화면 닫힘 · 더미 경로 없음 · 대기`() = runTest(dispatcher) {
+        val f = start(Fixture())
+        failWith(f, "a")
+        f.vm.onShowDummyRoute()
+        runCurrent()
+
+        f.recreate()
+        subscribe(f)
+
+        assertNull(f.state.guideScreen)
+        assertNull(f.state.dummyRoute)
+        assertEquals(RouteRequestState.Idle, f.state.routeRequest)
     }
 
     @Test

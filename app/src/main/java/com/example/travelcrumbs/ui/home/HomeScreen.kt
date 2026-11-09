@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -29,6 +30,8 @@ import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripStatusText
+import com.example.travelcrumbs.ui.home.components.GuideConnectionContent
+import com.example.travelcrumbs.ui.home.components.GuideScreenActions
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
 import com.example.travelcrumbs.ui.home.components.PlaceActions
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
@@ -41,6 +44,7 @@ import com.example.travelcrumbs.ui.theme.Dimens
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「설정」(D35) · 「기록 일시정지」 · 「음성」 · 「여행 종료」는 두지 않음(#6 D10 · N12).
  * 추천 안내 뒤 진행한 여행을 끝냈으면 별점 팝업(#41 B-06)을 로드맵마다 한 번 띄움(중간 정차 · 안내만 받음엔 없음).
  * 「추천 보러 가기」 누름 = 앱 틀의 목적지를 「추천」으로 바꾸는 사용자 행동([onOpenRecommendations] · 이벤트 Flow 없음).
+ * 길안내 연결 화면(#4 navigation 2.3)이 열려 있으면 위 셋 대신 그 화면을 그림(U64 (a) · U66).
  *
  * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
  * [featureSections] 가 null 이면 실제 기능 구역(HomeFeatureSections · #4 「가 볼 장소」 · 「장소 고르기」).
@@ -61,14 +65,32 @@ fun HomeScreen(
         onPauseOrDispose { }
     }
 
+    val guidePlace = uiState.guideScreen
     Column(modifier = modifier.fillMaxSize()) {
-        Column(
+        if (guidePlace != null) {
+            // 길안내 연결 화면(navigation 2.3) — 「홈」 목적지 안 내용 영역을 통째로 바꿈 · 레일 · 앱 틀은 #6 그대로(U64 (a)).
+            // 열려 있을 때만 시스템 뒤로가 이 화면을 먼저 닫음 — 닫혀 있으면 #6 규칙(앱을 뒤로) 그대로(T122 · T123).
+            BackHandler(onBack = viewModel::onCloseGuideScreen)
+            val guideActions = remember(viewModel) {
+                GuideScreenActions(
+                    onRetry = viewModel::onRetry,
+                    onShowDummyRoute = viewModel::onShowDummyRoute,
+                    onClose = viewModel::onCloseGuideScreen,
+                )
+            }
+            GuideConnectionContent(
+                place = guidePlace,
+                state = uiState,
+                actions = guideActions,
+                modifier = Modifier.weight(1f),
+            )
+        } else Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
         ) {
             Column(
                 modifier = Modifier.testTag(TOP_AREA_TAG),
@@ -89,9 +111,6 @@ fun HomeScreen(
                         onGuide = viewModel::onGuide,
                         onPin = viewModel::onPin,
                         onUnpin = viewModel::onUnpin,
-                        onRetry = viewModel::onRetry,
-                        onShowDummyRoute = viewModel::onShowDummyRoute,
-                        onCloseDummyRoute = viewModel::onCloseDummyRoute,
                     )
                 }
                 HomeFeatureSections(state = uiState, placeActions = placeActions)

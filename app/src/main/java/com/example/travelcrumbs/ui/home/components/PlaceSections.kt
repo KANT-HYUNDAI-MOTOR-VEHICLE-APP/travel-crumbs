@@ -18,8 +18,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.RouteFailReason
+import com.example.travelcrumbs.ui.components.AppCard
 import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.SecondaryButton
+import com.example.travelcrumbs.ui.components.SectionTitle
 import com.example.travelcrumbs.ui.home.CandidateItem
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
@@ -27,8 +29,8 @@ import com.example.travelcrumbs.ui.home.RouteRequestState
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * 「가 볼 장소」(스펙 navigation 2.1 · E1 ~ E6 · E11 ~ E13) — 정차 홈에서만 · 글 입력 · 애니메이션 · 회전 표시 없음.
- * 요청 중도 글자로만 알림. 실패면 결과 문구 아래 폴백 버튼 줄 · 그 아래 더미 경로 패널(E4 · E6 위 · U52).
+ * 「가 볼 장소」(스펙 navigation 2.1 · E1 ~ E6) — 정차 홈에서만 · 글 입력 · 애니메이션 · 회전 표시 없음.
+ * 요청 중도 글자로만 알림. 고정 장소는 카드(E4 · 와이어프레임 I-04) · 실패 뒤 폴백 버튼은 길안내 연결 화면에만(U71).
  */
 @Composable
 fun PlacesToVisitSection(
@@ -47,15 +49,13 @@ fun PlacesToVisitSection(
             BodyLine(stringResource(R.string.places_navi_not_connected))
         }
         routeResultText(state.routeRequest)?.let { BodyLine(it) }
-        RouteFallbackButtons(state = state, onRetry = actions.onRetry, onShowDummyRoute = actions.onShowDummyRoute)
-        state.dummyRoute?.let { DummyRoutePanel(place = it, onClose = actions.onCloseDummyRoute) }
         // 읽기 전(null)엔 E4 · E6 둘 다 그리지 않음 — 빈 안내가 깜빡이지 않게
         val pinned = state.pinnedPlaces
         if (pinned != null && pinned.isEmpty()) {
             BodyLine(stringResource(R.string.places_empty))
         }
         pinned.orEmpty().forEach { place ->
-            PlaceRow(name = place.name, address = place.address) {
+            PlaceCard(place = place) {
                 GuideButton(place = place, state = state, onGuide = actions.onGuide)
             }
         }
@@ -132,6 +132,39 @@ private fun PinButton(
     }
 }
 
+/**
+ * E4 고정 장소 카드 — 둥근 모서리 · 얇은 테두리 상자 안에 이름(굵게) · 주소 한 줄 · 오른쪽 「여기로 안내」.
+ * 카드 자체는 눌러도 아무 일 없음(버튼만 · 잘못 누름 막음 · T115). 출처 줄은 후속(U77).
+ */
+@Composable
+private fun PlaceCard(place: PlaceItem, button: @Composable () -> Unit) {
+    AppCard(modifier = Modifier.fillMaxWidth().testTag(PLACE_CARD_TAG)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = place.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = place.address,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            button()
+        }
+    }
+}
+
 /** 장소 이름 한 줄 · 주소 한 줄(넘치면 말줄임) · 오른쪽 버튼 — 글이 길어도 버튼 위치 · 크기 그대로(T25). */
 @Composable
 private fun PlaceRow(
@@ -165,17 +198,6 @@ private fun PlaceRow(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
-}
-
-@Composable
 private fun BodyLine(text: String) {
     Text(
         text = text,
@@ -194,7 +216,7 @@ private fun routeResultText(request: RouteRequestState): String? = when (request
     is RouteRequestState.Failed -> stringResource(R.string.places_route_failed, stringResource(request.reason.textRes()))
 }
 
-private fun RouteFailReason.textRes(): Int = when (this) {
+internal fun RouteFailReason.textRes(): Int = when (this) {
     RouteFailReason.NOT_CONNECTED -> R.string.places_navi_not_connected
     RouteFailReason.TOO_CLOSE -> R.string.places_reason_too_close
     RouteFailReason.TOO_FAR -> R.string.places_reason_too_far
@@ -209,11 +231,9 @@ data class PlaceActions(
     val onGuide: (String) -> Unit,
     val onPin: (String) -> Unit,
     val onUnpin: (String) -> Unit,
-    val onRetry: () -> Unit,
-    val onShowDummyRoute: () -> Unit,
-    val onCloseDummyRoute: () -> Unit,
 )
 
 /** 테스트가 구역 위치를 재는 이름표. */
 const val PLACES_SECTION_TAG = "home_places_section"
+const val PLACE_CARD_TAG = "home_place_card"
 const val PICKER_SECTION_TAG = "home_picker_section"
