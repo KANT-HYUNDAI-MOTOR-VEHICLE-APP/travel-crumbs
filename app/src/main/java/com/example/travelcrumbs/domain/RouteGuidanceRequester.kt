@@ -2,7 +2,7 @@ package com.example.travelcrumbs.domain
 
 /**
  * 길안내 요청 포트(#37 B-05) — 차량 내비로 목적지 하나를 넘기고 시작 · 실패를 기다림.
- * 바인딩: data/navi 의 NaviRouteGuidanceRequester(#4 NaviRepository.requestRoute 를 감쌈 · 모든 빌드 · di/GuidanceModule).
+ * 바인딩: [TrackerRouteGuidanceRequester](성호님 길안내 입구 GuideRequestTracker 하나로 · #51 U7 · 모든 빌드 · di/GuidanceModule).
  */
 interface RouteGuidanceRequester {
     suspend fun requestRoute(destination: GuidanceDestination): GuidanceRequestResult
