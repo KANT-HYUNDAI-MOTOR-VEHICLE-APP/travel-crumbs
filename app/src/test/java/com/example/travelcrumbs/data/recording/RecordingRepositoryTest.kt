@@ -138,4 +138,104 @@ class RecordingRepositoryTest {
 
         assertEquals(RecordingProgress(TripStatus.RECORDING, 10), relaunched.progress.first())
     }
+
+    @Test
+    fun `V48 V49 V50 일시정지 동안 경과 멈춤 · 재개 뒤 멈춘 값에서 이어짐`() = runTest {
+        val repository = DefaultRecordingRepository(FakeRecordingLocalDataSource(), clock())
+        var latest: RecordingProgress? = null
+        backgroundScope.launch { repository.progress.collect { latest = it } }
+
+        testScheduler.advanceTimeBy(20 * minute + 1)
+        repository.togglePause()
+        testScheduler.advanceTimeBy(30 * minute)
+        assertEquals(RecordingProgress(TripStatus.PAUSED, 20), latest)
+
+        repository.togglePause()
+        testScheduler.advanceTimeBy(10 * minute)
+        assertEquals(RecordingProgress(TripStatus.RECORDING, 30), latest)
+    }
+
+    @Test
+    fun `V56 주행 화면에서 일시정지하면 홈 구독자도 일시정지 — 단일 출처`() = runTest {
+        val repository = DefaultRecordingRepository(FakeRecordingLocalDataSource(), clock())
+        var home: RecordingProgress? = null
+        var driving: RecordingProgress? = null
+        backgroundScope.launch { repository.progress.collect { home = it } }
+        backgroundScope.launch { repository.progress.collect { driving = it } }
+        testScheduler.advanceTimeBy(12 * minute + 1)
+
+        repository.togglePause()
+        testScheduler.runCurrent()
+
+        assertEquals(RecordingProgress(TripStatus.PAUSED, 12), home)
+        assertEquals(home, driving)
+    }
+
+    @Test
+    fun `V54 PAUSED 에서 종료 — COMPLETED · 일시정지한 순간 기록 시간`() = runTest {
+        val local = FakeRecordingLocalDataSource()
+        val repository = DefaultRecordingRepository(local, clock())
+        repository.progress.first()
+        testScheduler.advanceTimeBy(25 * minute)
+        repository.togglePause()
+        testScheduler.advanceTimeBy(5 * minute)
+
+        repository.endTrip()
+
+        assertEquals(RecordingProgress(TripStatus.COMPLETED, 25), repository.progress.first())
+        assertEquals(30 * minute, local.current?.endAtMillis)
+    }
+
+    @Test
+    fun `V64 COMPLETED 에 일시정지 · 재개 요청 — 상태 · 기록 시간 그대로`() = runTest {
+        val completed = CurrentTrip.start(0).ended(5 * minute)
+        val local = FakeRecordingLocalDataSource(completed)
+        val repository = DefaultRecordingRepository(local, clock())
+        testScheduler.advanceTimeBy(30 * minute)
+
+        repository.togglePause()
+
+        assertEquals(completed, local.current)
+    }
+
+    @Test
+    fun `V35 PAUSED 에도 새 여행 시작이 아무것도 바꾸지 않음`() = runTest {
+        val paused = CurrentTrip.start(0).pauseToggled(7 * minute)
+        val local = FakeRecordingLocalDataSource(paused)
+        val repository = DefaultRecordingRepository(local, clock())
+        testScheduler.advanceTimeBy(20 * minute)
+
+        repository.startNewTrip()
+
+        assertEquals(paused, local.current)
+    }
+
+    @Test
+    fun `V63 PAUSED 15분 · 앱 종료 · 1시간 뒤 다시 실행 — 일시정지 · 15분(꺼진 동안 안 늘어남)`() = runTest {
+        val local = FakeRecordingLocalDataSource()
+        DefaultRecordingRepository(local, clock()).apply {
+            progress.first()
+            testScheduler.advanceTimeBy(15 * minute)
+            togglePause()
+        }
+        testScheduler.advanceTimeBy(60 * minute)
+
+        val relaunched = DefaultRecordingRepository(local, clock())
+
+        assertEquals(RecordingProgress(TripStatus.PAUSED, 15), relaunched.progress.first())
+    }
+
+    @Test
+    fun `V66 일시정지를 빠르게 두 번 — RECORDING → PAUSED → RECORDING · 오류 없음`() = runTest {
+        val local = FakeRecordingLocalDataSource()
+        val repository = DefaultRecordingRepository(local, clock())
+        repository.progress.first()
+        testScheduler.advanceTimeBy(3 * minute)
+
+        repository.togglePause()
+        repository.togglePause()
+
+        assertEquals(TripStatus.RECORDING, local.current?.status)
+        assertEquals(RecordingProgress(TripStatus.RECORDING, 3), repository.progress.first())
+    }
 }

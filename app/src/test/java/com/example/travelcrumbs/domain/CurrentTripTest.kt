@@ -22,7 +22,7 @@ class CurrentTripTest {
     }
 
     @Test
-    fun `V20 기록 중 경과 = 지금 − 시작 시각(앱이 꺼져 있던 시간 포함)`() {
+    fun `V20 일시정지 없이 기록 중 경과 = 지금 − 시작 시각(앱이 꺼져 있던 시간 포함)`() {
         val trip = CurrentTrip.start(nowMillis = 0)
 
         assertEquals(65 * minute, trip.elapsedMillis(nowMillis = 65 * minute))
@@ -60,11 +60,55 @@ class CurrentTripTest {
     }
 
     @Test
-    fun `V26 여행 상태 값은 표준 TRIP_STATUS 넷 · PAUSED 없음`() {
+    fun `V60 여행 상태 값은 표준 v0_4 TRIP_STATUS 다섯 · 진행 중 여행은 RECORDING PAUSED`() {
         assertEquals(
-            listOf("RECORDING", "COMPLETED", "INTERRUPTED", "CANCELED"),
+            listOf("RECORDING", "PAUSED", "COMPLETED", "INTERRUPTED", "CANCELED"),
             TripStatus.entries.map { it.name },
         )
+        assertEquals(
+            listOf(TripStatus.RECORDING, TripStatus.PAUSED),
+            TripStatus.entries.filter { it.inProgress },
+        )
+    }
+
+    @Test
+    fun `V48 V49 일시정지하면 기록 시간 멈춤 · 재개하면 멈춘 값에서 이어짐`() {
+        val paused = CurrentTrip.start(nowMillis = 0).pauseToggled(nowMillis = 12 * minute)
+
+        assertEquals(TripStatus.PAUSED, paused.status)
+        assertEquals(12 * minute, paused.elapsedMillis(nowMillis = 40 * minute))
+
+        val resumed = paused.pauseToggled(nowMillis = 40 * minute)
+        assertEquals(TripStatus.RECORDING, resumed.status)
+        assertEquals(12 * minute, resumed.elapsedMillis(nowMillis = 40 * minute))
+        assertEquals(15 * minute, resumed.elapsedMillis(nowMillis = 43 * minute))
+    }
+
+    @Test
+    fun `V50 기록 20분 · 일시정지 30분 · 재개 10분 — 일시정지 동안 20분 · 끝에 30분(전체 경과 60분 아님)`() {
+        val paused = CurrentTrip.start(0).pauseToggled(20 * minute)
+        assertEquals(20 * minute, paused.elapsedMillis(50 * minute))
+
+        val resumed = paused.pauseToggled(50 * minute)
+        assertEquals(30 * minute, resumed.elapsedMillis(60 * minute))
+    }
+
+    @Test
+    fun `V54 PAUSED 에서 종료 — COMPLETED · 기록 시간은 일시정지한 순간 값 · 종료 시각은 누른 시각`() {
+        val ended = CurrentTrip.start(0).pauseToggled(25 * minute).ended(30 * minute)
+
+        assertEquals(TripStatus.COMPLETED, ended.status)
+        assertEquals(30 * minute, ended.endAtMillis)
+        assertEquals(25 * minute, ended.elapsedMillis(nowMillis = 200 * minute))
+    }
+
+    @Test
+    fun `V64 COMPLETED · CANCELED 에 일시정지 · 재개가 와도 바뀌지 않음`() {
+        val completed = CurrentTrip.start(0).ended(10 * minute)
+        assertSame(completed, completed.pauseToggled(nowMillis = 50 * minute))
+
+        val canceled = CurrentTrip.start(0).copy(status = TripStatus.CANCELED, endAtMillis = 3 * minute)
+        assertSame(canceled, canceled.pauseToggled(nowMillis = 50 * minute))
     }
 
     @Test

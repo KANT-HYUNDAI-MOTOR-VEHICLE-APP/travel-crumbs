@@ -15,6 +15,10 @@ object AppPreferencesKeys {
     val TRIP_END_AT_MILLIS = longPreferencesKey("trip_end_at_millis")
     val TRIP_PLACE_COUNT = intPreferencesKey("trip_place_count")
 
+    /** 누적 기록 시간 · 지금 기록 구간 시작(v0.4 · 일시정지). #21 첫 판(PR #23) 저장 값엔 없음 — 읽기 변환은 RecordingLocalDataSource 한 곳(N10). */
+    val TRIP_ACCUMULATED_MILLIS = longPreferencesKey("trip_accumulated_millis")
+    val TRIP_SEGMENT_START_MILLIS = longPreferencesKey("trip_segment_start_millis")
+
     /** 작성 중 내용(D27 · 새 키). */
     val UNFINISHED_INPUT_JSON = stringPreferencesKey("unfinished_input_json")
 
@@ -23,9 +27,6 @@ object AppPreferencesKeys {
         val RECORDING_STATUS = stringPreferencesKey("recording_status")
         val RECORDING_ACCUMULATED_MILLIS = longPreferencesKey("recording_accumulated_millis")
         val RECORDING_SEGMENT_START_MILLIS = longPreferencesKey("recording_segment_start_millis")
-
-        /** #6 판 기록 상태 값 중 일시정지 — TripStatus 에는 없는 값. */
-        const val RECORDING_STATUS_PAUSED = "PAUSED"
 
         /**
          * #6 판 작성 중 내용 키 — 읽지 않고 지우기만 함(D27).

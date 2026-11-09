@@ -33,8 +33,8 @@ import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
  * 주행 전용 화면(스펙 app-shell-v5 2-5) — 레일 오른쪽 내용 영역에 그림(D29).
- * 1 여행명 · 상태 · 경과 → 2 기록된 장소 수 → 3 지도 자리(남는 공간 · 창이 작으면 높이 0 까지 줄어듦) → 4 버튼 3개.
- * 입력 칸 · 스크롤 · 애니메이션 · 길안내 버튼 · 「새 여행 시작」 없음. 좁으면 버튼을 세로로 쌓음.
+ * 1 여행명 · 상태 · 경과 → 2 기록된 장소 수 → 3 지도 자리(남는 공간 · 창이 작으면 높이 0 까지 줄어듦) → 4 버튼 4개(D31).
+ * 입력 칸 · 스크롤 · 애니메이션 · 길안내 버튼 · 「새 여행 시작」 없음. 버튼은 한 줄 4개 · 좁으면 2 × 2(순서 그대로).
  */
 @Composable
 fun DrivingScreen(
@@ -44,7 +44,7 @@ fun DrivingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val stackButtons = maxWidth < Dimens.DrivingButtonsRowMinWidth
+        val twoByTwo = maxWidth < Dimens.DrivingButtonsRowMinWidth
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -86,15 +86,22 @@ fun DrivingScreen(
             val buttons = listOf(
                 DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace),
                 DrivingButtonSpec(R.string.action_voice, enabled = true, onClick = viewModel::onVoice),
+                DrivingButtonSpec(
+                    labelRes = if (uiState.pauseButtonShowsResume) R.string.action_resume_recording else R.string.action_pause_recording,
+                    enabled = uiState.pauseButtonEnabled,
+                    onClick = viewModel::onTogglePause,
+                ),
                 DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip),
             )
-            if (stackButtons) {
-                Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { DrivingButton(it, Modifier.fillMaxWidth()) }
-                }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                    buttons.forEach { DrivingButton(it, Modifier.weight(1f)) }
+            val rows = if (twoByTwo) buttons.chunked(2) else listOf(buttons)
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing)) {
+                rows.forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing),
+                    ) {
+                        row.forEach { DrivingButton(it, Modifier.weight(1f)) }
+                    }
                 }
             }
             NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)

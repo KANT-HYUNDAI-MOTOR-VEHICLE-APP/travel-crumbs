@@ -16,9 +16,13 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.DrivingState
@@ -27,6 +31,7 @@ import com.example.travelcrumbs.ui.home.HomeScreen
 import com.example.travelcrumbs.ui.home.TOP_AREA_TAG
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.shell.components.railItemTag
+import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -63,7 +68,7 @@ class AppShellTwoAreaWindowTest {
     private fun button(id: Int) = compose.onNode(hasText(text(id)) and hasClickAction())
 
     @Test
-    fun `V29 창 2개 영역 주행 화면 — 레일 5칸 · 여행명 상태 경과 장소 수 · 버튼 3 · 팝업이 스크롤 없이 보이고 눌림`() {
+    fun `V29 창 2개 영역 주행 화면 — 레일 5칸 · 여행명 상태 경과 장소 수 · 버튼 4 · 팝업이 스크롤 없이 보이고 눌림`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
@@ -75,12 +80,57 @@ class AppShellTwoAreaWindowTest {
         compose.onNodeWithText(text(R.string.map_placeholder)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed()
         button(R.string.action_voice).assertIsDisplayed()
+        button(R.string.action_pause_recording).assertIsDisplayed()
         button(R.string.action_end_trip).assertIsDisplayed().performClick()
 
         compose.onNodeWithText(text(R.string.end_trip_confirm_body)).assertIsDisplayed()
         button(R.string.end_trip_confirm_continue).assertIsDisplayed()
         button(R.string.end_trip_confirm_end).assertIsDisplayed().performClick()
         compose.onNodeWithText(text(R.string.trip_status_completed)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `V61 창 2개 영역(넓음) — 버튼 4개 한 줄 · 순서 그대로 · 48dp 이상 · 높이 72 · 간격 12 · 글자 5 mm 이상`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        showShell()
+
+        val bounds = assertDrivingButtons()
+        assertTrue("한 줄", bounds.map { it.top }.distinct().size == 1)
+    }
+
+    @Test
+    @Config(qualifiers = "w900dp-h700dp-land")
+    fun `V61 좁은 창 — 버튼 4개 2 × 2 · 순서 그대로 · 48dp 이상 · 높이 72 · 간격 12 · 글자 5 mm 이상`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        showShell()
+
+        val bounds = assertDrivingButtons()
+        assertTrue("2 × 2 — 윗줄 둘 · 화면 ${compose.onRoot().getBoundsInRoot()} · ${bounds}", bounds[0].top == bounds[1].top && bounds[2].top == bounds[3].top)
+        assertTrue("2 × 2 — 아랫줄 간격 ${bounds[2].top - bounds[0].bottom} · 화면 ${compose.onRoot().getBoundsInRoot()}", bounds[2].top - bounds[0].bottom >= DESIGN_SYSTEM_SPACING)
+    }
+
+    /** 버튼 4개(순서대로)의 경계 — 크기 · 간격 · 글자 높이를 재고 돌려줌. */
+    private fun assertDrivingButtons(): List<DpRect> {
+        val ids = listOf(
+            R.string.action_record_place,
+            R.string.action_voice,
+            R.string.action_pause_recording,
+            R.string.action_end_trip,
+        )
+        val bounds = ids.map { id ->
+            val b = button(id).assertIsDisplayed().getBoundsInRoot()
+            assertTrue("${text(id)} 폭 ${b.width}", b.width >= Dimens.MinTouchTarget)
+            assertTrue("${text(id)} 높이 ${b.height} — 디자인 시스템 7절 72", b.height >= DESIGN_SYSTEM_BUTTON_HEIGHT)
+            val label = compose.onNode(hasText(text(id)), useUnmergedTree = true).getBoundsInRoot()
+            assertTrue("${text(id)} 글자 높이 ${label.height}", label.height >= FIVE_MM_AT_160_DPI)
+            b
+        }
+        val sorted = bounds.sortedWith(compareBy({ it.top.value }, { it.left.value }))
+        assertTrue("순서 그대로", sorted == bounds)
+        bounds.zipWithNext().filter { (a, b) -> a.top == b.top }.forEach { (a, b) ->
+            assertTrue("간격 ${b.left - a.right}", b.left - a.right >= DESIGN_SYSTEM_SPACING)
+        }
+        return bounds
     }
 
     @Test
@@ -147,5 +197,12 @@ class AppShellTwoAreaWindowTest {
 
     private companion object {
         const val SECTION_TAG = "test_section"
+
+        /** 디자인 시스템 7절 — 주요 버튼 높이 72 · 인접 간격 12. */
+        val DESIGN_SYSTEM_BUTTON_HEIGHT = 72.dp
+        val DESIGN_SYSTEM_SPACING = 12.dp
+
+        /** 5 mm · 160 dpi(에뮬레이터 Pleos_Connect_v2.1.0 · 1dp = 1px) ≈ 31.5dp. */
+        val FIVE_MM_AT_160_DPI = (5f / 25.4f * 160f).dp
     }
 }

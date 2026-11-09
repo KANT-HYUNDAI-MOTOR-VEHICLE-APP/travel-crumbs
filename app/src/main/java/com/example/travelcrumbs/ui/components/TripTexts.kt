@@ -6,11 +6,12 @@ import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.ElapsedTime
 import com.example.travelcrumbs.domain.model.TripStatus
 
-/** 여행 상태 글자 = 표준 TRIP_STATUS 코드명(스펙 app-shell-v5 2절 공통 · N8) — 홈 · 주행 화면 공통. */
+/** 여행 상태 글자 = 표준 v0.4 TRIP_STATUS 코드명(스펙 app-shell-v5 2절 공통 · N8 · N25) — 홈 · 주행 화면 공통. */
 @Composable
 fun tripStatusText(status: TripStatus): String = stringResource(
     when (status) {
         TripStatus.RECORDING -> R.string.trip_status_recording
+        TripStatus.PAUSED -> R.string.recording_status_paused
         TripStatus.COMPLETED -> R.string.trip_status_completed
         TripStatus.INTERRUPTED -> R.string.trip_status_interrupted
         TripStatus.CANCELED -> R.string.trip_status_canceled

@@ -48,6 +48,8 @@ class DataStoreRecordingLocalDataSource @Inject constructor(
         this[AppPreferencesKeys.TRIP_STATUS] = trip.status.name
         this[AppPreferencesKeys.TRIP_START_AT_MILLIS] = trip.startAtMillis
         this[AppPreferencesKeys.TRIP_PLACE_COUNT] = trip.placeCount
+        this[AppPreferencesKeys.TRIP_ACCUMULATED_MILLIS] = trip.accumulatedMillis
+        this[AppPreferencesKeys.TRIP_SEGMENT_START_MILLIS] = trip.segmentStartMillis
         val end = trip.endAtMillis
         if (end == null) remove(AppPreferencesKeys.TRIP_END_AT_MILLIS) else this[AppPreferencesKeys.TRIP_END_AT_MILLIS] = end
         val name = trip.tripName
@@ -55,16 +57,20 @@ class DataStoreRecordingLocalDataSource @Inject constructor(
     }
 
     private fun Preferences.toTrip(): CurrentTrip? {
-        val status = this[AppPreferencesKeys.TRIP_STATUS]
-            ?.let { name -> TripStatus.entries.firstOrNull { it.name == name } }
-            ?: return null
-        return CurrentTrip(
+        val status = this[AppPreferencesKeys.TRIP_STATUS]?.let(::tripStatusOf) ?: return null
+        val startAt = this[AppPreferencesKeys.TRIP_START_AT_MILLIS] ?: 0L
+        val endAt = this[AppPreferencesKeys.TRIP_END_AT_MILLIS]
+        val accumulated = this[AppPreferencesKeys.TRIP_ACCUMULATED_MILLIS]
+        val trip = CurrentTrip(
             tripName = this[AppPreferencesKeys.TRIP_NAME],
             status = status,
-            startAtMillis = this[AppPreferencesKeys.TRIP_START_AT_MILLIS] ?: 0L,
-            endAtMillis = this[AppPreferencesKeys.TRIP_END_AT_MILLIS],
+            startAtMillis = startAt,
+            endAtMillis = endAt,
             placeCount = this[AppPreferencesKeys.TRIP_PLACE_COUNT] ?: 0,
+            accumulatedMillis = accumulated ?: 0L,
+            segmentStartMillis = this[AppPreferencesKeys.TRIP_SEGMENT_START_MILLIS] ?: startAt,
         )
+        return if (accumulated == null) firstReleaseTripToCurrent(trip) else trip
     }
 
     private fun Preferences.legacyTrip(nowMillis: Long): CurrentTrip? {
@@ -78,10 +84,25 @@ class DataStoreRecordingLocalDataSource @Inject constructor(
     }
 }
 
+private fun tripStatusOf(name: String): TripStatus? = TripStatus.entries.firstOrNull { it.name == name }
+
 /**
- * #6 판 기록 상태(RECORDING · PAUSED + 누적 경과 + 구간 시작) → 지금 여행 요약(N10 추천 (a)).
- * 기록 중이었으면 「구간 시작 − 누적」이 곧 시작 시각 · 일시정지였으면 지금부터 누적만큼 거슬러 올라간 시각
- * → 경과가 저장 당시 누적 경과에서 이어짐. 결과는 늘 RECORDING(PAUSED 는 TripStatus 에 없음).
+ * #21 첫 판(PR #23) 저장 값 — 누적 기록 시간 · 구간 시작 칸이 없음(N10 추천 (가)).
+ * 첫 판엔 일시정지가 없었으므로 기록 시간 = (종료 시각 또는 지금) − 시작 시각:
+ * RECORDING 은 누적 0 · 구간 시작 = 시작 시각(지금까지 이어서 늘어남) · 그 밖은 종료 − 시작으로 고정.
+ */
+fun firstReleaseTripToCurrent(trip: CurrentTrip): CurrentTrip = when (trip.status) {
+    TripStatus.RECORDING -> trip.copy(accumulatedMillis = 0L, segmentStartMillis = trip.startAtMillis)
+    else -> trip.copy(
+        accumulatedMillis = ((trip.endAtMillis ?: trip.startAtMillis) - trip.startAtMillis).coerceAtLeast(0L),
+        segmentStartMillis = trip.startAtMillis,
+    )
+}
+
+/**
+ * #6 판 기록 상태(RECORDING · PAUSED + 누적 기록 시간 + 지금 구간 시작) → 지금 여행 요약(N10 추천 (a)).
+ * 상태 · 누적 · 구간 시작은 그대로(PAUSED 는 PAUSED 그대로 · 경과 = 저장된 누적). #6 판엔 여행 시작 시각이 없어
+ * 기록 중이었으면 「구간 시작 − 누적」 · 일시정지였으면 「지금 − 누적」을 시작 시각으로 둠.
  * 알 수 없는 값이면 null(첫 실행처럼).
  */
 fun legacyRecordingToTrip(
@@ -91,10 +112,15 @@ fun legacyRecordingToTrip(
     nowMillis: Long,
 ): CurrentTrip? {
     val accumulated = accumulatedMillis.coerceAtLeast(0L)
-    val start = when (status) {
-        TripStatus.RECORDING.name -> segmentStartMillis - accumulated
-        Legacy.RECORDING_STATUS_PAUSED -> nowMillis - accumulated
-        else -> return null
-    }
-    return CurrentTrip.start(start)
+    val tripStatus = tripStatusOf(status)?.takeIf { it.inProgress } ?: return null
+    val startAt = if (tripStatus == TripStatus.RECORDING) segmentStartMillis - accumulated else nowMillis - accumulated
+    return CurrentTrip(
+        tripName = null,
+        status = tripStatus,
+        startAtMillis = startAt,
+        endAtMillis = null,
+        placeCount = 0,
+        accumulatedMillis = accumulated,
+        segmentStartMillis = segmentStartMillis,
+    )
 }

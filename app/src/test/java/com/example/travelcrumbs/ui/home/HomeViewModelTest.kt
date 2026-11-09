@@ -103,6 +103,27 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `V56 V35 주행 화면에서 일시정지하면 홈도 일시정지 — 경과 같은 값 · 이 장소 기록 활성 · 새 여행 시작 비활성`() = runTest(dispatcher) {
+        val time = FakeTimeSource()
+        val recording = recordingRepositoryOf(time)
+        val vm = viewModel(recording = recording)
+        subscribe(vm)
+        time.now += 12 * 60_000L
+
+        recording.togglePause()
+        runCurrent()
+        time.now += 30 * 60_000L
+        vm.onStartNewTrip()
+        runCurrent()
+
+        val state = vm.uiState.value
+        assertEquals(TripStatus.PAUSED, state.tripStatus)
+        assertEquals(12L, state.elapsedMinutes)
+        assertTrue(state.recordPlaceEnabled)
+        assertFalse(state.startNewTripEnabled)
+    }
+
+    @Test
     fun `T14 홈의 이 장소 기록도 같은 연결 지점 — 준비 중 안내`() = runTest(dispatcher) {
         val vm = viewModel()
         subscribe(vm)
