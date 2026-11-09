@@ -6,6 +6,7 @@ import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
 import com.example.travelcrumbs.ui.components.RatingDialogItem
 import com.example.travelcrumbs.ui.components.TripSummaryItem
 import com.example.travelcrumbs.ui.components.UiMessage
@@ -62,6 +63,8 @@ data class HomeUiState(
     val endConfirmVisible: Boolean = false,
     /** A-01 여행 시작 화면이 열림(진행 중 여행이 없을 때만 · #51 U3). */
     val tripStartOpen: Boolean = false,
+    /** A-03 장소 기록 · 태그 시트 — 정차일 때만 · 없으면 null(#51 U4). */
+    val tagSheet: PlaceTagSheetItem? = null,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /

@@ -136,14 +136,14 @@ class DrivingViewModelTest {
     }
 
     @Test
-    fun `T16 연결 지점이 DONE 이면 안내 없음`() = runTest(dispatcher) {
+    fun `T16 U4-1 연결 지점이 DONE 이면 「위치를 저장했어요 · 태그는 정차 후에」`() = runTest(dispatcher) {
         val vm = viewModel(recordPlace = ActionResult.DONE)
         subscribe(vm)
 
         vm.onRecordPlace()
         runCurrent()
 
-        assertNull(vm.uiState.value.message)
+        assertEquals(UiMessage.PLACE_DRAFT_SAVED, vm.uiState.value.message)
     }
 
     @Test

@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.PlaceTagSheet
 import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.home.components.GuideConnectionContent
 import com.example.travelcrumbs.ui.home.components.GuideScreenActions
@@ -156,6 +157,17 @@ fun HomeScreen(
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
+    }
+
+    uiState.tagSheet?.let { sheet ->
+        PlaceTagSheet(
+            item = sheet,
+            onNameChange = viewModel::onTagNameChange,
+            onMemoChange = viewModel::onTagMemoChange,
+            onToggleTag = viewModel::onToggleSheetTag,
+            onSkip = viewModel::onSkipTagSheet,
+            onSave = viewModel::onSaveTagSheet,
+        )
     }
 
     if (uiState.endConfirmVisible) {

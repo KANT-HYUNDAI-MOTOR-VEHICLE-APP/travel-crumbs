@@ -5,11 +5,11 @@ import com.example.travelcrumbs.data.recording.DefaultRecordingRepository
 import com.example.travelcrumbs.data.recording.RecordingLocalDataSource
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.time.SystemTimeSource
+import com.example.travelcrumbs.data.trip.TripPlaceRecorder
 import com.example.travelcrumbs.data.unfinishedinput.DataStoreUnfinishedInputLocalDataSource
 import com.example.travelcrumbs.data.unfinishedinput.DefaultUnfinishedInputRepository
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputLocalDataSource
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
-import com.example.travelcrumbs.domain.NotReadyRecordPlaceUseCase
 import com.example.travelcrumbs.domain.NotReadyStartVoiceInputUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
@@ -53,7 +53,7 @@ abstract class ShellModule {
     abstract fun bindUnfinishedInputRepository(impl: DefaultUnfinishedInputRepository): UnfinishedInputRepository
 
     @Binds
-    abstract fun bindRecordPlaceUseCase(impl: NotReadyRecordPlaceUseCase): RecordPlaceUseCase
+    abstract fun bindRecordPlaceUseCase(impl: TripPlaceRecorder): RecordPlaceUseCase
 
     @Binds
     abstract fun bindStartVoiceInputUseCase(impl: NotReadyStartVoiceInputUseCase): StartVoiceInputUseCase

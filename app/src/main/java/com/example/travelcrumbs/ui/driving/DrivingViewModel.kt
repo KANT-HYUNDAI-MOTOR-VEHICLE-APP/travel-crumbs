@@ -77,7 +77,15 @@ class DrivingViewModel @Inject constructor(
         }
     }
 
-    fun onRecordPlace() = runAction { recordPlace() }
+    /** 「이 장소 기록」 — 위치만 임시저장 · 「위치를 저장했어요 · 태그는 정차 후에」(A-02 · #51 U4). */
+    fun onRecordPlace() {
+        viewModelScope.launch {
+            message.value = when (recordPlace()) {
+                ActionResult.DONE -> UiMessage.PLACE_DRAFT_SAVED
+                ActionResult.NOT_READY, ActionResult.FAILED -> UiMessage.NOT_READY
+            }
+        }
+    }
 
     fun onVoice() = runAction { startVoiceInput() }
 

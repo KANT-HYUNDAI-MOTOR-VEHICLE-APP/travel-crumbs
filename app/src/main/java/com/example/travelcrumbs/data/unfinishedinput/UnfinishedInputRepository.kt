@@ -33,6 +33,9 @@ interface UnfinishedInputRepository {
     /** 입력 중 내용이 있으면 기기 안에 저장. 없으면 아무 일도 안 함. */
     suspend fun saveActiveInput()
 
+    /** 지금 바로 기기 안에 저장(주행 중 기록한 임시저장 장소 · #51 U4) — 정차하면 「이어서 쓰기」 띠. */
+    suspend fun saveNow(destinationId: String, fields: Map<String, String>)
+
     /** 저장된 내용을 꺼내 [pendingRestore] 로 옮기고 저장을 비움. 없으면 null. */
     suspend fun takeForRestore(): UnfinishedInput?
 
@@ -65,6 +68,10 @@ class DefaultUnfinishedInputRepository @Inject constructor(
         val input = activeInput.value ?: return
         if (input.fields.values.all { it.isBlank() }) return
         local.save(UnfinishedInput(input.destinationId, input.fields, timeSource.nowMillis()))
+    }
+
+    override suspend fun saveNow(destinationId: String, fields: Map<String, String>) {
+        local.save(UnfinishedInput(destinationId, fields, timeSource.nowMillis()))
     }
 
     override suspend fun takeForRestore(): UnfinishedInput? {

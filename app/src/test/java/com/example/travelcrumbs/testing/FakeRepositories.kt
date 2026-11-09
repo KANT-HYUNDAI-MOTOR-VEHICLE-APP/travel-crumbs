@@ -51,6 +51,12 @@ class FakeNaviRepository(
     var naviAppOpens: Int = 0
         private set
 
+    /** 지금 위치(#51 U4) — null 이면 못 읽음. */
+    var location: com.example.travelcrumbs.domain.model.CurrentLocation? =
+        com.example.travelcrumbs.domain.model.CurrentLocation(38.2049, 128.5906, "강원 속초시 중앙로 147")
+
+    override suspend fun currentLocation(): com.example.travelcrumbs.domain.model.CurrentLocation? = location
+
     override fun naviAppAvailable(): Boolean = naviApp
 
     override fun openNaviApp(): Boolean {

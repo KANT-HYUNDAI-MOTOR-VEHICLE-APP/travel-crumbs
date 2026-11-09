@@ -30,10 +30,14 @@ class ShellTestGraph(
     private val dummyRoute: Boolean = true,
     /** 진행 중 여행 하나로 시작(옛 시험의 「첫 실행」 자리) · 거짓이면 v6 첫 실행(여행 없음 · #51). */
     withTrip: Boolean = true,
+    /** 시작 여행의 저장 번호(Room 판 trip_no 흉내) — 장소 기록 시험이 씀. */
+    tripNo: Long? = null,
+    /** 「이 장소 기록」을 실제 구현(TripPlaceRecorder · #51 U4)으로 — 거짓이면 늘 「준비 중」인 대역. */
+    realRecordPlace: Boolean = false,
 ) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
-    val recordingLocal = if (withTrip) FakeRecordingLocalDataSource(com.example.travelcrumbs.domain.model.CurrentTrip.start(time.now)) else FakeRecordingLocalDataSource()
+    val recordingLocal = if (withTrip) FakeRecordingLocalDataSource(com.example.travelcrumbs.domain.model.CurrentTrip.start(time.now).copy(tripNo = tripNo)) else FakeRecordingLocalDataSource()
     val recording = recordingRepositoryOf(time, recordingLocal)
     val inputs = unfinishedInputRepositoryOf(time)
     val savedState = SavedStateHandle()
@@ -50,7 +54,18 @@ class ShellTestGraph(
     val tags = FakeTagRepository()
     val guide = guideTrackerOf(navi, pins)
 
+    val recordPlace: com.example.travelcrumbs.domain.RecordPlaceUseCase by lazy {
+        if (realRecordPlace) {
+            com.example.travelcrumbs.data.trip.TripPlaceRecorder(recording, trips, users, navi, driving, inputs)
+        } else {
+            FakeRecordPlaceUseCase()
+        }
+    }
+
     val owner: ViewModelStoreOwner = Owner()
+
+    /** 시험이 화면 없이 ViewModel 을 바로 만들 때. */
+    fun <T : ViewModel> viewModel(modelClass: Class<T>): T = modelClass.cast(create(modelClass))!!
 
     private inner class Owner : ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
         override val viewModelStore = ViewModelStore()
@@ -64,7 +79,7 @@ class ShellTestGraph(
         AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState)
         DrivingViewModel::class.java -> DrivingViewModel(
             recordingRepository = recording,
-            recordPlace = FakeRecordPlaceUseCase(),
+            recordPlace = recordPlace,
             startVoiceInput = FakeStartVoiceInputUseCase(),
             drivingSignalRepository = driving,
             savedStateHandle = drivingSavedState,
@@ -73,7 +88,7 @@ class ShellTestGraph(
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,
-            recordPlace = FakeRecordPlaceUseCase(),
+            recordPlace = recordPlace,
             drivingSignalRepository = driving,
             gleoActionRepository = FakeGleoActionRepository(),
             naviRepository = navi,
