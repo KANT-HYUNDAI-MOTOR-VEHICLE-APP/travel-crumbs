@@ -163,8 +163,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 내비 연결 전이면 안내 팝업에 시연용 안내`() {
-        graph.guidance.available = false
+    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 안내 팝업에 시연용 안내 없음(실제 내비 연결)`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
@@ -175,7 +174,7 @@ class AppShellScreenTest {
         compose.onNodeWithText("속초 가족여행").performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
         button(R.string.reco_guide_from_first).performClick()
-        compose.onNodeWithText(text(R.string.guidance_demo_only)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.guidance_start)).assertIsDisplayed()
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuidanceRequestResult
 import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
+import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.RatingRecords
@@ -16,7 +17,8 @@ import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.domain.model.SidoRegion
 import com.example.travelcrumbs.domain.model.Tag
-import com.example.travelcrumbs.ui.components.RatingDraft
+import com.example.travelcrumbs.ui.components.RatingDialogItem
+import com.example.travelcrumbs.ui.components.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,6 +44,7 @@ class RecommendationsViewModel @Inject constructor(
     private val requestRouteGuidance: RequestRouteGuidanceUseCase,
     private val savedStateHandle: SavedStateHandle,
     private val ratingRepository: RatingRepository,
+    timeSource: TimeSource,
 ) : ViewModel() {
 
     private val selection = MutableStateFlow(restoreSelection())
@@ -50,12 +53,23 @@ class RecommendationsViewModel @Inject constructor(
     private val sidoRegions = MutableStateFlow<List<SidoRegion>>(emptyList())
     private val sidoTrips = MutableStateFlow(SidoTrips(sidoNm = null, trips = emptyList()))
 
-    private val ratingRecords = MutableStateFlow(RatingRecords())
-    private val ratingDraft = MutableStateFlow<RatingDraft?>(null)
-    private val ratingSaving = MutableStateFlow(false)
+    /** 태그 마스터 — 태그별 개수에 내 별점 태그 이름을 찾을 때. */
     private val tags = MutableStateFlow<List<Tag>>(emptyList())
-    private val rating = combine(ratingRecords, ratingDraft, ratingSaving, tags) { records, draft, saving, tagList ->
-        RatingInputs(records, draft, saving, tagList)
+
+    /** B-06 별점 팝업(#41) — B-04 버튼으로만 엶(자동 팝업은 기록 칸). */
+    private val rating = RatingPopupHolder(
+        scope = viewModelScope,
+        repository = ratingRepository,
+        savedStateHandle = savedStateHandle,
+        timeSource = timeSource,
+        autoPrompt = false,
+        loadTags = repository::tags,
+        onSaved = { guidance.update { it.copy(message = UiMessage.RATING_SAVED) } },
+    )
+
+    /** 별점 기록(저장소 Flow 그대로)과 팝업 · 태그 마스터를 한 덩어리로. */
+    private val ratingPart = combine(ratingRepository.records, rating.item, tags) { records, dialog, tagList ->
+        RatingInputs(records, dialog, tagList)
     }
 
     val uiState: StateFlow<RecommendationsUiState> = combine(
@@ -63,7 +77,7 @@ class RecommendationsViewModel @Inject constructor(
         sidoRegions,
         sidoTrips,
         guidance,
-        rating,
+        ratingPart,
     ) { sel, regions, loaded, progress, ratingInputs ->
         // 시도를 바꾼 직후 옛 시도 로드맵이 한 번 섞이지 않게 — 불러온 시도가 지금 시도일 때만 씀
         val trips = if (loaded.sidoNm == sel.sidoNm) loaded.trips else emptyList()
@@ -73,7 +87,6 @@ class RecommendationsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
         initialValue = RecommendationsUiState(
             demoData = repository.isDemoData,
-            guidanceAvailable = requestRouteGuidance.available,
         ),
     )
 
@@ -81,7 +94,6 @@ class RecommendationsViewModel @Inject constructor(
         // 자료는 화면 구독과 따로 불러 둠 — 행동(첫 장소 · 안내 목적지)이 화면이 안 보일 때도 같은 값을 보게
         viewModelScope.launch { sidoRegions.value = repository.sidoRegions() }
         viewModelScope.launch { tags.value = repository.tags() }
-        viewModelScope.launch { ratingRepository.records.collect { ratingRecords.value = it } }
         viewModelScope.launch {
             selection.map { it.sidoNm }.distinctUntilChanged().collect { sido ->
                 sidoTrips.value = SidoTrips(sido, if (sido == null) emptyList() else repository.publicTrips(sido))
@@ -98,7 +110,7 @@ class RecommendationsViewModel @Inject constructor(
         savedStateHandle[KEY_ENTRY] = entryKey
         updateSelection { Selection.START }
         guidance.value = GuidanceProgress()
-        ratingDraft.value = null
+        rating.clear()
     }
 
     /** B-01 시도 칩. */
@@ -143,12 +155,13 @@ class RecommendationsViewModel @Inject constructor(
     fun startGuidance() {
         if (guidance.value.requesting) return
         val sel = selection.value
-        val place = currentTrip()?.places?.firstOrNull { it.placeNo == sel.confirmPlaceNo } ?: return
-        guidance.value = GuidanceProgress(requesting = true)
+        // 로드맵 · 장소를 먼저 구함 — 못 구하면 「요청 중」을 켜지 않음(버튼이 잠긴 채 남지 않게)
         val trip = currentTrip() ?: return
+        val place = trip.places.firstOrNull { it.placeNo == sel.confirmPlaceNo } ?: return
+        guidance.value = GuidanceProgress(requesting = true)
         viewModelScope.launch {
             val result = requestRouteGuidance(place)
-            // 별점 자격 — 요청이 성공했을 때만 남김(release 는 내비 연결 전이라 늘 실패 → 남기지 않음 · 보고서 결정)
+            // 별점 자격 — 내비가 안내를 시작했을 때만 남김(실패 · 한도 지남은 남기지 않음 · 사람 결정)
             if (result == GuidanceRequestResult.Started) {
                 ratingRepository.recordGuidance(trip.tripNo, trip.tripNm, trip.nicknameNm)
             }
@@ -167,40 +180,22 @@ class RecommendationsViewModel @Inject constructor(
     /** B-04 「별점 주기」 · 「내 별점 ★n · 고치기」 → B-06 팝업(이미 준 별점이면 그 값으로 채움). 안내 기록이 없으면 아무 일 없음. */
     fun openRating() {
         val tripNo = selection.value.tripNo ?: return
-        val records = ratingRecords.value
-        if (!RecommendationRules.canRate(records, tripNo)) return
-        ratingDraft.value = RatingDraft.of(tripNo, records.ratingOf(tripNo))
+        rating.open(tripNo)
     }
 
-    fun selectRatingScore(score: Int) = ratingDraft.update { it?.copy(ratingScore = score) }
+    fun selectRatingScore(score: Int) = rating.selectScore(uiState.value.rating, score)
 
-    fun toggleRatingTag(tagNo: Long) = ratingDraft.update { it?.toggleTag(tagNo) }
+    fun toggleRatingTag(tagNo: Long) = rating.toggleTag(uiState.value.rating, tagNo)
 
     /** B-06 「나중에」 · 바깥 · 뒤로 — 닫기 · 그 로드맵의 자동 팝업도 끝난 것으로. */
-    fun dismissRating() {
-        val tripNo = ratingDraft.value?.tripNo ?: return
-        ratingDraft.value = null
-        viewModelScope.launch { ratingRepository.markPrompted(tripNo) }
-    }
+    fun dismissRating() = rating.dismiss(uiState.value.rating)
 
     /** B-06 「별점 주기」 — 저장되면 닫고 한 줄 안내 · 평균 · 참여 수 · 태그 수는 저장소 기록이 바뀌며 바로 다시 계산됨. */
-    fun submitRating() {
-        val draft = ratingDraft.value ?: return
-        val score = draft.ratingScore ?: return
-        if (ratingSaving.value) return
-        ratingSaving.value = true
-        viewModelScope.launch {
-            if (ratingRepository.saveRating(draft.tripNo, score, draft.tagNos)) {
-                ratingDraft.value = null
-                guidance.update { it.copy(message = UiMessage.RATING_SAVED) }
-            }
-            ratingSaving.value = false
-        }
-    }
+    fun submitRating() = rating.submit(uiState.value.rating)
 
     /** 시스템 뒤로 — 팝업 닫기 → 상세에서 온 화면 → B-03 에서 B-02 → B-02 에서 B-01. B-01 에선 앱 틀이 받음. */
     fun onBack() {
-        if (ratingDraft.value != null) {
+        if (uiState.value.rating != null) {
             dismissRating()
             return
         }
@@ -269,9 +264,7 @@ class RecommendationsViewModel @Inject constructor(
             selectedTagNo = selectedTagNo,
             taggedTrips = tagged,
             detail = trip?.toDetail(records),
-            rating = ratingInputs.draft?.let { draft ->
-                records.guided(draft.tripNo)?.let { guided -> draft.toItem(guided, ratingInputs.tags, ratingInputs.saving) }
-            },
+            rating = ratingInputs.dialog,
             confirm = confirmPlace?.let { place ->
                 GuidanceConfirmItem(
                     placeNo = place.placeNo,
@@ -283,7 +276,6 @@ class RecommendationsViewModel @Inject constructor(
                 )
             },
             guidanceRequesting = progress.requesting,
-            guidanceAvailable = requestRouteGuidance.available,
             message = progress.message,
         )
     }
@@ -376,8 +368,7 @@ class RecommendationsViewModel @Inject constructor(
 
     private data class RatingInputs(
         val records: RatingRecords,
-        val draft: RatingDraft?,
-        val saving: Boolean,
+        val dialog: RatingDialogItem?,
         val tags: List<Tag>,
     )
 

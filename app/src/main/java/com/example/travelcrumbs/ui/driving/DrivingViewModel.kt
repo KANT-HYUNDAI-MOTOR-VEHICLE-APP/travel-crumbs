@@ -88,9 +88,9 @@ class DrivingViewModel @Inject constructor(
     fun onConfirmEndTrip() {
         savedStateHandle[KEY_END_CONFIRM] = false
         viewModelScope.launch {
-            recordingRepository.endTrip()
-            // 별점(#41) — 안내받은 추천 로드맵이 있으면 정차 뒤 기록 화면에서 「따라간 코스 어땠나요?」(주행 중엔 안 띄움)
-            ratingRepository.markGuidedTripsEnded()
+            // 별점(#41) — 안내받은 추천 로드맵이 있으면 정차 뒤 기록 화면에서 「따라간 코스 어땠나요?」(주행 중엔 안 띄움).
+            // 종료 시각은 기록 저장소가 정한 값 하나 · 이미 끝난 여행이면 null(아무 일 없음)
+            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
         }
     }
 

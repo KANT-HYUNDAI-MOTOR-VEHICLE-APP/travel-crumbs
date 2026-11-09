@@ -11,10 +11,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
-/** 길안내 요청 포트 fake — 받은 목적지를 기록하고 [result] 로 답함 · [available] 거짓 = release(내비 연결 전). */
+/** 길안내 요청 포트 fake — 받은 목적지를 기록하고 [result] 로 답함. */
 class FakeRouteGuidanceRequester(
     var result: GuidanceRequestResult = GuidanceRequestResult.Started,
-    override var available: Boolean = true,
 ) : RouteGuidanceRequester {
     val requested = mutableListOf<GuidanceDestination>()
 

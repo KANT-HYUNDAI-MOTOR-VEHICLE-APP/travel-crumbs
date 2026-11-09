@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.ui.recommendations
 
+import com.example.travelcrumbs.testing.FakeTimeSource
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
 import com.example.travelcrumbs.domain.GuidanceRequestResult
@@ -49,6 +50,7 @@ class RecommendationsViewModelTest {
         requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
         savedStateHandle = saved,
         ratingRepository = ratings,
+        timeSource = FakeTimeSource(),
     )
 
     private val state get() = vm.uiState.value
@@ -334,6 +336,7 @@ class RecommendationsViewModelTest {
         start()
         guideTrip101()
         vm.openRating()
+        runCurrent()
         vm.selectRatingScore(5)
         vm.toggleRatingTag(3)
         runCurrent()
@@ -352,6 +355,7 @@ class RecommendationsViewModelTest {
         assertEquals(5, state.detail!!.myRatingScore)
 
         vm.openRating()
+        runCurrent()
         vm.selectRatingScore(1)
         runCurrent()
         vm.submitRating()

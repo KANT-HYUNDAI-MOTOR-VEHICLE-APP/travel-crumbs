@@ -78,7 +78,6 @@ fun RecommendationsScreen(
         GuidanceConfirmDialog(
             item = confirm,
             requesting = uiState.guidanceRequesting,
-            available = uiState.guidanceAvailable,
             onCancel = viewModel::dismissGuidance,
             onStart = viewModel::startGuidance,
         )

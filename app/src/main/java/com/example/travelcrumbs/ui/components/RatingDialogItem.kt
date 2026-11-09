@@ -41,8 +41,8 @@ data class RatingDraft(
 ) {
     fun toggleTag(tagNo: Long): RatingDraft = copy(tagNos = if (tagNo in tagNos) tagNos - tagNo else tagNos + tagNo)
 
-    fun toItem(guided: GuidedTrip, tags: List<Tag>, saving: Boolean = false): RatingDialogItem {
-        val date = Instant.ofEpochMilli(guided.guidedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+    fun toItem(guided: GuidedTrip, tags: List<Tag>, zoneId: ZoneId, saving: Boolean = false): RatingDialogItem {
+        val date = Instant.ofEpochMilli(guided.guidedAt).atZone(zoneId).toLocalDate()
         return RatingDialogItem(
             tripNo = tripNo,
             tripNm = guided.tripNm,

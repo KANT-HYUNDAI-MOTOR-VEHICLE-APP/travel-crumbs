@@ -52,8 +52,6 @@ data class RecommendationsUiState(
     val confirm: GuidanceConfirmItem? = null,
     /** 「안내 시작」을 누른 뒤 답을 기다리는 중 — 버튼을 한 번만 받음. */
     val guidanceRequesting: Boolean = false,
-    /** 실제 차량 내비로 안내가 가는지 — 아니면 팝업에 「시연용 · 실제 안내는 준비 중」. */
-    val guidanceAvailable: Boolean = true,
     /** B-06 별점 팝업(#41) — B-04 에서 열었을 때만. */
     val rating: RatingDialogItem? = null,
     /** 안내 요청 결과 · 별점 저장 한 줄(요청함 · 시작 못 함 · 남겼어요) — 화면이 보여 준 뒤 지움. */

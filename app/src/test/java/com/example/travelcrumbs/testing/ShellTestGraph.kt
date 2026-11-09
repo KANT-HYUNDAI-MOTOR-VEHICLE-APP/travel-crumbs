@@ -74,12 +74,15 @@ class ShellTestGraph(
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratings,
             recommendationRepository = SeedRecommendationRepository(),
+            timeSource = time,
+            savedStateHandle = SavedStateHandle(),
         )
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),
             requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
             savedStateHandle = SavedStateHandle(),
             ratingRepository = ratings,
+            timeSource = time,
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

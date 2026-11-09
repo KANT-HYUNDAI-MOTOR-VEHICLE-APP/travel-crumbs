@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.ui.home
 
+import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
@@ -59,6 +60,7 @@ class HomeViewModelTest {
         navi: FakeNaviRepository = FakeNaviRepository(),
         gleo: FakeGleoActionRepository = FakeGleoActionRepository(),
         ratings: RatingRepository = ratingRepositoryOf(),
+        saved: SavedStateHandle = SavedStateHandle(),
     ) = HomeViewModel(
         recordingRepository = recording,
         recordPlace = FakeRecordPlaceUseCase(),
@@ -72,6 +74,8 @@ class HomeViewModelTest {
         demoFeatures = DemoFeatures(dummyRoute = true),
         ratingRepository = ratings,
         recommendationRepository = SeedRecommendationRepository(),
+        timeSource = FakeTimeSource(),
+        savedStateHandle = saved,
     )
 
     @Test
@@ -86,7 +90,7 @@ class HomeViewModelTest {
         runCurrent()
         assertNull(vm.uiState.value.ratingPrompt)
 
-        ratings.markGuidedTripsEnded()
+        ratings.markGuidedTripsEnded(endedAt = 10)
         runCurrent()
 
         val prompt = vm.uiState.value.ratingPrompt!!
@@ -102,7 +106,7 @@ class HomeViewModelTest {
     fun `R23 팝업은 로드맵마다 한 번 — 나중에 누르면 다시 안 뜸 · 다른 로드맵은 뜸`() = runTest(dispatcher) {
         val ratings = ratingRepositoryOf()
         ratings.recordGuidance(101, "속초 가족여행", "민지네")
-        ratings.markGuidedTripsEnded()
+        ratings.markGuidedTripsEnded(endedAt = 10)
         val vm = viewModel(ratings = ratings)
         backgroundScope.launch { vm.uiState.collect { } }
         runCurrent()
@@ -121,7 +125,7 @@ class HomeViewModelTest {
         ratings.recordGuidance(102, "바다 보고 시장 한 바퀴", "바다곰")
         runCurrent()
         assertNull(again.uiState.value.ratingPrompt)
-        ratings.markGuidedTripsEnded()
+        ratings.markGuidedTripsEnded(endedAt = 10)
         runCurrent()
         assertEquals(102L, again.uiState.value.ratingPrompt?.tripNo)
     }
@@ -130,7 +134,7 @@ class HomeViewModelTest {
     fun `R24 별 5 · 태그 고르고 별점 주기 → 저장 · 팝업 닫힘 · 남겼어요 안내 · 다시 안 뜸`() = runTest(dispatcher) {
         val ratings = ratingRepositoryOf()
         ratings.recordGuidance(101, "속초 가족여행", "민지네")
-        ratings.markGuidedTripsEnded()
+        ratings.markGuidedTripsEnded(endedAt = 10)
         val vm = viewModel(ratings = ratings)
         backgroundScope.launch { vm.uiState.collect { } }
         runCurrent()
@@ -260,5 +264,27 @@ class HomeViewModelTest {
     private fun TestScope.subscribe(vm: HomeViewModel) {
         backgroundScope.launch { vm.uiState.collect { } }
         testScheduler.runCurrent()
+    }
+
+    @Test
+    fun `R30 고르는 중 값(별 · 태그)은 프로세스 재생성 뒤에도 그대로`() = runTest(dispatcher) {
+        val ratings = ratingRepositoryOf()
+        ratings.recordGuidance(101, "속초 가족여행", "민지네")
+        ratings.markGuidedTripsEnded(endedAt = 10)
+        val saved = SavedStateHandle()
+        val vm = viewModel(ratings = ratings, saved = saved)
+        backgroundScope.launch { vm.uiState.collect { } }
+        runCurrent()
+        vm.selectRatingScore(4)
+        runCurrent()
+        vm.toggleRatingTag(2)
+        runCurrent()
+
+        val again = viewModel(ratings = ratings, saved = saved)
+        backgroundScope.launch { again.uiState.collect { } }
+        runCurrent()
+        val prompt = again.uiState.value.ratingPrompt!!
+        assertEquals(4, prompt.ratingScore)
+        assertEquals(listOf(2L), prompt.tags.filter { it.selected }.map { it.tagNo })
     }
 }

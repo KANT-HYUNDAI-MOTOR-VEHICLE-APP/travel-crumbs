@@ -151,7 +151,6 @@
     <string name="guidance_start">안내 시작</string>
     <string name="guidance_requested">차량 내비에 길안내를 요청했어요</string>
     <string name="guidance_failed">길안내를 시작할 수 없어요</string>
-    <string name="guidance_demo_only">시연용 · 실제 안내는 준비 중</string>
     <!-- 별점(#41 · 와이어프레임 v6 B-06) -->
     <string name="rating_title">따라간 코스 어땠나요?</string>
     <string name="rating_trip_line">· %1$s · %2$d월 %3$d일 안내</string>

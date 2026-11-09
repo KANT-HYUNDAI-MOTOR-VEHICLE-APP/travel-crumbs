@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.ui.home
 
+import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
 import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.domain.AppConfig
@@ -84,6 +85,8 @@ class HomePlacesViewModelTest {
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratingRepositoryOf(),
             recommendationRepository = SeedRecommendationRepository(),
+            timeSource = FakeTimeSource(),
+            savedStateHandle = SavedStateHandle(),
         )
         val state: HomeUiState get() = vm.uiState.value
     }

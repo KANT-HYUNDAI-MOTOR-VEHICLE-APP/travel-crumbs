@@ -188,7 +188,7 @@ class FakeRecordingStatusRepository(initial: RecordingProgress?) : RecordingRepo
 
     override suspend fun togglePause() = Unit
 
-    override suspend fun endTrip() = Unit
+    override suspend fun endTrip(): Long? = null
 
     override suspend fun startNewTrip() = Unit
 }

@@ -28,8 +28,10 @@ interface RecordingRepository {
     /** 「기록 일시정지」 · 「기록 재개」 — RECORDING ↔ PAUSED · 그 밖 상태는 그대로(D30 · V64 · 이름은 gleo-ai/main 과 같게 · N16). */
     suspend fun togglePause()
 
-    /** 「여행 종료」 팝업의 「종료」 — 진행 중 여행(RECORDING · PAUSED)이면 COMPLETED · 이미 끝났으면 그대로(V21). */
-    suspend fun endTrip()
+    /** 「여행 종료」 팝업의 「종료」 — 진행 중 여행(RECORDING · PAUSED)이면 COMPLETED · 이미 끝났으면 그대로(V21).
+     * 돌려주는 값 = 이번에 정한 종료 시각(이미 끝난 여행이면 null) — 종료 시각의 출처는 이 한 곳(별점 #41 이 받아 씀).
+     */
+    suspend fun endTrip(): Long?
 
     /** 임시 「새 여행 시작」(D26) — 진행 중 여행이 아닐 때만 새 여행 RECORDING · RECORDING · PAUSED 면 아무 일도 안 함(N19). */
     suspend fun startNewTrip()
@@ -61,11 +63,14 @@ class DefaultRecordingRepository @Inject constructor(
         }
     }
 
-    override suspend fun endTrip() {
+    override suspend fun endTrip(): Long? {
+        var endedAt: Long? = null
         local.update { current ->
             val now = timeSource.nowMillis()
-            (current ?: CurrentTrip.start(now)).ended(now)
+            val before = current ?: CurrentTrip.start(now)
+            before.ended(now).also { after -> endedAt = if (after !== before) after.endAtMillis else null }
         }
+        return endedAt
     }
 
     override suspend fun startNewTrip() {

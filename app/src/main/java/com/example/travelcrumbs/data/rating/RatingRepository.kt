@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * 별점(#41 · B-06)의 유일한 저장소 — 안내 요청한 로드맵 · 내 별점 · 자동 팝업을 띄운 로드맵. 기기 안에만(서버 · 표준 등록 전).
  * 서버 별점 API 가 생기면 이 인터페이스의 구현만 바꿈(di/RatingModule).
+ * 개인정보: 기기 안 키 `rating_records_json`(AppPreferencesKeys.RATING_RECORDS_JSON)은 탈퇴 · 동의 철회 때 지울 대상(삭제 경로는 그 이슈에서).
  */
 interface RatingRepository {
     val records: Flow<RatingRecords>
@@ -25,8 +26,8 @@ interface RatingRepository {
     /** 자동 팝업을 띄웠음(「나중에」) — 그 로드맵은 다시 자동으로 안 뜸. */
     suspend fun markPrompted(tripNo: Long)
 
-    /** 「여행 종료」 → 「종료」로 여행이 끝남 — 그 전에 안내받은 로드맵을 자동 팝업 대상으로. */
-    suspend fun markGuidedTripsEnded()
+    /** 「여행 종료」 → 「종료」로 여행이 [endedAt] 에 끝남(기록 저장소가 정한 종료 시각) — 그 전에 안내받은 로드맵을 자동 팝업 대상으로. */
+    suspend fun markGuidedTripsEnded(endedAt: Long)
 }
 
 @Singleton
@@ -67,8 +68,7 @@ class DefaultRatingRepository @Inject constructor(
         local.update { it.copy(promptedTripNos = it.promptedTripNos + tripNo) }
     }
 
-    override suspend fun markGuidedTripsEnded() {
-        val now = timeSource.nowMillis()
-        local.update { RecommendationRules.markGuidedTripsEnded(it, now) }
+    override suspend fun markGuidedTripsEnded(endedAt: Long) {
+        local.update { RecommendationRules.markGuidedTripsEnded(it, endedAt) }
     }
 }

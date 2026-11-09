@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
@@ -14,8 +15,8 @@ import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
-import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
+import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.awaitRouteResult
 import com.example.travelcrumbs.domain.isHeadingTo
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -26,8 +27,7 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.RouteRequestResult
 import com.example.travelcrumbs.domain.model.SdkStatus
-import com.example.travelcrumbs.domain.model.Tag
-import com.example.travelcrumbs.ui.components.RatingDraft
+import com.example.travelcrumbs.ui.components.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -67,8 +67,10 @@ class HomeViewModel @Inject constructor(
     private val pinRepository: PinRepository,
     private val placeStatsRepository: PlaceStatsRepository,
     private val demoFeatures: DemoFeatures,
-    private val ratingRepository: RatingRepository,
-    private val recommendationRepository: RecommendationRepository,
+    ratingRepository: RatingRepository,
+    recommendationRepository: RecommendationRepository,
+    timeSource: TimeSource,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -81,16 +83,17 @@ class HomeViewModel @Inject constructor(
 
     /** 후보 — 읽기 전 null. 조작 메서드가 바로 찾을 수 있게 값으로 들고 있음. */
     private val candidates = MutableStateFlow<List<Place>?>(null)
-    private val ratingDraft = MutableStateFlow<RatingDraft?>(null)
-    private val ratingSaving = MutableStateFlow(false)
-    private val tags = MutableStateFlow<List<Tag>>(emptyList())
 
-    private val ratingPrompt = combine(ratingRepository.records, ratingDraft, ratingSaving, tags) { records, draft, saving, tagList ->
-        RecommendationRules.pendingRatingPrompt(records)?.let { guided ->
-            val current = draft?.takeIf { it.tripNo == guided.tripNo } ?: RatingDraft(guided.tripNo)
-            current.toItem(guided, tagList, saving)
-        }
-    }
+    /** 별점 자동 팝업(#41) — 고르는 중 값 · 저장은 도우미가 · 결과 한 줄은 이 화면의 [message]. */
+    private val rating = RatingPopupHolder(
+        scope = viewModelScope,
+        repository = ratingRepository,
+        savedStateHandle = savedStateHandle,
+        timeSource = timeSource,
+        autoPrompt = true,
+        loadTags = recommendationRepository::tags,
+        onSaved = { message.value = UiMessage.RATING_SAVED },
+    )
 
     private val sdkCheck = combine(
         drivingSignalRepository.drivingState,
@@ -121,7 +124,7 @@ class HomeViewModel @Inject constructor(
         message,
         sdkCheck,
         places,
-        ratingPrompt,
+        rating.item,
     ) { progress, shown, sdk, part, prompt ->
         sdk.copy(
             tripStatus = progress.status,
@@ -153,43 +156,19 @@ class HomeViewModel @Inject constructor(
                 if (driving != DrivingState.PARKED) dummyRoute.value = null
             }
         }
-        viewModelScope.launch { tags.value = recommendationRepository.tags() }
     }
 
     /** 별점 팝업 — 별 고르기. */
-    fun selectRatingScore(score: Int) = editDraft { it.copy(ratingScore = score) }
+    fun selectRatingScore(score: Int) = rating.selectScore(uiState.value.ratingPrompt, score)
 
     /** 별점 팝업 — 좋았던 점 칩 켜고 끄기. */
-    fun toggleRatingTag(tagNo: Long) = editDraft { it.toggleTag(tagNo) }
+    fun toggleRatingTag(tagNo: Long) = rating.toggleTag(uiState.value.ratingPrompt, tagNo)
 
     /** 별점 팝업 「나중에」 · 바깥 · 뒤로 — 그 로드맵은 다시 자동으로 안 뜸(B-04 「별점 주기」로는 줄 수 있음). */
-    fun dismissRatingPrompt() {
-        val tripNo = uiState.value.ratingPrompt?.tripNo ?: return
-        ratingDraft.value = null
-        viewModelScope.launch { ratingRepository.markPrompted(tripNo) }
-    }
+    fun dismissRatingPrompt() = rating.dismiss(uiState.value.ratingPrompt)
 
-    /** 별점 팝업 「별점 주기」 — 저장되면 팝업이 사라지고(기록이 바뀜) 한 줄 안내. */
-    fun submitRating() {
-        val item = uiState.value.ratingPrompt ?: return
-        val score = item.ratingScore ?: return
-        if (ratingSaving.value) return
-        ratingSaving.value = true
-        val tagNos = item.tags.filter { it.selected }.map { it.tagNo }.toSet()
-        viewModelScope.launch {
-            if (ratingRepository.saveRating(item.tripNo, score, tagNos)) {
-                ratingDraft.value = null
-                message.value = UiMessage.RATING_SAVED
-            }
-            ratingSaving.value = false
-        }
-    }
-
-    private fun editDraft(change: (RatingDraft) -> RatingDraft) {
-        val tripNo = uiState.value.ratingPrompt?.tripNo ?: return
-        val current = ratingDraft.value?.takeIf { it.tripNo == tripNo } ?: RatingDraft(tripNo)
-        ratingDraft.value = change(current)
-    }
+    /** 별점 팝업 「별점 주기」 — 저장되면 팝업이 사라지고 한 줄 안내. */
+    fun submitRating() = rating.submit(uiState.value.ratingPrompt)
 
     fun onRecordPlace() {
         viewModelScope.launch {
