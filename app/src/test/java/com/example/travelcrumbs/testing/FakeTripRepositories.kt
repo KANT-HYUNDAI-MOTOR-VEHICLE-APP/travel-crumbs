@@ -3,6 +3,7 @@ package com.example.travelcrumbs.testing
 import com.example.travelcrumbs.data.code.CodeRepository
 import com.example.travelcrumbs.data.place.PlaceRepository
 import com.example.travelcrumbs.data.trip.TripRepository
+import com.example.travelcrumbs.data.trip.TripRestoreStatus
 import com.example.travelcrumbs.domain.model.CodeItem
 import com.example.travelcrumbs.domain.model.PlaceInput
 import com.example.travelcrumbs.domain.model.PlaceType
@@ -14,6 +15,8 @@ import com.example.travelcrumbs.domain.model.TripDetail
 import com.example.travelcrumbs.domain.model.TripRoute
 import com.example.travelcrumbs.domain.model.TripSummary
 import com.example.travelcrumbs.domain.model.TripPlace
+import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -28,6 +31,13 @@ class FakeTripRepository(
 
     private val active = MutableStateFlow(current)
     override val activeTrip: StateFlow<Trip?> = active
+    override val startupRestoreStatus = MutableStateFlow(TripRestoreStatus.COMPLETED)
+
+    override suspend fun restoreCurrentTrip() {
+        val error = failWith
+        if (error is CancellationException) throw error
+        startupRestoreStatus.value = if (error == null) TripRestoreStatus.COMPLETED else TripRestoreStatus.FAILED
+    }
 
     override suspend fun currentTrip(): Result<Trip?> =
         failWith?.let { Result.failure(it) } ?: Result.success(active.value)
@@ -109,7 +119,7 @@ class FakeTripRepository(
         places = emptyList(),
     )
 
-    override suspend fun recordPlace(tripUuid: String, point: RoutePoint): Result<Int> {
+    override suspend fun recordPlace(tripUuid: String, point: RoutePoint, idempotencyKey: UUID?): Result<Int> {
         failWith?.let { return Result.failure(it) }
         places += point
         active.value = active.value?.copy(placeCount = places.size)

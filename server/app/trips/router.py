@@ -1,10 +1,12 @@
 """여행 — 기록 중인 여행 조회 · 여행 시작(A-04) · 경로점 · 장소 기록(A-05) · 장소 경험 입력(A-06) · 여행 종료 · 상세(A-08)."""
 
-from typing import Literal
+from typing import Annotated, Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Header, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode
 from app.db.session import get_session
 from app.trips import service
 from app.trips.schemas import (
@@ -71,14 +73,27 @@ async def create_route_points(
     "/{trip_uuid}/places",
     response_model=TripPlaceResponse,
     status_code=status.HTTP_201_CREATED,
+    response_description="Draft place saved or the same committed place replayed",
+    responses={
+        404: {"description": "TRIP_NOT_FOUND or TRIP_PLACE_NOT_FOUND"},
+        409: {
+            "description": f"TRIP_NOT_RECORDING or {ErrorCode.IDEMPOTENCY_KEY_CONFLICT}"
+        },
+    },
 )
 async def create_place(
     trip_uuid: str,
     req: TripPlaceCreateRequest,
     user: UserMst = Depends(current_user),
     session: AsyncSession = Depends(get_session),
+    idempotency_key: Annotated[
+        UUID | None,
+        Header(alias="Idempotency-Key", description="Required on Gleo recording requests"),
+    ] = None,
 ) -> TripPlaceResponse:
-    return await service.record_place(session, user.user_no, trip_uuid, req)
+    return await service.record_place(
+        session, user.user_no, trip_uuid, req, idempotency_key
+    )
 
 
 @router.get("/{trip_uuid}/places", response_model=list[TripPlaceItem])

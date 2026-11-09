@@ -21,8 +21,10 @@ import com.example.travelcrumbs.domain.model.TripSummary
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +39,12 @@ interface TripRepository {
     /** 기록 중인 여행 — 없으면 null. [currentTrip] · [startTrip] · [recordPlace] 가 갱신. */
     val activeTrip: StateFlow<Trip?>
 
+    /** 앱 시작 복원의 진행·성공·오류. 응답 null과 초기 null을 구분. */
+    val startupRestoreStatus: StateFlow<TripRestoreStatus>
+
+    /** 앱 시작 시 기존 진행 여행 복원. 화면의 일반 재조회와 완료 신호를 분리. */
+    suspend fun restoreCurrentTrip()
+
     /** 서버에서 기록 중인 여행을 다시 읽음 — 없으면 null. */
     suspend fun currentTrip(): Result<Trip?>
 
@@ -47,7 +55,7 @@ interface TripRepository {
     suspend fun addRoutePoints(tripUuid: String, points: List<RoutePoint>): Result<Unit>
 
     /** 「이 장소 기록」 임시 저장(A-05) — 저장 후 장소 수를 돌려줌. */
-    suspend fun recordPlace(tripUuid: String, point: RoutePoint): Result<Int>
+    suspend fun recordPlace(tripUuid: String, point: RoutePoint, idempotencyKey: UUID? = null): Result<Int>
 
     /** 여행 종료(A-08) — 성공하면 기록 중인 여행이 없어짐. 남은 경로점은 EndTripUseCase 가 먼저 보냄. */
     suspend fun endTrip(tripUuid: String): Result<TripDetail>
@@ -70,6 +78,8 @@ interface TripRepository {
     suspend fun route(tripUuid: String): Result<TripRoute>
 }
 
+enum class TripRestoreStatus { PENDING, COMPLETED, FAILED }
+
 @Singleton
 class DefaultTripRepository @Inject constructor(
     private val api: AppApi,
@@ -77,6 +87,16 @@ class DefaultTripRepository @Inject constructor(
 
     private val active = MutableStateFlow<Trip?>(null)
     override val activeTrip: StateFlow<Trip?> = active.asStateFlow()
+    private val startupRestore = MutableStateFlow(TripRestoreStatus.PENDING)
+    override val startupRestoreStatus: StateFlow<TripRestoreStatus> = startupRestore.asStateFlow()
+
+    override suspend fun restoreCurrentTrip() {
+        startupRestore.value = when (val error = currentTrip().exceptionOrNull()) {
+            null -> TripRestoreStatus.COMPLETED
+            is CancellationException -> throw error
+            else -> TripRestoreStatus.FAILED
+        }
+    }
 
     override suspend fun currentTrip(): Result<Trip?> = runCatching {
         api.getCurrentTrip().trip?.toDomain()
@@ -94,13 +114,17 @@ class DefaultTripRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun recordPlace(tripUuid: String, point: RoutePoint): Result<Int> = runCatching {
+    override suspend fun recordPlace(tripUuid: String, point: RoutePoint, idempotencyKey: UUID?): Result<Int> = runCatching {
         api.createPlace(
             tripUuid,
             TripPlaceCreateRequest(lat = point.lat, lng = point.lng, recordedAt = point.recordedAtMillis.toIso()),
+            idempotencyKey,
         ).placeCnt
     }.onSuccess { count ->
-        active.update { trip -> if (trip?.tripUuid == tripUuid) trip.copy(placeCount = count) else trip }
+        // 장소 추가 응답이 뒤바뀌어 도착해도 같은 여행의 화면 집계를 되돌리지 않음.
+        active.update { trip ->
+            if (trip?.tripUuid == tripUuid) trip.copy(placeCount = maxOf(trip.placeCount, count)) else trip
+        }
     }
 
     override suspend fun endTrip(tripUuid: String): Result<TripDetail> = runCatching {

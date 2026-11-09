@@ -6,13 +6,15 @@ data class GleoCommandState(
     val phase: GleoCommandPhase = GleoCommandPhase.IDLE,
 )
 
-enum class GleoCommandPhase {
+enum class GleoCommandPhase(val inProgress: Boolean = false) {
     IDLE,
-    PREPARING,
-    PROCESSING,
+    PREPARING(inProgress = true),
+    LOADING_TRIP(inProgress = true),
+    PROCESSING(inProgress = true),
     SAVED,
     INVALID_REQUEST,
     NOT_READY,
     CONSENT_REQUIRED,
+    FAILED,
     UNCONFIRMED,
 }

@@ -1,11 +1,16 @@
 package com.example.travelcrumbs.data.gleo
 
+import com.example.travelcrumbs.data.trip.TripRestoreStatus
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.GleoCallback
 import com.example.travelcrumbs.domain.model.GleoCommandPhase
 import com.example.travelcrumbs.domain.model.GleoStatus
+import com.example.travelcrumbs.testing.FakeConsentRepository
+import com.example.travelcrumbs.testing.FakeNaviRepository
+import com.example.travelcrumbs.testing.FakeTripRepository
+import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -19,22 +24,28 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GleoCommandProcessorTest {
-    private class Fixture(scope: TestScope) {
+    private class Fixture(private val scope: TestScope, recordEnabled: Boolean = true) {
         var readinessCalls = 0
-        var recordCalls = 0
-        var ready: suspend () -> GleoReadiness = { GleoReadiness.READY }
+        val requestIds = mutableListOf<UUID>()
+        val recordCalls: Int get() = requestIds.size
+        val issuedIds = mutableListOf<UUID>()
+        var issueId: () -> UUID = UUID::randomUUID
+        var ready: suspend ((Boolean) -> Unit) -> GleoReadiness = { GleoReadiness.READY }
         var record: suspend () -> ActionResult = { ActionResult.DONE }
         val callbacks = mutableListOf<GleoCallback>()
         val processor = GleoCommandProcessor(
             scope.backgroundScope,
-            GleoRecordingReadiness { readinessCalls++; ready() },
-            RecordPlaceUseCase { recordCalls++; record() },
+            GleoRecordingReadiness { restoring -> readinessCalls++; ready(restoring) },
+            RecordPlaceUseCase { requestId -> requestIds += checkNotNull(requestId); record() },
             callbacks::add,
+            recordEnabled,
+            newRequestId = { issueId().also(issuedIds::add) },
         )
 
-        fun handle(raw: String? = null, readable: Boolean = true) = processor.handle(
-            GleoIntentRequest(AppConfig.GLEO_FUNCTION_RECORD, raw, readable),
-        )
+        fun handle(raw: String? = null, readable: Boolean = true) {
+            processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_RECORD, raw, readable))
+            scope.runCurrent()
+        }
     }
 
     @Test
@@ -126,34 +137,110 @@ class GleoCommandProcessorTest {
     }
 
     @Test
-    fun `T14 T17 기존 FAILED나 예외는 원인을 만들어내지 않고 결과 미확인`() = runTest {
+    fun `T13 T14 T17 확인된 실패와 결과 미확인을 구분`() = runTest {
         val f = Fixture(this)
         f.record = { ActionResult.FAILED }
         f.handle()
+        assertEquals(GleoCommandPhase.FAILED, f.processor.state.value.phase)
+        assertEquals(AppConfig.GLEO_RECORD_FAIL_MESSAGE, f.callbacks.single().message)
+        f.record = { ActionResult.UNCONFIRMED }
+        f.handle()
+        assertEquals(GleoCommandPhase.UNCONFIRMED, f.processor.state.value.phase)
         f.record = { error("server response lost") }
         f.handle()
 
-        assertEquals(2, f.recordCalls)
-        assertTrue(f.callbacks.all { it.message == AppConfig.GLEO_RECORD_UNCONFIRMED_MESSAGE && it.status == GleoStatus.FAIL })
+        assertEquals(3, f.recordCalls)
+        assertTrue(f.callbacks.all { it.status == GleoStatus.FAIL })
+        assertTrue(f.callbacks.drop(1).all { it.message == AppConfig.GLEO_RECORD_UNCONFIRMED_MESSAGE })
     }
 
     @Test
-    fun `T16 6초는 준비 조회부터 포함하고 기한 뒤 준비되어도 저장을 시작하지 않음`() = runTest {
+    fun `T11 초기 여행 복원 중 로딩을 보여주고 준비된 뒤 한 번 저장`() = runTest {
+        val f = Fixture(this)
+        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
+        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        f.handle()
+        f.processor.clearNotice(f.processor.state.value.noticeId)
+        runCurrent()
+
+        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
+        assertEquals(0, f.recordCalls)
+        assertTrue(f.callbacks.isEmpty())
+
+        trips.startTrip("복원된 여행", emptyList()).getOrThrow()
+        runCurrent()
+        assertEquals(1, f.recordCalls)
+        assertEquals(GleoCommandPhase.SAVED, f.processor.state.value.phase)
+        assertEquals(GleoStatus.SUCCESS, f.callbacks.single().status)
+    }
+
+    @Test
+    fun `T11 일반 조회 실패에는 로딩을 유지하고 시작 복원 뒤 여행이 없으면 실패 안내`() = runTest {
+        val f = Fixture(this)
+        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
+        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        f.handle()
+        runCurrent()
+        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
+
+        trips.failWith = IllegalStateException("일반 조회 실패")
+        assertTrue(trips.currentTrip().isFailure)
+        runCurrent()
+        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
+        assertTrue(f.callbacks.isEmpty())
+
+        trips.failWith = null
+        trips.restoreCurrentTrip()
+        runCurrent()
+        assertEquals(0, f.recordCalls)
+        assertEquals(GleoCommandPhase.NOT_READY, f.processor.state.value.phase)
+        assertEquals(AppConfig.GLEO_RECORD_NOT_READY_MESSAGE, f.callbacks.single().message)
+    }
+
+    @Test
+    fun `T11 시작 복원 조회 실패는 미확인으로 종료하고 장소 저장을 시작하지 않음`() = runTest {
+        val f = Fixture(this)
+        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
+        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        f.handle()
+        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
+
+        trips.failWith = IllegalStateException("복원 조회 실패")
+        trips.restoreCurrentTrip()
+        runCurrent()
+
+        assertTrue(f.issuedIds.isEmpty())
+        assertEquals(0, f.recordCalls)
+        assertEquals(GleoCommandPhase.UNCONFIRMED, f.processor.state.value.phase)
+        assertEquals(AppConfig.GLEO_RECORD_UNCONFIRMED_MESSAGE, f.callbacks.single().message)
+    }
+
+    @Test
+    fun `T11a T16 7초는 준비 조회부터 포함하고 기한 뒤 준비되어도 저장을 시작하지 않음`() = runTest {
         val f = Fixture(this)
         val ready = CompletableDeferred<GleoReadiness>()
-        f.ready = { ready.await() }
+        f.ready = { restoring -> restoring(true); ready.await() }
         f.handle()
-        advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS - 1)
+        advanceTimeBy(6_999L)
         runCurrent()
+        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
         assertTrue(f.callbacks.isEmpty())
         advanceTimeBy(1)
         runCurrent()
         assertEquals(AppConfig.GLEO_RECORD_TIMEOUT_MESSAGE, f.callbacks.single().message)
+        assertEquals(GleoCommandPhase.UNCONFIRMED, f.processor.state.value.phase)
+        assertTrue(f.issuedIds.isEmpty())
+
+        // 첫 준비 조회가 응답하지 않아도 별도 명령을 영구히 막지 않음.
+        f.ready = { GleoReadiness.READY }
+        f.handle()
+        assertEquals(1, f.recordCalls)
+        assertEquals(GleoStatus.SUCCESS, f.callbacks.last().status)
 
         ready.complete(GleoReadiness.READY)
         runCurrent()
-        assertEquals(0, f.recordCalls)
-        assertEquals(1, f.callbacks.size)
+        assertEquals(1, f.recordCalls)
+        assertEquals(2, f.callbacks.size)
     }
 
     @Test
@@ -166,6 +253,7 @@ class GleoCommandProcessorTest {
         advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS)
         runCurrent()
         assertEquals(1, f.recordCalls)
+        assertEquals(1, f.issuedIds.size)
         assertEquals(GleoStatus.FAIL, f.callbacks.single().status)
 
         f.handle()
@@ -178,6 +266,8 @@ class GleoCommandProcessorTest {
         f.record = { ActionResult.DONE }
         f.handle()
         assertEquals(2, f.recordCalls)
+        assertEquals(f.issuedIds, f.requestIds)
+        assertEquals(2, f.requestIds.distinct().size)
         assertEquals(GleoStatus.SUCCESS, f.callbacks.last().status)
     }
 
@@ -245,6 +335,7 @@ class GleoCommandProcessorTest {
             { GleoReadiness.READY },
             { records++; ActionResult.DONE },
             { callbacks++; error("broadcast failed") },
+            recordEnabled = true,
         )
         processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_RECORD, null))
         advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS)
@@ -253,5 +344,31 @@ class GleoCommandProcessorTest {
         assertEquals(1, records)
         assertEquals(1, callbacks)
         assertEquals(GleoCommandPhase.SAVED, processor.state.value.phase)
+    }
+
+    @Test
+    fun `T35 요청 ID를 만들 수 없으면 장소 저장에 진입하지 않음`() = runTest {
+        val f = Fixture(this)
+        f.issueId = { error("UUID generation failed") }
+        f.handle()
+
+        assertEquals(0, f.recordCalls)
+        assertEquals(GleoCommandPhase.FAILED, f.processor.state.value.phase)
+        assertEquals(AppConfig.GLEO_RECORD_FAIL_MESSAGE, f.callbacks.single().message)
+    }
+
+    @Test
+    fun `T37 배포용 설정의 RECORD는 준비 진입 전에 차단하고 OPEN 유지`() = runTest {
+        val f = Fixture(this, recordEnabled = false)
+        f.handle()
+
+        assertEquals(0, f.readinessCalls)
+        assertEquals(0, f.recordCalls)
+        assertTrue(f.issuedIds.isEmpty())
+        assertTrue(f.callbacks.isEmpty())
+        assertEquals(GleoCommandPhase.IDLE, f.processor.state.value.phase)
+
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_OPEN, null))
+        assertEquals(GleoStatus.SUCCESS, f.callbacks.single().status)
     }
 }

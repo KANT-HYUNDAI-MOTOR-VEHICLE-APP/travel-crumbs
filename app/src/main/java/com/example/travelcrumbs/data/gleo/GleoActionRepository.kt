@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.data.gleo
 
 import android.content.Intent
+import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.GleoCommandState
@@ -34,7 +35,9 @@ class DefaultGleoActionRepository @Inject constructor(
 
     // Activity의 재생성이 진행 중 저장을 취소하거나 다시 실행하지 않도록 프로세스 범위로 공유.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val processor = GleoCommandProcessor(scope, readiness, recordPlace, callbackDataSource::send)
+    private val processor = GleoCommandProcessor(
+        scope, readiness, recordPlace, callbackDataSource::send, recordEnabled = BuildConfig.DEBUG,
+    )
     private val _openedByGleoAction = MutableStateFlow(false)
 
     override val openedByGleoAction: StateFlow<Boolean> = _openedByGleoAction.asStateFlow()

@@ -78,6 +78,7 @@ fun AppShellScreen(
         if (gleoState.command.phase != GleoCommandPhase.IDLE) {
             GleoNoticeLine(
                 state = gleoState.command,
+                parked = !uiState.showDrivingScreen,
                 onShown = gleoViewModel::onNoticeShown,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

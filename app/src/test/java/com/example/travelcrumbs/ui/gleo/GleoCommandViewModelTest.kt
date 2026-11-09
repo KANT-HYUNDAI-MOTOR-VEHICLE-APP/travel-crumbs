@@ -32,7 +32,7 @@ class GleoCommandViewModelTest {
         val vm = GleoCommandViewModel(repository)
         backgroundScope.launch { vm.uiState.collect { } }
         advanceUntilIdle()
-        listOf(GleoCommandPhase.PREPARING, GleoCommandPhase.PROCESSING, GleoCommandPhase.SAVED).forEach { phase ->
+        listOf(GleoCommandPhase.LOADING_TRIP, GleoCommandPhase.PREPARING, GleoCommandPhase.PROCESSING, GleoCommandPhase.SAVED).forEach { phase ->
             repository.commandState.value = GleoCommandState(1L, phase)
             advanceUntilIdle()
             assertEquals(phase, vm.uiState.value.command.phase)

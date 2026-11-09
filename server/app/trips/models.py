@@ -128,6 +128,13 @@ class TripPlaceDtl(CommonColumns, Base):
     __table_args__ = table_args(
         "여행장소내역 — 여행 중 기록한 장소(방문 순서는 recorded_at · 결정 로그 D09)",
         CheckConstraint("draft_yn IN ('Y', 'N')", name="draft_yn"),
+        CheckConstraint("(req_uuid IS NULL) = (req_hash IS NULL)", name="req_pair"),
+        UniqueConstraint(
+            "trip_no",
+            "created_user_no",
+            "req_uuid",
+            name="uq_trip_place_dtl_trip_no_created_user_no_req_uuid",
+        ),
     )
 
     trip_place_no: Mapped[int] = mapped_column(
@@ -163,6 +170,12 @@ class TripPlaceDtl(CommonColumns, Base):
     )
     review_polarity_cd: Mapped[str | None] = mapped_column(
         String(30), comment="후기성격코드 (REVIEW_POLARITY · NULL 허용 결정 로그 D18)"
+    )
+    req_uuid: Mapped[str | None] = mapped_column(
+        CHAR(36), comment="요청UUID — 장소 저장 재전송 식별"
+    )
+    req_hash: Mapped[str | None] = mapped_column(
+        String(255), comment="요청해시 — 검증된 장소 저장 본문의 SHA-256"
     )
 
 

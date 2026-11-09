@@ -51,7 +51,7 @@ class RouteRecorder @Inject constructor(
         pauseSync.start(scope)
         job = scope.launch {
             // 앱을 다시 켰을 때 기록 중이던 여행을 이어서 기록
-            tripRepository.currentTrip()
+            tripRepository.restoreCurrentTrip()
             tripRepository.activeTrip
                 .map { it?.tripUuid }
                 .distinctUntilChanged()

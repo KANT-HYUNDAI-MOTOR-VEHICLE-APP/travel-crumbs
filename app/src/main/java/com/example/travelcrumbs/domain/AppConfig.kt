@@ -19,14 +19,14 @@ object AppConfig {
 
     /**
      * Gleo Interface function 이름.
-     * `app/src/main/assets/schema.json` 의 `actionCalls[].function.name` · `AndroidManifest.xml` 의
+     * 빌드 타입별 `assets/schema.json` 의 `actionCalls[].function.name` · `AndroidManifest.xml` 의
      * `<action>` 과 **글자가 같아야 함** — 셋 다 문자열이라 빌드가 잡아 주지 않음.
      */
     const val GLEO_FUNCTION_OPEN: String = "OPEN_TRAVEL_CRUMBS"
     const val GLEO_FUNCTION_RECORD: String = "RECORD_CURRENT_PLACE"
 
-    /** 공식 7초 제한보다 이른 응답 시도 목표. 전달 지연까지 포함한 전체 시간 보장 수치가 아님. */
-    const val GLEO_RESPONSE_TARGET_MILLIS: Long = 6_000L
+    /** 앱이 Action을 수신한 뒤 응답을 시도하는 기한. 실제 Gleo의 전체 경과와 별도. */
+    const val GLEO_RESPONSE_TARGET_MILLIS: Long = 7_000L
 
     /** 무파라미터 Action의 외부 입력 크기 한도. */
     const val GLEO_MAX_ACTION_PARAM_CHARS: Int = 1_024
@@ -38,6 +38,7 @@ object AppConfig {
     const val GLEO_RECORD_INPUT_FAIL_MESSAGE: String = "The recording request could not be read."
     const val GLEO_RECORD_NOT_READY_MESSAGE: String = "Travel Crumbs is not ready to record a place yet."
     const val GLEO_RECORD_CONSENT_MESSAGE: String = "Location consent is required before recording a place."
+    const val GLEO_RECORD_FAIL_MESSAGE: String = "The place could not be recorded."
     const val GLEO_RECORD_UNCONFIRMED_MESSAGE: String = "The app could not confirm that the place was recorded."
     const val GLEO_RECORD_TIMEOUT_MESSAGE: String =
         "The recording result could not be confirmed in time. Check the trip before trying again."
