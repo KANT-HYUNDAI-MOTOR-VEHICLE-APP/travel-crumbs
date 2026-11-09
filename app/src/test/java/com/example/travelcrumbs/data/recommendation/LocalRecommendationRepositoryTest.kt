@@ -26,10 +26,21 @@ class LocalRecommendationRepositoryTest {
             completedTrip(tripNo = 10, tripNm = "위치 없음", visibility = Visibility.ANONYMOUS_PUBLIC).let { trip ->
                 trip.copy(places = trip.places.map { it.copy(lat = null, lng = null) })
             },
+            // 에뮬레이터 실측 — 내비 현재 위치 주소가 시도 없이 옴 → 목적지(경복궁) 주소로 서울 종로구
+            completedTrip(tripNo = 11, tripNm = "경복궁 나들이", places = 1, visibility = Visibility.ANONYMOUS_PUBLIC).let { trip ->
+                trip.copy(destPlaceNm = "경복궁", places = trip.places.map { it.copy(addr = "수정구 시흥동") })
+            },
         ),
     )
     private val users = FakeCurrentUserRepository(nicknameNm = "민지네")
-    private val repository = LocalRecommendationRepository(trips, users, FakeTagRepository())
+    private val repository = LocalRecommendationRepository(
+        trips,
+        users,
+        FakeTagRepository(),
+        com.example.travelcrumbs.testing.FakePlaceCatalogRepository(
+            listOf(com.example.travelcrumbs.domain.model.Place("gyeongbokgung", "경복궁", "서울 종로구 사직로 161", 37.5796, 126.977)),
+        ),
+    )
 
     @Test
     fun `U7-3 내 공개 여행이 강원 속초시 랭킹 · 태그별 보기에 닉네임으로 · 비공개 · 위치 없음은 빠짐`() = runTest {
@@ -47,6 +58,12 @@ class LocalRecommendationRepositoryTest {
 
         users.updateNickname("바다곰네")
         assertEquals("바다곰네", repository.publicTrips("강원").single { it.tripNo == mine.tripNo }.nicknameNm)
+    }
+
+    @Test
+    fun `U7-5 장소 주소에 시도가 없으면 목적지 주소로 — 서울 종로구`() = runTest {
+        val seoul = repository.publicTrips("서울")
+        assertEquals(Region("서울", "종로구"), seoul.single { it.tripNm == "경복궁 나들이" }.region)
     }
 
     @Test

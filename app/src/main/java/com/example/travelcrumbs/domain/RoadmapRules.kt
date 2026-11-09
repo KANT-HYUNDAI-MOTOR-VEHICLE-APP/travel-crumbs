@@ -46,9 +46,12 @@ object RoadmapRules {
         return Region(sido, sigungu)
     }
 
-    /** 여행의 지역 — 첫 장소(순서 1부터) 중 주소가 있는 곳 기준(지시서 U7). */
-    fun regionOfTrip(places: List<TripPlace>): Region? =
-        places.sortedBy { it.placeOrd }.firstNotNullOfOrNull { regionOf(it.addr) }
+    /**
+     * 여행의 지역 — 첫 장소(순서 1부터) 중 주소에서 시도를 읽을 수 있는 곳 기준(지시서 U7).
+     * 장소 주소로 모르면(에뮬레이터 실측: 내비 현재 위치 주소가 「수정구 시흥동」처럼 시도 없이 옴) 목적지 주소 [destAddr] 로.
+     */
+    fun regionOfTrip(places: List<TripPlace>, destAddr: String? = null): Region? =
+        places.sortedBy { it.placeOrd }.firstNotNullOfOrNull { regionOf(it.addr) } ?: regionOf(destAddr)
 
     /** 대표 태그 — 장소에 가장 많이 붙은 태그(같으면 번호가 작은 것). 없으면 null. */
     fun representativeTagNo(places: List<TripPlace>): Long? =

@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.roadmap
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.place.PlaceCatalogRepository
 import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
@@ -40,9 +41,13 @@ class RoadmapReviewViewModel @Inject constructor(
     private val userRepository: CurrentUserRepository,
     timeSource: TimeSource,
     private val savedStateHandle: SavedStateHandle,
+    private val placeCatalog: PlaceCatalogRepository,
 ) : ViewModel() {
 
     private val done = MutableStateFlow(false)
+
+    /** 목적지 이름 → 주소(앱 장소 목록) — 장소 주소로 지역을 모를 때 쓰는 대체(#51 U7). */
+    private val destAddrs = MutableStateFlow<Map<String, String>>(emptyMap())
 
     private val tagSheet = PlaceTagSheetHolder(
         scope = viewModelScope,
@@ -62,8 +67,12 @@ class RoadmapReviewViewModel @Inject constructor(
         done,
     ) { step, public, finished -> Triple(RoadmapStep.valueOf(step), public, finished) }
 
-    private val people = combine(userRepository.user, userRepository.consents) { user, consents ->
-        user.nicknameNm to (consents[ConsentType.RECO_PUBLIC]?.agreed != true)
+    private val people = combine(userRepository.user, userRepository.consents, destAddrs) { user, consents, addrs ->
+        Triple(user.nicknameNm, consents[ConsentType.RECO_PUBLIC]?.agreed != true, addrs)
+    }
+
+    init {
+        viewModelScope.launch { destAddrs.value = placeCatalog.candidates().associate { it.name to it.address } }
     }
 
     val uiState: StateFlow<RoadmapReviewUiState> = combine(
@@ -72,9 +81,9 @@ class RoadmapReviewViewModel @Inject constructor(
         choices,
         people,
         tagSheet.item,
-    ) { record, tags, (step, public, finished), (nickname, consentNeeded), sheet ->
+    ) { record, tags, (step, public, finished), (nickname, consentNeeded, addrs), sheet ->
         val names = tags.associate { it.tagNo to it.tagNm }
-        val region = record?.let { RoadmapRules.regionOfTrip(it.places) }
+        val region = record?.let { RoadmapRules.regionOfTrip(it.places, addrs[it.destPlaceNm]) }
         RoadmapReviewUiState(
             step = step,
             tripNo = record?.tripNo,

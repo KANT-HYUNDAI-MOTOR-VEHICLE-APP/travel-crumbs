@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.data.recommendation
 
+import com.example.travelcrumbs.data.place.PlaceCatalogRepository
 import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.first
 
 /**
  * 추천 = 시연용 시드 + 기기 안 내 공개 여행(#51 U7 · S-1 → S-2 「공개한 로드맵이 추천 재료」).
- * 내 공개 여행(COMPLETED · ANONYMOUS_PUBLIC)은 첫 장소 주소에서 지역(시도 · 시군구)을 얻어 그 지역 랭킹 · 태그별 보기에 바로 보임 ·
+ * 내 공개 여행(COMPLETED · ANONYMOUS_PUBLIC)은 첫 장소 주소(모르면 A-01 목적지 주소)에서 지역(시도 · 시군구)을 얻어 그 지역 랭킹 · 태그별 보기에 바로 보임 ·
  * 작성자 = 지금 닉네임(바꾸면 다음 읽기부터 새 이름) · 번호 = [AppConfig.LOCAL_TRIP_RECO_NO_OFFSET] + trip_no(시드와 안 겹침).
  * 좌표가 없는 장소는 안내할 수 없어 빠지고, 남는 장소가 없거나 지역을 모르면 그 여행은 추천에 안 나옴.
  * 서버 API 가 생기면(ADR 0015) 이 구현 대신 서버 구현을 바인딩(di/RecommendationModule).
@@ -28,6 +29,7 @@ class LocalRecommendationRepository @Inject constructor(
     private val trips: TripRepository,
     private val users: CurrentUserRepository,
     private val tagRepository: TagRepository,
+    private val placeCatalog: PlaceCatalogRepository,
 ) : RecommendationRepository {
 
     override val isDemoData: Boolean = true
@@ -53,13 +55,14 @@ class LocalRecommendationRepository @Inject constructor(
     private suspend fun localTrips(): List<RecommendedTrip> {
         val nickname = users.user.first().nicknameNm
         val tagByNo = tagRepository.tags.first().associateBy { it.tagNo }
+        val destAddrs = placeCatalog.candidates().associate { it.name to it.address }
         return trips.trips.first()
             .filter { it.status == TripStatus.COMPLETED && it.visibility == Visibility.ANONYMOUS_PUBLIC }
-            .mapNotNull { it.toRecommended(nickname, tagByNo) }
+            .mapNotNull { it.toRecommended(nickname, tagByNo, destAddrs[it.destPlaceNm]) }
     }
 
-    private fun TripRecord.toRecommended(nickname: String, tagByNo: Map<Long, Tag>): RecommendedTrip? {
-        val region = RoadmapRules.regionOfTrip(places) ?: return null
+    private fun TripRecord.toRecommended(nickname: String, tagByNo: Map<Long, Tag>, destAddr: String?): RecommendedTrip? {
+        val region = RoadmapRules.regionOfTrip(places, destAddr) ?: return null
         val located = places.filter { it.lat != null && it.lng != null }.sortedBy { it.placeOrd }
         if (located.isEmpty()) return null
         return RecommendedTrip(

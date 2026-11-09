@@ -41,7 +41,7 @@ class RoadmapReviewViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun TestScope.viewModel(): RoadmapReviewViewModel {
-        val vm = RoadmapReviewViewModel(trips, FakeTagRepository(), users, FakeTimeSource(), SavedStateHandle())
+        val vm = RoadmapReviewViewModel(trips, FakeTagRepository(), users, FakeTimeSource(), SavedStateHandle(), com.example.travelcrumbs.testing.FakePlaceCatalogRepository())
         backgroundScope.launch { vm.uiState.collect {} }
         vm.load(7)
         runCurrent()
