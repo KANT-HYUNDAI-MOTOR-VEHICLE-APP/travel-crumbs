@@ -88,7 +88,7 @@ class RecommendationsViewModelTest {
         runCurrent()
 
         assertEquals(
-            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 0, "평창군" to 0, null to 6),
+            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 1, "평창군" to 1, null to 8),
             state.sigunguCards.map { it.sigunguNm to it.tripCnt },
         )
     }

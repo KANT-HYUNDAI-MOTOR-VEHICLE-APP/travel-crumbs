@@ -20,8 +20,8 @@ class LocalRecommendationRepositoryTest {
         listOf(
             completedTrip(tripNo = 7, tripNm = "속초 가족여행", places = 2, visibility = Visibility.ANONYMOUS_PUBLIC),
             completedTrip(tripNo = 8, tripNm = "비공개 여행", visibility = Visibility.PRIVATE),
-            completedTrip(tripNo = 9, tripNm = "해운대", places = 1, visibility = Visibility.ANONYMOUS_PUBLIC).let { trip ->
-                trip.copy(places = trip.places.map { it.copy(addr = "부산 해운대구 해운대해변로 264") })
+            completedTrip(tripNo = 9, tripNm = "동성로", places = 1, visibility = Visibility.ANONYMOUS_PUBLIC).let { trip ->
+                trip.copy(places = trip.places.map { it.copy(addr = "대구 중구 동성로2길 80") })
             },
             completedTrip(tripNo = 10, tripNm = "위치 없음", visibility = Visibility.ANONYMOUS_PUBLIC).let { trip ->
                 trip.copy(places = trip.places.map { it.copy(lat = null, lng = null) })
@@ -69,9 +69,12 @@ class LocalRecommendationRepositoryTest {
     @Test
     fun `U7-4 지역 목록 — 시드 시도에 내 여행 시군구가 더해짐 · 시드에 없는 시군구도`() = runTest {
         val regions = repository.sidoRegions()
-        val busan = regions.single { it.sidoNm == "부산" }
-        assertEquals(listOf("해운대구"), busan.sigunguNms)
-        assertEquals(1, repository.publicTrips("부산").size)
+        // 시드에 없는 시도(대구) — 내 여행 시군구로 채워짐
+        val daegu = regions.single { it.sidoNm == "대구" }
+        assertEquals(listOf("중구"), daegu.sigunguNms)
+        assertEquals(1, repository.publicTrips("대구").size)
+        // 시드에 있는 시군구(서울 종로구)는 두 번 들어가지 않음
+        assertEquals(1, regions.single { it.sidoNm == "서울" }.sigunguNms.count { it == "종로구" })
         assertTrue(regions.single { it.sidoNm == "강원" }.sigunguNms.contains("속초시"))
     }
 }
