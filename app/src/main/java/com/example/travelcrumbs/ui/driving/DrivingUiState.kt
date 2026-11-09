@@ -14,6 +14,10 @@ data class DrivingUiState(
     val endConfirmVisible: Boolean = false,
     val message: UiMessage? = null,
 ) {
-    /** 「이 장소 기록」 · 「여행 종료」 — 기록 중일 때만(D26). 「음성」은 늘. */
-    val recordingActionsEnabled: Boolean get() = tripStatus == TripStatus.RECORDING
+    /** 「이 장소 기록」 · 「여행 종료」 — 진행 중 여행(RECORDING · PAUSED)일 때만(D26 · N23 · N24). 「음성」은 늘. */
+    val recordingActionsEnabled: Boolean get() = tripStatus.inProgress
+
+    /** 버튼 3 — RECORDING 「기록 일시정지」 · PAUSED 「기록 재개」 · 그 밖 「기록 일시정지」 비활성(D31). */
+    val pauseButtonShowsResume: Boolean get() = tripStatus == TripStatus.PAUSED
+    val pauseButtonEnabled: Boolean get() = tripStatus.inProgress
 }

@@ -71,7 +71,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** 임시 「새 여행 시작」(D26) — 확인 없이 바로 새 여행 RECORDING · 기록 중이면 저장소가 아무 일도 안 함(N19). */
+    /** 임시 「새 여행 시작」(D26) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행(RECORDING · PAUSED)이면 저장소가 아무 일도 안 함(N19). */
     fun onStartNewTrip() {
         viewModelScope.launch { recordingRepository.startNewTrip() }
     }

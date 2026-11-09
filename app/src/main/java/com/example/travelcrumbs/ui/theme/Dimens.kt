@@ -8,11 +8,17 @@ object Dimens {
     val ScreenPadding = 24.dp
     val ItemSpacing = 16.dp
 
-    /** 주행 화면 버튼 — 크게 · 한 번 터치. */
+    /** 주행 화면 버튼 — 크게 · 한 번 터치(디자인 시스템 7절 주요 버튼 높이 72 이상). */
     val DrivingButtonHeight = 96.dp
 
-    /** 이 폭보다 좁으면 주행 화면 버튼을 세로로 쌓음. */
-    val DrivingButtonsRowMinWidth = 640.dp
+    /** 주행 화면 버튼 사이 간격(디자인 시스템 7절 인접 간격 12 이상). */
+    val DrivingButtonSpacing = 16.dp
+
+    /**
+     * 이 폭보다 좁으면 주행 화면 버튼 4개를 2 × 2 로(D31). 가장 긴 글자 「기록 일시정지」(headlineSmall)
+     * + 버튼 안쪽 여백이 한 칸에 들어가는 폭 × 4 + 간격.
+     */
+    val DrivingButtonsRowMinWidth = 880.dp
 
     /** 홈 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp

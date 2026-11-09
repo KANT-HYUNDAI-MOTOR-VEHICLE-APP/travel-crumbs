@@ -16,9 +16,9 @@ data class HomeUiState(
     val navi: SdkStatus<NaviRouteState> = SdkStatus.Idle,
     val openedByGleoAction: Boolean = false,
 ) {
-    /** 「이 장소 기록」 — 기록 중일 때만(D26). */
-    val recordPlaceEnabled: Boolean get() = tripStatus == TripStatus.RECORDING
+    /** 「이 장소 기록」 — 진행 중 여행(RECORDING · PAUSED)일 때만(D26 · N23). */
+    val recordPlaceEnabled: Boolean get() = tripStatus.inProgress
 
-    /** 임시 「새 여행 시작」 — 기록 중이 아닐 때만(D26 · N19 — 기록 중엔 자리만 지키고 비활성). */
-    val startNewTripEnabled: Boolean get() = tripStatus != TripStatus.RECORDING
+    /** 임시 「새 여행 시작」 — 진행 중 여행이 아닐 때만(D26 · N19 — RECORDING · PAUSED 엔 자리만 지키고 비활성). */
+    val startNewTripEnabled: Boolean get() = !tripStatus.inProgress
 }

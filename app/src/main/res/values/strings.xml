@@ -14,8 +14,9 @@
     <string name="unfinished_input_banner_text">작성 중이던 내용이 있어요</string>
     <string name="unfinished_input_banner_action">이어서 쓰기</string>
 
-    <!-- 여행 상태(표준 TRIP_STATUS 코드명 · N8) · 경과(홈 · 주행 화면 공통) -->
+    <!-- 여행 상태(표준 v0.4 TRIP_STATUS 코드명 · N8 · N25) · 경과(홈 · 주행 화면 공통). 일시정지는 #6 이름 그대로(N16) -->
     <string name="trip_status_recording">기록 중</string>
+    <string name="recording_status_paused">일시정지</string>
     <string name="trip_status_completed">완료</string>
     <string name="trip_status_interrupted">중단</string>
     <string name="trip_status_canceled">취소</string>
@@ -30,6 +31,8 @@
     <!-- 버튼 -->
     <string name="action_record_place">이 장소 기록</string>
     <string name="action_voice">음성</string>
+    <string name="action_pause_recording">기록 일시정지</string>
+    <string name="action_resume_recording">기록 재개</string>
     <string name="action_end_trip">여행 종료</string>
     <string name="action_start_new_trip">새 여행 시작</string>
 

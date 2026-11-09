@@ -178,7 +178,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V11 주행 첫 실행 — 레일 5칸 · 새 여행 · 기록 중 · 0분 · 장소 0 · 지도 자리 · 버튼 3개뿐`() {
+    fun `V11 V47 주행 첫 실행 — 레일 5칸 · 새 여행 · 기록 중 · 0분 · 장소 0 · 지도 자리 · 버튼 4개뿐`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
@@ -203,9 +203,10 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.map_placeholder)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_voice).assertIsDisplayed().assertIsEnabled()
+        button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_end_trip).assertIsDisplayed().assertIsEnabled()
-        // 눌리는 것 = 레일 5칸 + 버튼 3개뿐
-        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 3)
+        // 눌리는 것 = 레일 5칸 + 버튼 4개뿐
+        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4)
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.unfinished_input_banner_text))).assertCountEquals(0)
@@ -238,6 +239,7 @@ class AppShellScreenTest {
         compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
         compose.onNodeWithText(text(R.string.trip_status_completed)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsNotEnabled()
+        button(R.string.action_pause_recording).assertIsNotEnabled()
         button(R.string.action_end_trip).assertIsNotEnabled()
         button(R.string.action_voice).assertIsEnabled().performClick()
         compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
@@ -336,12 +338,106 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V33 홈에는 기록 일시정지 · 음성 · 여행 종료 없음`() {
+    fun `V33 V35 V56 홈 기록 중 · 일시정지 각각 — 일시정지 · 재개 · 음성 · 여행 종료 버튼 없음 · 새 여행 시작 비활성`() {
         show()
+        assertHomeHasNoDrivingButtons()
+        button(R.string.action_start_new_trip).assertIsDisplayed().assertIsNotEnabled()
 
+        drive(DrivingState.DRIVING)
+        button(R.string.action_pause_recording).performClick()
+        drive(DrivingState.PARKED)
+
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
+        assertHomeHasNoDrivingButtons()
+        button(R.string.action_record_place).assertIsEnabled()
+        button(R.string.action_start_new_trip).assertIsDisplayed().assertIsNotEnabled().performClick()
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+    }
+
+    private fun assertHomeHasNoDrivingButtons() {
+        button(R.string.action_pause_recording).assertDoesNotExist()
+        button(R.string.action_resume_recording).assertDoesNotExist()
         button(R.string.action_voice).assertDoesNotExist()
         button(R.string.action_end_trip).assertDoesNotExist()
-        compose.onAllNodes(hasText("일시정지", substring = true)).assertCountEquals(0)
+    }
+
+    @Test
+    fun `V47 주행 버튼 순서 — 이 장소 기록 · 음성 · 기록 일시정지 · 여행 종료(위 → 아래 · 왼쪽 → 오른쪽)`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        show()
+
+        val order = listOf(
+            R.string.action_record_place,
+            R.string.action_voice,
+            R.string.action_pause_recording,
+            R.string.action_end_trip,
+        ).map { id -> id to button(id).getBoundsInRoot() }
+        val sorted = order.sortedWith(compareBy({ it.second.top.value }, { it.second.left.value })).map { it.first }
+        assertEquals(order.map { it.first }, sorted)
+    }
+
+    @Test
+    fun `V48 V49 기록 일시정지 → 일시정지 · 기록 재개 · 팝업 없음 → 기록 재개 → 기록 중`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        show()
+
+        button(R.string.action_pause_recording).performClick()
+
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
+        button(R.string.action_resume_recording).assertIsDisplayed().assertIsEnabled()
+        button(R.string.action_pause_recording).assertDoesNotExist()
+        compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
+        assertHighlighted(AppDestination.RECORDS)
+
+        button(R.string.action_resume_recording).performClick()
+
+        compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
+        button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun `V51 V53 V54 일시정지 중 이 장소 기록 가능 · 여행 종료 → 계속 기록이면 일시정지 그대로 → 종료면 완료`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        show()
+        button(R.string.action_pause_recording).performClick()
+
+        button(R.string.action_record_place).assertIsEnabled().performClick()
+        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+
+        button(R.string.action_end_trip).assertIsEnabled().performClick()
+        compose.onNodeWithText(text(R.string.end_trip_confirm_body)).assertIsDisplayed()
+        button(R.string.end_trip_confirm_continue).performClick()
+        compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+        button(R.string.action_resume_recording).assertIsEnabled()
+
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        compose.onNodeWithText(text(R.string.trip_status_completed)).assertIsDisplayed()
+        button(R.string.action_record_place).assertIsNotEnabled()
+        button(R.string.action_pause_recording).assertIsNotEnabled()
+        button(R.string.action_end_trip).assertIsNotEnabled()
+        button(R.string.action_voice).assertIsEnabled()
+    }
+
+    @Test
+    fun `V55 V65 일시정지 · 팝업 열린 채 정차 → 팝업 없음 · 일시정지 → 다시 주행에도 일시정지`() {
+        show()
+        drive(DrivingState.DRIVING)
+        button(R.string.action_pause_recording).performClick()
+        button(R.string.action_end_trip).performClick()
+
+        drive(DrivingState.PARKED)
+        compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+
+        drive(DrivingState.DRIVING)
+        compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
+        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+        button(R.string.action_resume_recording).assertIsDisplayed()
     }
 
     @Test
@@ -365,6 +461,7 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsEnabled()
+        button(R.string.action_pause_recording).assertIsEnabled()
         button(R.string.action_end_trip).assertIsEnabled()
     }
 

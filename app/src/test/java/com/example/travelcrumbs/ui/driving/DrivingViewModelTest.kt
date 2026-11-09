@@ -184,6 +184,137 @@ class DrivingViewModelTest {
         assertEquals(TripStatus.RECORDING, recreated.uiState.value.tripStatus)
     }
 
+    @Test
+    fun `V47 기록 중 — 버튼 넷 다 활성 · 버튼 3 은 기록 일시정지`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+
+        val state = vm.uiState.value
+        assertTrue(state.recordingActionsEnabled)
+        assertTrue(state.pauseButtonEnabled)
+        assertFalse(state.pauseButtonShowsResume)
+    }
+
+    @Test
+    fun `V48 V49 기록 일시정지 → 일시정지 · 기록 재개 글자 · 팝업 없음 → 재개하면 기록 중`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+
+        vm.onTogglePause()
+        runCurrent()
+        val paused = vm.uiState.value
+        assertEquals(TripStatus.PAUSED, paused.tripStatus)
+        assertTrue(paused.pauseButtonShowsResume)
+        assertTrue(paused.pauseButtonEnabled)
+        assertFalse(paused.endConfirmVisible)
+
+        vm.onTogglePause()
+        runCurrent()
+        assertEquals(TripStatus.RECORDING, vm.uiState.value.tripStatus)
+        assertFalse(vm.uiState.value.pauseButtonShowsResume)
+    }
+
+    @Test
+    fun `V51 V52 일시정지 중 이 장소 기록 · 음성 — 준비 중 안내 · 일시정지 그대로 · 버튼 활성`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.onTogglePause()
+        runCurrent()
+
+        assertTrue(vm.uiState.value.recordingActionsEnabled)
+        vm.onRecordPlace()
+        runCurrent()
+        assertEquals(UiMessage.NOT_READY, vm.uiState.value.message)
+        assertEquals(TripStatus.PAUSED, vm.uiState.value.tripStatus)
+
+        vm.onMessageShown()
+        vm.onVoice()
+        runCurrent()
+        assertEquals(UiMessage.NOT_READY, vm.uiState.value.message)
+        assertEquals(TripStatus.PAUSED, vm.uiState.value.tripStatus)
+    }
+
+    @Test
+    fun `V53 일시정지에서 여행 종료 → 계속 기록 — 팝업 열림 → 닫힘 · 일시정지 그대로`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.onTogglePause()
+        runCurrent()
+
+        vm.onEndTrip()
+        runCurrent()
+        assertTrue(vm.uiState.value.endConfirmVisible)
+
+        vm.onContinueRecording()
+        runCurrent()
+        assertFalse(vm.uiState.value.endConfirmVisible)
+        assertEquals(TripStatus.PAUSED, vm.uiState.value.tripStatus)
+        assertTrue(vm.uiState.value.pauseButtonShowsResume)
+    }
+
+    @Test
+    fun `V54 일시정지에서 종료 — 완료 · 이 장소 기록 · 기록 일시정지 · 여행 종료 비활성`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.onTogglePause()
+        runCurrent()
+        vm.onEndTrip()
+        runCurrent()
+
+        vm.onConfirmEndTrip()
+        runCurrent()
+
+        val state = vm.uiState.value
+        assertEquals(TripStatus.COMPLETED, state.tripStatus)
+        assertFalse(state.recordingActionsEnabled)
+        assertFalse(state.pauseButtonEnabled)
+        assertFalse(state.pauseButtonShowsResume)
+    }
+
+    @Test
+    fun `V55 V65 일시정지 · 팝업 열린 채 정차 → 팝업 닫힘 · 다시 주행이어도 일시정지 그대로`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.onTogglePause()
+        runCurrent()
+        vm.onEndTrip()
+        runCurrent()
+
+        driving.emit(DrivingState.PARKED)
+        runCurrent()
+        assertFalse(vm.uiState.value.endConfirmVisible)
+        assertEquals(TripStatus.PAUSED, vm.uiState.value.tripStatus)
+
+        driving.emit(DrivingState.DRIVING)
+        runCurrent()
+        assertEquals(TripStatus.PAUSED, vm.uiState.value.tripStatus)
+    }
+
+    @Test
+    fun `V62 일시정지 · 프로세스 재생성 — 일시정지 · 기록 재개 글자 복원`() = runTest(dispatcher) {
+        val recording = recordingRepositoryOf(FakeTimeSource())
+        val vm = viewModel(recording = recording)
+        subscribe(vm)
+        vm.onTogglePause()
+        runCurrent()
+
+        val recreated = viewModel(recording = recording)
+        subscribe(recreated)
+
+        assertEquals(TripStatus.PAUSED, recreated.uiState.value.tripStatus)
+        assertTrue(recreated.uiState.value.pauseButtonShowsResume)
+    }
+
+    @Test
+    fun `V15 종료 뒤 기록 일시정지 비활성`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        vm.onConfirmEndTrip()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.pauseButtonEnabled)
+    }
+
     private fun TestScope.subscribe(vm: DrivingViewModel) {
         backgroundScope.launch { vm.uiState.collect { } }
         testScheduler.runCurrent()

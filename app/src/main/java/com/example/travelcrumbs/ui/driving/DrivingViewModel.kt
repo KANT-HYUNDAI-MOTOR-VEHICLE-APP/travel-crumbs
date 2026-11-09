@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * 주행 전용 화면 — 여행명 · 상태 · 경과 · 장소 수 · 버튼 3개 · 여행 종료 확인 팝업(스펙 app-shell-v5 2-5 · 2-6).
+ * 주행 전용 화면 — 여행명 · 상태 · 경과 · 장소 수 · 버튼 4개 · 여행 종료 확인 팝업(스펙 app-shell-v5 2-5 · 2-6).
  * 팝업 표시는 SavedStateHandle 에 둬 프로세스 재생성 뒤 다시 보임(V32).
  */
 @HiltViewModel
@@ -67,12 +67,17 @@ class DrivingViewModel @Inject constructor(
 
     fun onVoice() = runAction { startVoiceInput() }
 
-    /** 「여행 종료」 — 확인 팝업만 엶 · 상태는 그대로(D22). */
+    /** 「기록 일시정지」 · 「기록 재개」 — 확인 없이 한 번 터치 = 한 전이(D31 · V66). */
+    fun onTogglePause() {
+        viewModelScope.launch { recordingRepository.togglePause() }
+    }
+
+    /** 「여행 종료」 — 확인 팝업만 엶 · 상태는 그대로(D22 · RECORDING · PAUSED 모두 · N24). */
     fun onEndTrip() {
         savedStateHandle[KEY_END_CONFIRM] = true
     }
 
-    /** 「계속 기록」 · 시스템 뒤로 · 팝업 바깥 누름(레일 칸 포함) — 팝업만 닫음. */
+    /** 「계속 기록」 · 시스템 뒤로 · 팝업 바깥 누름(레일 칸 포함) — 팝업만 닫음 · PAUSED 면 PAUSED 그대로(N24). */
     fun onContinueRecording() {
         savedStateHandle[KEY_END_CONFIRM] = false
     }
