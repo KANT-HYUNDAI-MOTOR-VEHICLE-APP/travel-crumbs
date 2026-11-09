@@ -1,12 +1,11 @@
 package com.example.travelcrumbs.ui.driving
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,10 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
@@ -32,12 +31,14 @@ import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.components.tripStatusText
 import com.example.travelcrumbs.ui.driving.components.EndTripConfirmDialog
+import com.example.travelcrumbs.ui.driving.components.NaviGuideCard
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * 주행 전용 화면(스펙 app-shell-v5 2-5) — 레일 오른쪽 내용 영역에 그림(D29).
- * 1 여행명 · 상태 · 경과 → 2 기록된 장소 수 → 3 지도 자리(남는 공간 · 창이 작으면 높이 0 까지 줄어듦) → 4 버튼 4개(D31).
- * 입력 칸 · 스크롤 · 애니메이션 · 길안내 버튼 · 「새 여행 시작」 없음. 버튼은 한 줄 4개 · 좁으면 2 × 2(순서 그대로).
+ * 주행 전용 화면(스펙 app-shell-v5 2-5 · 와이어프레임 v6 A-02 · #51 U0) — 레일 오른쪽 내용 영역에 그림(D29).
+ * 1 여행명 · 상태 · 경과 → 2 기록된 장소 수 → 3 (넓은 칸만) 「내비 안내」 카드 → 4 버튼 4개(D31) → 한 줄 안내.
+ * 가짜 지도 자리는 없음 — 실제 차량 내비가 옆 칸(나눔) 또는 앞(나누지 않음)에 뜸. 좁은 칸(나눈 칸 · 내비가 옆에 있음)은 카드 없이 버튼만.
+ * 입력 칸 · 스크롤 · 애니메이션 · 「새 여행 시작」 없음. 버튼은 한 줄 4개 · 좁으면 2 × 2(순서 그대로).
  */
 @Composable
 fun DrivingScreen(
@@ -46,8 +47,14 @@ fun DrivingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LifecycleResumeEffect(viewModel) {
+        viewModel.onScreenResumed()
+        onPauseOrDispose { viewModel.onScreenPaused() }
+    }
+
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val twoByTwo = maxWidth < Dimens.DrivingButtonsRowMinWidth
+        val wide = maxWidth >= Dimens.DrivingWideMinWidth
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,7 +92,16 @@ fun DrivingScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
             )
-            MapPlaceholder(modifier = Modifier.weight(1f))
+            if (wide) {
+                NaviGuideCard(
+                    destinationName = uiState.naviDestinationName,
+                    naviAppAvailable = uiState.naviAppAvailable,
+                    onOpenNavi = viewModel::onOpenNavi,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
             val buttons = listOf(
                 DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace, DrivingButtonKind.PRIMARY),
                 DrivingButtonSpec(R.string.action_voice, enabled = true, onClick = viewModel::onVoice),
@@ -115,25 +131,6 @@ fun DrivingScreen(
         EndTripConfirmDialog(
             onContinue = viewModel::onContinueRecording,
             onEnd = viewModel::onConfirmEndTrip,
-        )
-    }
-}
-
-/** 지도 자리(N15) — 테두리 영역 + 한 줄 「지도 준비 중」 · 누를 수 없음 · 움직임 없음. */
-@Composable
-private fun MapPlaceholder(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clipToBounds()
-            .border(Dimens.MapPlaceholderBorder, MaterialTheme.colorScheme.outline),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.map_placeholder),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
         )
     }
 }

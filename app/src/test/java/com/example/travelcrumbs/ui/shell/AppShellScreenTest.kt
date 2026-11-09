@@ -319,13 +319,13 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.map_placeholder)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.driving_navi_card_title)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_voice).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_end_trip).assertIsDisplayed().assertIsEnabled()
-        // 눌리는 것 = 레일 4칸 + 버튼 4개뿐
-        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4)
+        // 눌리는 것 = 레일 4칸 + 버튼 4개 + 넓은 칸 「내비 안내」 카드의 「내비 보기」(#51 U0 · 보조 버튼)뿐
+        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4 + 1)
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.unfinished_input_banner_text))).assertCountEquals(0)

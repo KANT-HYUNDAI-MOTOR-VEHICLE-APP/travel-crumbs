@@ -60,6 +60,7 @@ class ShellTestGraph(
             drivingSignalRepository = driving,
             savedStateHandle = drivingSavedState,
             ratingRepository = ratings,
+            naviRepository = navi,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,

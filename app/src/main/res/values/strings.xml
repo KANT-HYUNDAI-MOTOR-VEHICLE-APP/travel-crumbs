@@ -24,7 +24,12 @@
     <!-- 주행 화면(스펙 app-shell-v5 2-5) -->
     <string name="trip_name_default">새 여행</string>
     <string name="trip_place_count">기록된 장소 %1$d</string>
-    <string name="map_placeholder">지도 준비 중</string>
+    <!-- 주행 화면 넓은 칸 「내비 안내」 카드(#51 U0) -->
+    <string name="driving_navi_card_title">내비 안내</string>
+    <string name="driving_navi_guiding">「%1$s」로 안내 중</string>
+    <string name="driving_navi_idle">내비에서 길안내를 켜 보세요</string>
+    <string name="action_open_navi">내비 보기</string>
+    <string name="navi_split_hint">⋮ 를 끌면 내비와 기록 화면을 나란히 볼 수 있어요</string>
 
     <!-- 버튼 -->
     <string name="action_record_place">이 장소 기록</string>

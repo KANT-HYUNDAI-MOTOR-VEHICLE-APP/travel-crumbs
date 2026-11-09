@@ -53,6 +53,9 @@ object AppConfig {
     const val RATING_SCORE_MIN: Int = 1
     const val RATING_SCORE_MAX: Int = 5
 
+    /** 주행 화면 「내비 안내」 카드가 내비 안내 상태를 다시 읽는 간격(밀리초 · #51 U0) — 화면이 앞에 있을 때만. */
+    const val NAVI_STATUS_REFRESH_MILLIS: Long = 15_000L
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 

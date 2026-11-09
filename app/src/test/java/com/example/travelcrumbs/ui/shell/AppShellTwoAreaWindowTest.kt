@@ -43,8 +43,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * 창 2개 영역(landscape 전체 폭 · 스펙 app-shell D18 · app-shell-v5 V29 · V30) — 에뮬레이터 Pleos_Connect_v2.1.0 실측 앱 창 1682 × 1210 dp.
- * landscape 고정 앱은 창 1개 영역으로 줄지 않음(Pleos 가 「창 크기를 넓게」 안내 · 앱 책임 아님).
+ * 앱 영역 두 크기(#51 U0 · Pleos Display Layout 「앱 영역은 앱 1~2개 · 가로 · 세로 배치 모두」) — 에뮬레이터 Pleos_Connect_v2.1.0 실측.
+ * 넓은 칸 = 나누지 않은 앱 영역 1682 × 1210 dp(기본 설정) · 좁은 칸 = 가운데 ⋮ 로 나눈 한 칸 약 817 × 1210 dp(세로 · 내비가 옆 칸).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w1682dp-h1210dp-land")
@@ -79,7 +79,7 @@ class AppShellTwoAreaWindowTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.map_placeholder)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.driving_navi_card_title)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed()
         button(R.string.action_voice).assertIsDisplayed()
         button(R.string.action_pause_recording).assertIsDisplayed()
@@ -109,6 +109,32 @@ class AppShellTwoAreaWindowTest {
         val bounds = assertDrivingButtons()
         assertTrue("2 × 2 — 윗줄 둘 · 화면 ${compose.onRoot().getBoundsInRoot()} · ${bounds}", bounds[0].top == bounds[1].top && bounds[2].top == bounds[3].top)
         assertTrue("2 × 2 — 아랫줄 간격 ${bounds[2].top - bounds[0].bottom} · 화면 ${compose.onRoot().getBoundsInRoot()}", bounds[2].top - bounds[0].bottom >= DESIGN_SYSTEM_SPACING)
+    }
+
+    @Test
+    @Config(qualifiers = "w817dp-h1210dp-port")
+    fun `U0-3 좁은 칸(나눈 칸 · 세로) 주행 — 레일 4칸 · 여행명 상태 경과 장소 수 · 내비 카드 없음 · 버튼 2 × 2 · 가로로 넘치지 않음`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        showShell()
+
+        AppDestination.railItems.forEach { compose.onNodeWithTag(railItemTag(it)).assertIsDisplayed() }
+        compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
+        assertTrue(compose.onAllNodes(hasText(text(R.string.driving_navi_card_title))).fetchSemanticsNodes().isEmpty())
+        val bounds = assertDrivingButtons()
+        val root = compose.onRoot().getBoundsInRoot()
+        assertTrue("2 × 2", bounds[0].top == bounds[1].top && bounds[2].top == bounds[3].top && bounds[2].top > bounds[0].top)
+        bounds.forEach { assertTrue("가로로 넘치지 않음 $it · $root", it.right <= root.right) }
+    }
+
+    @Test
+    @Config(qualifiers = "w817dp-h1210dp-port")
+    fun `U0-4 좁은 칸(나눈 칸 · 세로) 정차 기록 칸 — 레일 4칸 · 진행 중 모양이 스크롤 없이 보이고 눌림`() {
+        showShell()
+
+        AppDestination.railItems.forEach { compose.onNodeWithTag(railItemTag(it)).assertIsDisplayed() }
+        compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
+        button(R.string.action_record_place).assertIsDisplayed()
     }
 
     /** 버튼 4개(순서대로)의 경계 — 크기 · 간격 · 글자 높이를 재고 돌려줌. */

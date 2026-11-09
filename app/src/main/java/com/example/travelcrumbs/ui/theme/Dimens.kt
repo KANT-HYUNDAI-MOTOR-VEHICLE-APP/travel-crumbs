@@ -49,7 +49,11 @@ object Dimens {
     val ButtonBorderWidth = 2.dp
 
     /** 주행 화면 지도 자리 테두리. */
-    val MapPlaceholderBorder = 2.dp
+    /**
+     * 주행 화면 내용 폭이 이 값 이상이면 「넓은 칸」(앱 영역 전체 · 내비가 옆에 없음) — 「내비 안내」 카드를 그림(#51 U0).
+     * 나눈 칸(약 817dp − 레일 120)은 이보다 좁고, 나누지 않은 앱 영역(1682 − 120)은 넓음.
+     */
+    val DrivingWideMinWidth = 1000.dp
     /** 장소 항목 오른쪽 버튼(「여기로 안내」 · 「고정」) 최소 폭 — 높이는 [HomeButtonHeight](스펙 navigation E5 · E10). */
     val PlaceButtonMinWidth = 220.dp
 

@@ -19,12 +19,23 @@ interface NaviRepository : NaviGuidance {
     override val ready: StateFlow<Boolean>
 
     suspend fun routeState(): NaviRouteState
+
+    /** 차량 내비 앱을 열 수 있나(「내비 보기」 버튼 표시 · #51 U0). */
+    fun naviAppAvailable(): Boolean
+
+    /** 차량 내비 앱을 앞으로 — 열었으면 참(#51 U0 · U3). */
+    fun openNaviApp(): Boolean
 }
 
 @Singleton
 class DefaultNaviRepository @Inject constructor(
     private val dataSource: NaviInfoDataSource,
+    private val naviApp: NaviAppDataSource,
 ) : NaviRepository {
+
+    override fun naviAppAvailable(): Boolean = naviApp.available()
+
+    override fun openNaviApp(): Boolean = naviApp.open()
 
     override val ready: StateFlow<Boolean> = dataSource.ready
 
