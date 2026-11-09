@@ -1,9 +1,9 @@
 ---
 name: app-orchestrator
-description: '<앱 이름>(Pleos Connect 차량 앱 + FastAPI 서버 · 한 저장소 · 두 사람 협업) 이슈 하나를 기능 흐름(develop → <기능명>/main → spec PR → impl PR → develop PR) 또는 버그 흐름(bug/ → develop PR)으로 스펙 → 구현 → 리뷰 2관점 → 수정 → 센서 → PR 까지 조율하는 오케스트레이터. 「이슈 #n 진행해줘」 「<앱 이름> 티켓: …」(글로 티켓을 주면 이슈를 만들어 진행) 「#n 스펙만 써 줘」 「#n 구현해 줘」 「#n 리뷰 다시」 「#n 센서 돌려」 「#n PR 올려」 「#n 이어서」 「#n 마무리(머지 뒤)」 「스펙 수정 · 보완」 「재리뷰」 「다시 실행」 「이전 결과 개선」 같은 요청에 사용한다. 이슈 번호 전의 기획 요청 — 「<기능명> 같이 기획하자」 「기획 도와줘」 「후보 좀 보여 줘」 — 도 이 스킬의 「기획 흐름」으로 받는다(되묻지 않는다). 단순 질문 · 한 줄 수정 · 문서 오타에는 쓰지 않는다(직접 한다). 하네스 자체의 회고 · 피드백 반영은 harness:evolve.'
+description: 'travel-crumbs(Pleos Connect 차량 앱 + FastAPI 서버 · 한 저장소 · 두 사람 협업) 이슈 하나를 기능 흐름(develop → <기능명>/main → spec PR → impl PR → develop PR) 또는 버그 흐름(bug/ → develop PR)으로 스펙 → 구현 → 리뷰 2관점 → 수정 → 센서 → PR 까지 조율하는 오케스트레이터. 「이슈 #n 진행해줘」 「travel-crumbs 티켓: …」(글로 티켓을 주면 이슈를 만들어 진행) 「#n 스펙만 써 줘」 「#n 구현해 줘」 「#n 리뷰 다시」 「#n 센서 돌려」 「#n PR 올려」 「#n 이어서」 「#n 마무리(머지 뒤)」 「스펙 수정 · 보완」 「재리뷰」 「다시 실행」 「이전 결과 개선」 같은 요청에 사용한다. 이슈 번호 전의 기획 요청 — 「<기능명> 같이 기획하자」 「기획 도와줘」 「후보 좀 보여 줘」 — 도 이 스킬의 「기획 흐름」으로 받는다(되묻지 않는다). 단순 질문 · 한 줄 수정 · 문서 오타에는 쓰지 않는다(직접 한다). 하네스 자체의 회고 · 피드백 반영은 harness:evolve.'
 ---
 
-# <앱 이름> 오케스트레이터
+# travel-crumbs 오케스트레이터
 
 **실행 모드: 혼합** — 아래 표. 브랜치 · PR 대상은 `team-workflow` 2 · 3절이 원본. 사람 승인은 PR 셋(spec → `<기능명>/main` · impl → `<기능명>/main` · `<기능명>/main` → develop)에서 사람이 머지로 함. 에이전트는 작업 브랜치 커밋 · 푸시 · PR 열기까지. 머지 · main · develop · 이미 있는 `<기능명>/main` 푸시 · 보호 규칙 변경 금지.
 
@@ -62,7 +62,7 @@ description: '<앱 이름>(Pleos Connect 차량 앱 + FastAPI 서버 · 한 저�
 ```
 이슈 #<n> 스펙 작성.
 [티켓] <gh issue view 본문 그대로>
-[전제] <앱 이름> MVP — <한두 문장: 앱이 무엇을 하는지 · 주행 중 / 정차 중에 각각 무엇이 되는지>. 주행 여부는 Pleos Vehicle SDK 기어 + CarUxRestrictions. 로그인은 Pleos 계정(서버가 토큰 교환). 서버(FastAPI)는 <로그인 · 서버가 맡는 데이터 · 기능>. 좌표 · 기어 · VIN · Pleos 토큰은 서버에 없음.
+[전제] travel-crumbs MVP — <한두 문장: 앱이 무엇을 하는지 · 주행 중 / 정차 중에 각각 무엇이 되는지>. 주행 여부는 Pleos Vehicle SDK 기어 + CarUxRestrictions. 로그인은 Pleos 계정(서버가 토큰 교환). 서버(FastAPI)는 <로그인 · 서버가 맡는 데이터 · 기능>. 좌표 · 기어 · VIN · Pleos 토큰은 서버에 없음.
 [지금 상태] 화면: <ls app/src/main/java/**/ui> / 서버 패키지: <ls server/app> / 계약: docs/api/openapi.json <있음 · 없음> / 승인 스펙: <ls docs/spec/*/artifacts>
 [기획] <이슈 「참고」의 기획 위치 · 없으면 없음> — 그 아래 문서 전부(artifacts/ 빼고 · spec 브랜치 작업 트리에 있음)
 [산출물] <0단계 4번에서 정한 docs/spec/<기능명>/artifacts/<이름>.md> · <새 파일 · 기존 파일 고침>

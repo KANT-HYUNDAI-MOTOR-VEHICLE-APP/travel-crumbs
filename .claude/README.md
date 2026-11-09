@@ -1,4 +1,4 @@
-# .claude — <앱 이름> 하네스
+# .claude — travel-crumbs 하네스
 
 하네스 설정은 전부 이 폴더 아래. 이 파일은 사람이 읽는 안내서 — 규칙의 원본은 각 스킬. 진입점은 저장소 루트의 `CLAUDE.md`.
 
@@ -38,6 +38,7 @@
 | `.github/ISSUE_TEMPLATE/` | 이슈 템플릿(기능 · 버그 · 하네스 피드백) = 하네스의 입력 |
 | `docs/spec/<기능명>/` | 사람 기획 + AI 산출물(`artifacts/`) — 2절 |
 | `docs/api/openapi.json` | API 계약(서버가 생성) |
+| `docs/data/` | 데이터 표준 정의서 · ERD — 테이블 · 컬럼 이름과 코드값의 원본. 읽는 때 · 읽는 법은 `docs/data/README.md` |
 | `docs/architecture_decision_record/` | 하네스 · 구조 결정 기록 = 하네스 변경 이력 |
 | `_workspace/` | 실행 중간 산출물 · 개인용(gitignore) |
 

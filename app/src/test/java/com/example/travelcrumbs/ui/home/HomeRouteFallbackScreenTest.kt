@@ -47,7 +47,7 @@ class HomeRouteFallbackScreenTest {
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
-                    HomeScreen(showSdkCard = false)
+                    HomeScreen(onOpenRecommendations = {}, showSdkCard = false)
                 }
             }
         }

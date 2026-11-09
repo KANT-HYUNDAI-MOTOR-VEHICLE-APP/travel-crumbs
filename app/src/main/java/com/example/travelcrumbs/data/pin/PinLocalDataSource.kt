@@ -1,7 +1,7 @@
 package com.example.travelcrumbs.data.pin
 
-import com.example.travelcrumbs.data.local.PinDao
-import com.example.travelcrumbs.data.local.PinEntity
+import com.example.travelcrumbs.data.local.NaviReqLogDao
+import com.example.travelcrumbs.data.local.NaviReqLogEntity
 import com.example.travelcrumbs.domain.model.Pin
 import com.example.travelcrumbs.domain.model.PinUploadState
 import javax.inject.Inject
@@ -9,7 +9,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** 핀 기기 저장(Room)을 감쌈 — 저장소만 부름. */
+/** 핀 기기 저장(Room · 표 navi_req_log)을 감쌈 — 저장소만 부름. */
 interface PinLocalDataSource {
     val pins: Flow<List<Pin>>
 
@@ -23,7 +23,7 @@ interface PinLocalDataSource {
 
 @Singleton
 class RoomPinLocalDataSource @Inject constructor(
-    private val dao: PinDao,
+    private val dao: NaviReqLogDao,
 ) : PinLocalDataSource {
 
     override val pins: Flow<List<Pin>> = dao.observeAll().map { rows -> rows.mapNotNull { it.toDomain() } }
@@ -36,7 +36,7 @@ class RoomPinLocalDataSource @Inject constructor(
 
     override suspend fun setState(sequence: Int, state: PinUploadState) = dao.setState(sequence, state.name)
 
-    private fun PinEntity.toDomain(): Pin? {
+    private fun NaviReqLogEntity.toDomain(): Pin? {
         val state = PinUploadState.entries.firstOrNull { it.name == uploadState } ?: return null
         return Pin(sequence, placeId, startedAtMillis, utcOffsetSeconds, state)
     }

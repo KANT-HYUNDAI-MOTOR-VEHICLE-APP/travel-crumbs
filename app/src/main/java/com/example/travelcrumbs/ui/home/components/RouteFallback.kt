@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
 import com.example.travelcrumbs.ui.theme.Dimens
@@ -138,14 +138,14 @@ private fun RowScope.DiagramLabel(text: String, align: TextAlign) {
 /** 「다시 시도」 · 「더미 경로」 · 「닫기」 — 「여기로 안내」(E5)와 같은 크기 · 한 번 터치. */
 @Composable
 private fun FallbackButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
+    SecondaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
             .heightIn(min = Dimens.HomeButtonHeight)
             .widthIn(min = Dimens.PlaceButtonMinWidth),
     ) {
-        Text(text = text, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+        Text(text = text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }
 }
 

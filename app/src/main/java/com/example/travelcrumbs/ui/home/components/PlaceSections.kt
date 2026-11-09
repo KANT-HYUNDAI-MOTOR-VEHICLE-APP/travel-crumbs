@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +18,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.RouteFailReason
+import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.home.CandidateItem
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
@@ -95,7 +95,7 @@ fun PlacePickerSection(
 @Composable
 private fun GuideButton(place: PlaceItem, state: HomeUiState, onGuide: (String) -> Unit) {
     val requesting = (state.routeRequest as? RouteRequestState.Requesting)?.placeId == place.id
-    Button(
+    PrimaryButton(
         onClick = { onGuide(place.id) },
         enabled = state.guideEnabled,
         modifier = Modifier
@@ -104,7 +104,7 @@ private fun GuideButton(place: PlaceItem, state: HomeUiState, onGuide: (String) 
     ) {
         Text(
             text = stringResource(if (requesting) R.string.places_guide_requesting else R.string.places_guide),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
         )
     }
@@ -117,7 +117,7 @@ private fun PinButton(
     onPin: (String) -> Unit,
     onUnpin: (String) -> Unit,
 ) {
-    OutlinedButton(
+    SecondaryButton(
         onClick = { if (candidate.pinned) onUnpin(candidate.id) else onPin(candidate.id) },
         enabled = candidate.pinned || canPinMore,
         modifier = Modifier
@@ -126,7 +126,7 @@ private fun PinButton(
     ) {
         Text(
             text = stringResource(if (candidate.pinned) R.string.picker_unpin else R.string.picker_pin),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
         )
     }

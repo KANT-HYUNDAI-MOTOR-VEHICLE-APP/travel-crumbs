@@ -8,7 +8,7 @@ import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.Pin
 import com.example.travelcrumbs.domain.model.PinUploadState
-import com.example.travelcrumbs.domain.model.RecordingStatus
+import com.example.travelcrumbs.domain.model.TripStatus
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
@@ -68,7 +68,7 @@ class DefaultPinRepository @Inject constructor(
         val status = withTimeoutOrNull(AppConfig.RECORDING_STATUS_READ_TIMEOUT_MILLIS) {
             recordingRepository.progress.map { it.status }.first()
         }
-        if (status != RecordingStatus.RECORDING) return false
+        if (status != TripStatus.RECORDING) return false
         val now = timeSource.nowMillis()
         local.append(placeId, now, offsetSecondsAt(now))
         uploadPending(retryIndex = 0)
