@@ -18,7 +18,7 @@ import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.domain.model.SidoRegion
 import com.example.travelcrumbs.domain.model.Tag
 import com.example.travelcrumbs.ui.components.RatingDialogItem
-import com.example.travelcrumbs.ui.components.RatingPopupHolder
+import com.example.travelcrumbs.ui.rating.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

@@ -1,4 +1,4 @@
-package com.example.travelcrumbs.ui.components
+package com.example.travelcrumbs.ui.rating
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.rating.RatingRepository
@@ -6,6 +6,8 @@ import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.Tag
+import com.example.travelcrumbs.ui.components.RatingDialogItem
+import com.example.travelcrumbs.ui.components.RatingDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * 별점 팝업(#41 B-06) 상태 도우미 — 기록 칸(자동 팝업) · 추천 B-04(버튼으로 엶) ViewModel 이 같은 로직을 씀.
+ * 별점 팝업(#41 B-06) — ViewModel 이 소유하는 상태 도우미. 기록 칸(자동 팝업) · 추천 B-04(버튼으로 엶) ViewModel 이 같은 로직을 씀.
  * ViewModel 이 자기 [scope] · [savedStateHandle] 로 하나씩 만듦(화면 단위 · Android 화면 클래스 없음).
  * 고르는 중 값(로드맵 · 별 · 태그)은 [savedStateHandle] 에 둬 프로세스 재생성 뒤에도 그대로.
  * 어떤 팝업을 보일지는 순수 계산 [shownDraft] · 결과(저장됨)는 [onSaved] 로 ViewModel 의 상태 칸에.

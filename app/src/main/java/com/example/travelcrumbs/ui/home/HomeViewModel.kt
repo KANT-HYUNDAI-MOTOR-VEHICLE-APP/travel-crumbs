@@ -27,7 +27,7 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.RouteRequestResult
 import com.example.travelcrumbs.domain.model.SdkStatus
-import com.example.travelcrumbs.ui.components.RatingPopupHolder
+import com.example.travelcrumbs.ui.rating.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

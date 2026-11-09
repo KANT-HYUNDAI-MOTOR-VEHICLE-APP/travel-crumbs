@@ -68,7 +68,8 @@ class DefaultRecordingRepository @Inject constructor(
         local.update { current ->
             val now = timeSource.nowMillis()
             val before = current ?: CurrentTrip.start(now)
-            before.ended(now).also { after -> endedAt = if (after !== before) after.endAtMillis else null }
+            // 이번에 끝냈나 = 종료 전 상태가 진행 중(RECORDING · PAUSED)이었나 — 그때만 종료 시각을 돌려줌
+            before.ended(now).also { after -> endedAt = if (before.status.inProgress) after.endAtMillis else null }
         }
         return endedAt
     }
