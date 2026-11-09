@@ -147,3 +147,12 @@
 - 데이터 표준(T02) 위반 해소: Room 표 `pins` → `navi_req_log`(정의서 2-2 로그 예시 · 한 행 = 안내 시작 1건 · 전송 대기 큐) · PK navi_req_log_no · Room 1 → 2 마이그레이션(복사 방식 · minSdk 28) · 시험 AppDatabaseMigrationTest · 서버 DTO 이름은 그대로(API 계약 불변)
 - 센서: gradle lint · 시험 287 · assembleRelease 녹색 · 매니페스트 · 비밀 · 위생 · 데이터 표준 위반 0(경고 1: 로그 표 created_user_no — 정의서 「제안」 · 기기 큐에 계정 칸 없음)
 - 남은 것: placeId · utcOffsetSeconds · uploadState 표준 단어 등록(지수님) · navigation 스펙의 표 이름 고침 · 추천 「안내 시작」 포트를 NaviRepository 로 잇기(#38 머지 뒤)
+
+## #46 navigation/main 받기(충돌 해소) — 2026-11-09 · 노희주(성호님 동의)
+- 산출물: navigation-screen/sync 머지 커밋 5e0eca0(navigation-screen/impl 4ebc4f0 + navigation/main 2c5114a) · sync PR(→ navigation-screen/impl) → PR #46 충돌 해소
+- 에이전트: builder(sync-builder-46) × 1
+- 원칙: 바탕은 지금 판(레일 4칸 · 주행 버튼 4개 · 앱 틀 · #34 테마 · 버튼) + 성호님 새 기능(길안내 입구 분리 GuideRequestTracker · A-14 전용 화면 GuideConnection · 카드형 가 볼 장소 · Asta Sans 서체 · 아이콘)
+- 테마 한 벌: TcButton · TcCard 삭제 → `ui/components/AppCard.kt`(#34 토큰) · GuideConnection 색 · 버튼도 테마로 · Type.kt 는 #34 단계 + Asta Sans 서체
+- 시험 고침: HomeGuideScreenTest(레일 4칸 · 인자) · GuideScreenSourceTest T134 금지 낱말을 「시연용 더미」로 좁힘
+- 센서: gradle lint · 시험 315 · assembleRelease 녹색(--no-parallel · 병렬 실행 때 lint 가 release Hilt 생성 파일을 못 찾는 경쟁) · 매니페스트 · 비밀 · 위생 · 데이터 표준 위반 0
+- 남은 것: 추천 길안내 포트와 GuideRequestTracker 합치기 · 쓰지 않는 아이콘 4개 · Asta Sans 로 주행 버튼 폭 940dp 다시 재기 · 스펙 T134 문장
