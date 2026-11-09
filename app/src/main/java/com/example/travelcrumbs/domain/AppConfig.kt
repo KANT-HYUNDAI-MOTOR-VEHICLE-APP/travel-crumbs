@@ -5,6 +5,13 @@ object AppConfig {
     /** SDK 호출 응답을 기다리는 한도(밀리초). */
     const val SDK_CALL_TIMEOUT_MS: Long = 10_000L
 
+    /** 내비 앱 전환 뒤 경로 탐색 시작 콜백을 기다리는 한도. */
+    const val ROUTE_START_TIMEOUT_MILLIS: Long = 30_000L
+
+    /** 앱 재개 직후 늦은 콜백 처리를 기다린 다음 현재 목적지를 대조. */
+    const val NAVI_QUERY_SETTLE_DELAY_MILLIS: Long = 1_500L
+    const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
+
     /** 「준비 중」 안내가 보였다 사라지기까지(밀리초) — 스펙 app-shell 2-5. */
     const val NOT_READY_NOTICE_MILLIS: Long = 2_000L
 

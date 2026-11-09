@@ -41,6 +41,7 @@ fun AppShellScreen(
             recommendationsEntry = viewModel.uiState.collectAsStateWithLifecycle().value.recommendationsEntry,
         )
     },
+    drivingContent: @Composable () -> Unit = { DrivingScreen() },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -64,7 +65,7 @@ fun AppShellScreen(
                     .fillMaxHeight(),
             ) {
                 if (uiState.isDrivingMode) {
-                    DrivingContent(uiState.drivingDestination)
+                    DrivingContent(uiState.drivingDestination, drivingContent)
                 } else {
                     if (uiState.unfinishedInputAvailable) {
                         UnfinishedInputBanner(onResume = viewModel::resumeUnfinishedInput)
@@ -80,9 +81,9 @@ fun AppShellScreen(
 
 /** 주행 · 모름의 내용 영역 — 주행 중 허용 칸(「기록」)만 주행 전용 화면 · 그 밖은 안내(2-8). */
 @Composable
-private fun DrivingContent(destination: AppDestination) {
+private fun DrivingContent(destination: AppDestination, content: @Composable () -> Unit) {
     if (destination.allowedWhileDriving) {
-        DrivingScreen()
+        content()
     } else {
         DrivingRestrictedContent(titleRes = destination.labelRes)
     }

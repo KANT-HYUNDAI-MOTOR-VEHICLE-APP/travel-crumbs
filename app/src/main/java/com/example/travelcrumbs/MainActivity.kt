@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.travelcrumbs.data.PleosSdkSession
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
-import com.example.travelcrumbs.ui.shell.AppShellScreen
+import com.example.travelcrumbs.ui.demo.TravelCrumbsContent
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         sdkSession.start()
         setContent {
             TravelCrumbsTheme {
-                AppShellScreen()
+                TravelCrumbsContent()
             }
         }
         // Gleo 는 7초 뒤 Action 을 취소하므로 화면을 띄우자마자 바로 답함.
