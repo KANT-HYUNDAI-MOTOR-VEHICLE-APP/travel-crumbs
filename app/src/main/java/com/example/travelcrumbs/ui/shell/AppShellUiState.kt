@@ -16,7 +16,7 @@ data class AppShellUiState(
     /** 판정이 정차가 아니면(주행 · 모름) 주행 모드 — 「기록」 칸은 주행 전용 화면 · 그 밖은 주행 제한 안내. */
     val isDrivingMode: Boolean get() = drivingState != DrivingState.PARKED
 
-    /** 레일 강조 칸 — 주행 · 모름: 주행 중 고른 칸 · 정차: 고른 목적지(설정이면 「홈」 · N4). */
+    /** 레일 강조 칸 — 주행 · 모름: 주행 중 고른 칸 · 정차: 고른 목적지(숨은 목적지 없음 · D35). */
     val highlightedRailItem: AppDestination
-        get() = if (isDrivingMode) drivingDestination.railItem else selectedDestination.railItem
+        get() = if (isDrivingMode) drivingDestination else selectedDestination
 }

@@ -2,11 +2,9 @@
 <resources>
     <string name="app_name">Travel Crumbs</string>
 
-    <!-- 목적지(스펙 app-shell-v5 2-1) — 레일 글자 · 화면 제목 · 홈 「설정」 버튼 글자 공통 -->
-    <string name="nav_home">홈</string>
+    <!-- 목적지(스펙 app-shell-v5 2-1 · D33) — 레일 글자 · 화면 제목 공통 -->
     <string name="nav_records">기록</string>
-    <string name="nav_trips">여행</string>
-    <string name="nav_inbox">받은함</string>
+    <string name="nav_trips">내 여행</string>
     <string name="nav_recommendations">추천</string>
     <string name="nav_settings">설정</string>
 
@@ -34,7 +32,11 @@
     <string name="action_pause_recording">기록 일시정지</string>
     <string name="action_resume_recording">기록 재개</string>
     <string name="action_end_trip">여행 종료</string>
-    <string name="action_start_new_trip">새 여행 시작</string>
+    <string name="action_start_trip">여행 시작</string>
+    <string name="action_open_recommendations">추천 보러 가기</string>
+
+    <!-- 기록 칸 최근 여행 자리(스펙 app-shell-v5 2-2 · N26) -->
+    <string name="recent_trip_empty">최근 여행이 없어요</string>
 
     <!-- 여행 종료 확인 팝업(와이어프레임 A-08 · 스펙 app-shell-v5 2-6) -->
     <string name="end_trip_confirm_body">현재 여행 기록을 종료할까요?</string>

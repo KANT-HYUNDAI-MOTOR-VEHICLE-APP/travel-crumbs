@@ -56,7 +56,7 @@ class HomeViewModelTest {
     )
 
     @Test
-    fun `V18 주행 화면에서 종료하면 홈도 완료 — 같은 출처 · 이 장소 기록 비활성`() = runTest(dispatcher) {
+    fun `V18 주행 화면에서 종료하면 기록 칸도 완료 — 같은 출처 · 진행 중 아님 모양`() = runTest(dispatcher) {
         val recording = recordingRepositoryOf(FakeTimeSource())
         val vm = viewModel(recording = recording)
         subscribe(vm)
@@ -65,12 +65,11 @@ class HomeViewModelTest {
         runCurrent()
 
         assertEquals(TripStatus.COMPLETED, vm.uiState.value.tripStatus)
-        assertFalse(vm.uiState.value.recordPlaceEnabled)
-        assertTrue(vm.uiState.value.startNewTripEnabled)
+        assertFalse(vm.uiState.value.tripInProgress)
     }
 
     @Test
-    fun `V34 완료 뒤 새 여행 시작 — 기록 중 · 0분 · 새 여행 시작 비활성 · 이 장소 기록 활성`() = runTest(dispatcher) {
+    fun `V34 V70 완료 뒤 여행 시작 — 기록 중 · 0분 · 장소 0 · 진행 중 모양`() = runTest(dispatcher) {
         val time = FakeTimeSource()
         val recording = recordingRepositoryOf(time)
         val vm = viewModel(recording = recording)
@@ -78,32 +77,32 @@ class HomeViewModelTest {
         recording.endTrip()
         time.now += 30 * 60_000L
 
-        vm.onStartNewTrip()
+        vm.onStartTrip()
         runCurrent()
 
         val state = vm.uiState.value
         assertEquals(TripStatus.RECORDING, state.tripStatus)
         assertEquals(0L, state.elapsedMinutes)
-        assertFalse(state.startNewTripEnabled)
-        assertTrue(state.recordPlaceEnabled)
+        assertEquals(0, state.placeCount)
+        assertTrue(state.tripInProgress)
     }
 
     @Test
-    fun `V35 기록 중 — 새 여행 시작 비활성 · 눌러도 상태 · 경과 그대로`() = runTest(dispatcher) {
+    fun `V35 기록 중 — 진행 중 모양 · 여행 시작이 불려도 상태 그대로`() = runTest(dispatcher) {
         val time = FakeTimeSource()
         val vm = viewModel(recording = recordingRepositoryOf(time))
         subscribe(vm)
         time.now += 5 * 60_000L
 
-        assertFalse(vm.uiState.value.startNewTripEnabled)
-        vm.onStartNewTrip()
+        assertTrue(vm.uiState.value.tripInProgress)
+        vm.onStartTrip()
         runCurrent()
 
         assertEquals(TripStatus.RECORDING, vm.uiState.value.tripStatus)
     }
 
     @Test
-    fun `V56 V35 주행 화면에서 일시정지하면 홈도 일시정지 — 경과 같은 값 · 이 장소 기록 활성 · 새 여행 시작 비활성`() = runTest(dispatcher) {
+    fun `V56 V35 주행 화면에서 일시정지하면 기록 칸도 일시정지 — 경과 같은 값 · 진행 중 모양`() = runTest(dispatcher) {
         val time = FakeTimeSource()
         val recording = recordingRepositoryOf(time)
         val vm = viewModel(recording = recording)
@@ -113,14 +112,13 @@ class HomeViewModelTest {
         recording.togglePause()
         runCurrent()
         time.now += 30 * 60_000L
-        vm.onStartNewTrip()
+        vm.onStartTrip()
         runCurrent()
 
         val state = vm.uiState.value
         assertEquals(TripStatus.PAUSED, state.tripStatus)
         assertEquals(12L, state.elapsedMinutes)
-        assertTrue(state.recordPlaceEnabled)
-        assertFalse(state.startNewTripEnabled)
+        assertTrue(state.tripInProgress)
     }
 
     @Test
