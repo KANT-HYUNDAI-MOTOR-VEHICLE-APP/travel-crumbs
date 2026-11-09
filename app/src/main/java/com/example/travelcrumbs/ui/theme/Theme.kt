@@ -1,14 +1,57 @@
 package com.example.travelcrumbs.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
-/** 차량 화면은 어두운 바탕이 기본 — 색은 뒤 이슈에서 디자인과 함께 정함. */
+/** 색 토큰 → Material 색 역할 — 매핑은 여기 한 곳(디자인 시스템 5절 · #34). 차량 화면은 어두운 바탕만. */
+private val TravelCrumbsColorScheme = darkColorScheme(
+    primary = TravelCrumbsColors.BrandPrimary,
+    onPrimary = TravelCrumbsColors.TextOnPrimary,
+    primaryContainer = TravelCrumbsColors.BrandPrimary,
+    onPrimaryContainer = TravelCrumbsColors.TextOnPrimary,
+    secondary = TravelCrumbsColors.BrandSecondary,
+    onSecondary = TravelCrumbsColors.TextOnPrimary,
+    // 선택 상태(레일 선택 칸 · 띠) = Background/Selected + Brand/Secondary(10절)
+    secondaryContainer = TravelCrumbsColors.BackgroundSelected,
+    onSecondaryContainer = TravelCrumbsColors.BrandSecondary,
+    background = TravelCrumbsColors.BackgroundBase,
+    onBackground = TravelCrumbsColors.TextPrimary,
+    surface = TravelCrumbsColors.BackgroundSurface,
+    onSurface = TravelCrumbsColors.TextPrimary,
+    surfaceVariant = TravelCrumbsColors.BackgroundElevated,
+    onSurfaceVariant = TravelCrumbsColors.TextSecondary,
+    surfaceDim = TravelCrumbsColors.BackgroundBase,
+    surfaceBright = TravelCrumbsColors.BackgroundElevated,
+    surfaceContainerLowest = TravelCrumbsColors.BackgroundBase,
+    surfaceContainerLow = TravelCrumbsColors.BackgroundSurface,
+    surfaceContainer = TravelCrumbsColors.BackgroundSurface,
+    surfaceContainerHigh = TravelCrumbsColors.BackgroundElevated,
+    surfaceContainerHighest = TravelCrumbsColors.BackgroundElevated,
+    inverseSurface = TravelCrumbsColors.TextPrimary,
+    inverseOnSurface = TravelCrumbsColors.BackgroundBase,
+    outline = TravelCrumbsColors.BorderDefault,
+    outlineVariant = TravelCrumbsColors.BorderSubtle,
+    error = TravelCrumbsColors.Danger,
+    onError = TravelCrumbsColors.TextOnPrimary,
+)
+
+/** 버튼 · 카드 · 팝업 모서리 16(7절). 칩(999)은 쓰는 화면이 생길 때. */
+private val TravelCrumbsShapes = Shapes(
+    small = RoundedCornerShape(Dimens.Corner),
+    medium = RoundedCornerShape(Dimens.Corner),
+    large = RoundedCornerShape(Dimens.Corner),
+    extraLarge = RoundedCornerShape(Dimens.Corner),
+)
+
 @Composable
 fun TravelCrumbsTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = darkColorScheme(),
+        colorScheme = TravelCrumbsColorScheme,
+        typography = TravelCrumbsTypography,
+        shapes = TravelCrumbsShapes,
         content = content,
     )
 }

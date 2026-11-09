@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +22,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripStatusText
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
@@ -110,8 +110,8 @@ private fun TripInProgressTop(
         color = MaterialTheme.colorScheme.onBackground,
         maxLines = 1,
     )
-    Button(onClick = onRecordPlace, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
-        Text(text = stringResource(R.string.action_record_place), style = MaterialTheme.typography.titleLarge)
+    PrimaryButton(onClick = onRecordPlace, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+        Text(text = stringResource(R.string.action_record_place), style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -121,8 +121,8 @@ private fun NoTripTop(
     onStartTrip: () -> Unit,
     onOpenRecommendations: () -> Unit,
 ) {
-    Button(onClick = onStartTrip, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
-        Text(text = stringResource(R.string.action_start_trip), style = MaterialTheme.typography.titleLarge)
+    PrimaryButton(onClick = onStartTrip, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+        Text(text = stringResource(R.string.action_start_trip), style = MaterialTheme.typography.labelLarge)
     }
     Text(
         text = stringResource(R.string.recent_trip_empty),
@@ -130,8 +130,8 @@ private fun NoTripTop(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
     )
-    OutlinedButton(onClick = onOpenRecommendations, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
-        Text(text = stringResource(R.string.action_open_recommendations), style = MaterialTheme.typography.titleLarge)
+    SecondaryButton(onClick = onOpenRecommendations, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+        Text(text = stringResource(R.string.action_open_recommendations), style = MaterialTheme.typography.labelLarge)
     }
 }
 
