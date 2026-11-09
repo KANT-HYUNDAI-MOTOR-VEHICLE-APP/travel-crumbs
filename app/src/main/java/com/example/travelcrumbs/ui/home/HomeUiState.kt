@@ -60,6 +60,8 @@ data class HomeUiState(
     val recentTrip: TripSummaryItem? = null,
     /** A-04 여행 종료 확인 팝업(정차 「여행 종료」). */
     val endConfirmVisible: Boolean = false,
+    /** A-01 여행 시작 화면이 열림(진행 중 여행이 없을 때만 · #51 U3). */
+    val tripStartOpen: Boolean = false,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /

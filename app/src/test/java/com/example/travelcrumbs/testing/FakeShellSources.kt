@@ -74,6 +74,9 @@ class FakeStartVoiceInputUseCase(private val result: ActionResult = ActionResult
 }
 
 /** ui 패키지의 테스트가 DataSource 를 직접 들지 않게(구조 규칙 4) 저장소를 여기서 조립. */
+/** ui 패키지 시험이 자료원 이름을 import 하지 않게(Konsist 규칙 4) — 기기 안 저장 대역 하나. */
+fun fakeRecordingLocal(initial: CurrentTrip? = null) = FakeRecordingLocalDataSource(initial)
+
 fun recordingRepositoryOf(
     timeSource: TimeSource,
     /** 기본 = 지금 시각에 시작한 기록 중 여행 하나(v6 는 여행을 자동으로 만들지 않음 — 옛 시험의 「첫 실행」 자리). */

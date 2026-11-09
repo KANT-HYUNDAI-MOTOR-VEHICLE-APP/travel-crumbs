@@ -186,7 +186,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `V34 V70 완료 뒤 여행 시작 — 기록 중 · 0분 · 장소 0 · 진행 중 모양`() = runTest(dispatcher) {
+    fun `V34 V70 U3-1 완료 뒤 여행 시작 — A-01 이 열림 · 시작되면 닫히고 기록 중 · 0분 · 장소 0 · 진행 중 모양`() = runTest(dispatcher) {
         val time = FakeTimeSource()
         val recording = recordingRepositoryOf(time)
         val vm = viewModel(recording = recording)
@@ -196,6 +196,13 @@ class HomeViewModelTest {
 
         vm.onStartTrip()
         runCurrent()
+        assertTrue(vm.uiState.value.tripStartOpen)
+        assertFalse(vm.uiState.value.tripInProgress)
+
+        recording.startNewTrip()
+        vm.onTripStartDone(null)
+        runCurrent()
+        assertFalse(vm.uiState.value.tripStartOpen)
 
         val state = vm.uiState.value
         assertEquals(TripStatus.RECORDING, state.tripStatus)

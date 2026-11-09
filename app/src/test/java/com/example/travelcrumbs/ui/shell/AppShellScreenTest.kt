@@ -624,6 +624,9 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         button(R.string.action_start_trip).performClick()
+        // A-01(#51 U3) — 이름 · 동행자 · 목적지 없이 바로 「동의하고 기록 시작」
+        button(R.string.action_consent_and_start).performClick()
+        compose.waitForIdle()
 
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
@@ -632,7 +635,6 @@ class AppShellScreenTest {
         assertNoStartTripElements()
 
         drive(DrivingState.DRIVING)
-        compose.onNodeWithText(text(R.string.trip_name_default)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsEnabled()

@@ -33,6 +33,7 @@ import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.home.components.TripInProgressTop
 import com.example.travelcrumbs.ui.driving.components.EndTripConfirmDialog
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.tripstart.TripStartScreen
 
 /**
  * 기록 칸 정차 화면(스펙 app-shell-v5 2-2 · D34) — 위에서 아래로 1 맨 위 영역 → 2 기능 구역 자리 → 3 debug SDK 확인 카드(#6 D17).
@@ -63,6 +64,12 @@ fun HomeScreen(
     LifecycleResumeEffect(viewModel) {
         viewModel.onScreenResumed()
         onPauseOrDispose { }
+    }
+
+    if (uiState.tripStartOpen) {
+        // A-01 여행 시작(#51 U3) — 기록 칸 안 내용 영역을 바꿈 · 레일 그대로
+        TripStartScreen(onDone = viewModel::onTripStartDone, onCancel = viewModel::onTripStartCancel, modifier = modifier)
+        return
     }
 
     val guidePlace = uiState.guideScreen

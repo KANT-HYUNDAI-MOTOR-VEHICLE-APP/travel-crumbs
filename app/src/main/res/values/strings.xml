@@ -219,4 +219,17 @@
     <string name="settings_account">계정</string>
     <string name="settings_account_sub">이 기기에만 저장돼요 · 로그인은 준비 중이에요</string>
     <string name="nickname_dialog_title">닉네임 수정</string>
+
+    <!-- A-01 여행 시작(#51 U3) -->
+    <string name="trip_start_title">새 여행</string>
+    <string name="trip_start_name_label">여행 이름</string>
+    <string name="trip_name_default_date">%1$d월 %2$d일 여행</string>
+    <string name="trip_start_companion_label">동행자</string>
+    <string name="trip_start_dest_label">목적지 · 선택</string>
+    <string name="trip_start_dest_none">목적지 없음</string>
+    <string name="trip_start_consent_title">위치정보 수집 동의</string>
+    <string name="trip_start_consent_body">여행 경로를 기록하는 데 써요 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="trip_start_navi_hint">내비가 열려요 · ⋮ 를 끌면 기록 화면과 나란히 볼 수 있어요</string>
+    <string name="action_start_recording">기록 시작</string>
+    <string name="action_consent_and_start">동의하고 기록 시작</string>
 </resources>

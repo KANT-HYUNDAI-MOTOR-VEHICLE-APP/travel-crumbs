@@ -15,6 +15,7 @@ import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
 import com.example.travelcrumbs.ui.recommendations.RecommendationsViewModel
 import com.example.travelcrumbs.ui.settings.SettingsViewModel
+import com.example.travelcrumbs.ui.tripstart.TripStartViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
 
 /**
@@ -47,6 +48,7 @@ class ShellTestGraph(
     val users = FakeCurrentUserRepository(time = time)
     val trips = FakeTripRepository(time = time)
     val tags = FakeTagRepository()
+    val guide = guideTrackerOf(navi, pins)
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -77,7 +79,7 @@ class ShellTestGraph(
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedStore.repository,
-            guideRequests = guideTrackerOf(navi, pins),
+            guideRequests = guide,
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
             ratingRepository = ratings,
@@ -89,6 +91,7 @@ class ShellTestGraph(
             tagRepository = tags,
             unfinishedInputRepository = inputs,
         )
+        TripStartViewModel::class.java -> TripStartViewModel(recording, users, catalog, guide, navi, time, SavedStateHandle())
         SettingsViewModel::class.java -> SettingsViewModel(users, trips, time, SavedStateHandle())
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),

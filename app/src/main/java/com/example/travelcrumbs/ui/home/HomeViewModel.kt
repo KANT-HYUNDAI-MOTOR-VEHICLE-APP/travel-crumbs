@@ -148,8 +148,10 @@ class HomeViewModel @Inject constructor(
         userRepository.user,
         tripRepository.trips,
         savedStateHandle.getStateFlow(KEY_END_CONFIRM, false),
-    ) { user, trips, endConfirm ->
+        savedStateHandle.getStateFlow(KEY_TRIP_START, false),
+    ) { user, trips, endConfirm, tripStart ->
         V6Part(
+            tripStartOpen = tripStart,
             nicknameNm = user.nicknameNm,
             recentTrip = trips.firstOrNull { it.status == TripStatus.COMPLETED }?.toSummary(timeSource.zoneId()),
             endConfirmVisible = endConfirm,
@@ -157,6 +159,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private data class V6Part(
+        val tripStartOpen: Boolean,
         val nicknameNm: String,
         val recentTrip: com.example.travelcrumbs.ui.components.TripSummaryItem?,
         val endConfirmVisible: Boolean,
@@ -178,6 +181,7 @@ class HomeViewModel @Inject constructor(
             nicknameNm = v6.nicknameNm,
             recentTrip = v6.recentTrip,
             endConfirmVisible = v6.endConfirmVisible && progress.status.inProgress,
+            tripStartOpen = v6.tripStartOpen && !progress.status.inProgress,
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             placeCount = progress.placeCount,
@@ -229,9 +233,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** 임시 「여행 시작」(D26 · D34) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행이면 저장소가 아무 일도 안 함. */
+    /** C-02 「여행 시작」 — A-01 여행 시작 화면을 기록 칸 안에 엶(#51 U3). */
     fun onStartTrip() {
-        viewModelScope.launch { recordingRepository.startNewTrip() }
+        savedStateHandle[KEY_TRIP_START] = true
+    }
+
+    /** A-01 시작 끝 — 기록 화면으로 · 내비를 못 열었으면 그 한 줄. */
+    fun onTripStartDone(notice: UiMessage?) {
+        savedStateHandle[KEY_TRIP_START] = false
+        message.value = notice
+    }
+
+    /** A-01 시스템 뒤로 — 시작하지 않고 닫음. */
+    fun onTripStartCancel() {
+        savedStateHandle[KEY_TRIP_START] = false
     }
 
     /** 정차 「여행 종료」(C-02 진행 중 · #51 U2) — A-04 확인 팝업만 엶. */
@@ -349,6 +364,7 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val KEY_END_CONFIRM = "home_end_confirm_visible"
+        const val KEY_TRIP_START = "home_trip_start_open"
     }
 
     private fun Throwable.toCode(): String =
