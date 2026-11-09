@@ -23,6 +23,8 @@ class RecommendationActions(
     val onOpenTrip: (Long) -> Unit,
     val onGuideFromFirst: () -> Unit,
     val onGuideHere: (Long) -> Unit,
+    /** B-04 「별점 주기」 · 「내 별점 ★n · 고치기」(#41). */
+    val onOpenRating: () -> Unit,
 )
 
 /** 지금 화면(B-01 ~ B-04) 하나를 그림. B-01 ~ B-03 은 세로 스크롤 · B-04 는 장소 목록만 스크롤. */
@@ -73,6 +75,7 @@ fun RecommendationPageContent(
                 detail = detail,
                 onGuideFromFirst = actions.onGuideFromFirst,
                 onGuideHere = actions.onGuideHere,
+                onOpenRating = actions.onOpenRating,
             )
         }
     }

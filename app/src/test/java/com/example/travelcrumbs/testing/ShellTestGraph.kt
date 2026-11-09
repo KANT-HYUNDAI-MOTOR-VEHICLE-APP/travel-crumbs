@@ -38,6 +38,8 @@ class ShellTestGraph(
     val pins = FakePinRepository()
     val drivingSavedState = SavedStateHandle()
     val guidance = FakeRouteGuidanceRequester()
+    val ratingLocal = FakeRatingLocalDataSource()
+    val ratings = ratingRepositoryOf(time, ratingLocal)
 
     val owner: ViewModelStoreOwner = Owner()
 
@@ -57,6 +59,7 @@ class ShellTestGraph(
             startVoiceInput = FakeStartVoiceInputUseCase(),
             drivingSignalRepository = driving,
             savedStateHandle = drivingSavedState,
+            ratingRepository = ratings,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,
@@ -69,11 +72,17 @@ class ShellTestGraph(
             pinRepository = pins,
             placeStatsRepository = FakePlaceStatsRepository(),
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
+            ratingRepository = ratings,
+            recommendationRepository = SeedRecommendationRepository(),
+            timeSource = time,
+            savedStateHandle = SavedStateHandle(),
         )
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),
             requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
             savedStateHandle = SavedStateHandle(),
+            ratingRepository = ratings,
+            timeSource = time,
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

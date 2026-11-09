@@ -82,6 +82,10 @@ object Dimens {
     /** 추천 상세 장소 칸의 「여기로 안내」 버튼 최소 폭. */
     val GuideHereButtonMinWidth = 200.dp
 
+    /** 별점 팝업(#41 B-06) 최대 폭 · 별 하나의 터치 칸. */
+    val RatingDialogMaxWidth = 1040.dp
+    val RatingStarSize = 88.dp
+
     /** 선택 카드 · 칩 테두리. */
     val SelectedBorderWidth = 2.dp
     val CardBorderWidth = 1.dp

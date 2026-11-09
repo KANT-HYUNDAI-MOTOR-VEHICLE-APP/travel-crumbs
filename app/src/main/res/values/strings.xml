@@ -151,7 +151,26 @@
     <string name="guidance_start">안내 시작</string>
     <string name="guidance_requested">차량 내비에 길안내를 요청했어요</string>
     <string name="guidance_failed">길안내를 시작할 수 없어요</string>
-    <string name="guidance_demo_only">시연용 · 실제 안내는 준비 중</string>
+    <!-- 별점(#41 · 와이어프레임 v6 B-06) -->
+    <string name="rating_title">따라간 코스 어땠나요?</string>
+    <string name="rating_trip_line">· %1$s · %2$d월 %3$d일 안내</string>
+    <string name="rating_star">★</string>
+    <string name="rating_star_description">별 %1$d개</string>
+    <string name="rating_pick_stars">별을 골라 주세요</string>
+    <string name="rating_score_text">%1$s · %2$d점</string>
+    <string name="rating_word_1">별로예요</string>
+    <string name="rating_word_2">아쉬워요</string>
+    <string name="rating_word_3">괜찮아요</string>
+    <string name="rating_word_4">좋아요</string>
+    <string name="rating_word_5">최고예요</string>
+    <string name="rating_tags_label">좋았던 점 · 선택</string>
+    <string name="rating_tag_selected">✓ %1$s</string>
+    <string name="rating_anonymous_hint">별점은 닉네임 없이 평균과 참여 수로만 보여요</string>
+    <string name="rating_later">나중에</string>
+    <string name="rating_submit">★ 별점 주기</string>
+    <string name="rating_saved">별점을 남겼어요</string>
+    <string name="rating_open">★ 별점 주기</string>
+    <string name="rating_mine">내 별점 ★%1$d · 고치기</string>
 
     <string name="yes">예</string>
     <string name="no">아니요</string>

@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 
 /**
  * 기기 안 저장(DataStore Preferences)의 파일 이름 · 키 한 곳 — 지금 여행 요약 · 작성 중 내용(스펙 app-shell-v5 4-1) ·
- * 「가 볼 장소」 고정 목록(스펙 navigation U20).
+ * 「가 볼 장소」 고정 목록(스펙 navigation U20) · 별점 기록(#41).
  */
 object AppPreferencesKeys {
     const val FILE_NAME = "app_shell"
@@ -27,6 +27,9 @@ object AppPreferencesKeys {
 
     /** 작성 중 내용(D27 · 새 키). */
     val UNFINISHED_INPUT_JSON = stringPreferencesKey("unfinished_input_json")
+
+    /** 별점 기록(#41) — 안내 요청한 로드맵 · 내 별점 · 자동 팝업을 띄운 로드맵(JSON 한 덩어리 · 읽기 변환은 RatingLocalDataSource 한 곳). */
+    val RATING_RECORDS_JSON = stringPreferencesKey("rating_records_json")
 
     /** #6 판 키 — 앱 업데이트 직후 한 번 옮기거나(기록 상태 · N10) 지우기만(작성 중 내용 · D27) 함. */
     object Legacy {

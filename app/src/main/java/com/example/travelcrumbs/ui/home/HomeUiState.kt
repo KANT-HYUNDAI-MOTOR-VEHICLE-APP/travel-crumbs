@@ -6,6 +6,7 @@ import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.ui.components.RatingDialogItem
 import com.example.travelcrumbs.ui.components.UiMessage
 
 /**
@@ -41,6 +42,8 @@ data class HomeUiState(
     val dummyRoute: PlaceItem? = null,
     /** 이 빌드에 「더미 경로」가 있나 — debug 만(U55). 버튼 표시는 아래 [dummyRouteVisible]. */
     val dummyRouteAvailable: Boolean = false,
+    /** 다녀온 로드맵 별점 자동 팝업(#41 B-06) — 없으면 null. */
+    val ratingPrompt: RatingDialogItem? = null,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /

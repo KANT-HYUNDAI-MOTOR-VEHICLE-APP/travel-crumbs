@@ -9,4 +9,7 @@ enum class UiMessage {
 
     /** 추천 B-05 — 길안내를 시작하지 못함(#37). */
     GUIDANCE_FAILED,
+
+    /** 별점 B-06 — 내 별점을 남김(#41). */
+    RATING_SAVED,
 }

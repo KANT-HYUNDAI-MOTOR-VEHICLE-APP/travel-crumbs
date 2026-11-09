@@ -72,6 +72,18 @@ class RecordingRepositoryTest {
     }
 
     @Test
+    fun `R32 종료 시각 — 진행 중(기록 중 · 일시정지)이면 이번 종료 시각 · 이미 끝난 여행이면 null`() = runTest {
+        val local = FakeRecordingLocalDataSource(CurrentTrip.start(0).pauseToggled(2 * minute))
+        val repository = DefaultRecordingRepository(local, clock())
+        testScheduler.advanceTimeBy(7 * minute)
+
+        assertEquals(7 * minute, repository.endTrip())
+        testScheduler.advanceTimeBy(3 * minute)
+        assertNull(repository.endTrip())
+        assertEquals(7 * minute, local.current?.endAtMillis)
+    }
+
+    @Test
     fun `V18 한쪽에서 종료하면 다른 구독자도 같은 상태 — 단일 출처`() = runTest {
         val repository = DefaultRecordingRepository(FakeRecordingLocalDataSource(), clock())
         var home: RecordingProgress? = null

@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
@@ -9,10 +10,13 @@ import com.example.travelcrumbs.data.pin.PinRepository
 import com.example.travelcrumbs.data.place.PinnedPlacesRepository
 import com.example.travelcrumbs.data.place.PlaceCatalogRepository
 import com.example.travelcrumbs.data.place.PlaceStatsRepository
+import com.example.travelcrumbs.data.rating.RatingRepository
+import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
+import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.awaitRouteResult
 import com.example.travelcrumbs.domain.isHeadingTo
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -23,6 +27,7 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.RouteRequestResult
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.ui.rating.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -47,6 +52,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 같은 출처(RecordingRepository · #6 D1).
  * 「여기로 안내」 · 「고정」 · 「고정 해제」 · 실패 폴백(「다시 시도」 · 「더미 경로」 · 닫기)은 정차일 때만
  * (navigation 3.1 · U35 · U18 · U51 ~ U56) — 결과는 상태 칸으로.
+ * 별점 자동 팝업(#41 B-06): 추천 안내 뒤 진행한 여행을 「여행 종료」로 끝냈으면 그 로드맵을 한 번(규칙 [RecommendationRules.pendingRatingPrompt]).
+ * 이 화면은 정차일 때만 그려지므로(앱 틀) 주행 · 모름엔 팝업이 없음.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -60,6 +67,10 @@ class HomeViewModel @Inject constructor(
     private val pinRepository: PinRepository,
     private val placeStatsRepository: PlaceStatsRepository,
     private val demoFeatures: DemoFeatures,
+    ratingRepository: RatingRepository,
+    recommendationRepository: RecommendationRepository,
+    timeSource: TimeSource,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -72,6 +83,17 @@ class HomeViewModel @Inject constructor(
 
     /** 후보 — 읽기 전 null. 조작 메서드가 바로 찾을 수 있게 값으로 들고 있음. */
     private val candidates = MutableStateFlow<List<Place>?>(null)
+
+    /** 별점 자동 팝업(#41) — 고르는 중 값 · 저장은 도우미가 · 결과 한 줄은 이 화면의 [message]. */
+    private val rating = RatingPopupHolder(
+        scope = viewModelScope,
+        repository = ratingRepository,
+        savedStateHandle = savedStateHandle,
+        timeSource = timeSource,
+        autoPrompt = true,
+        loadTags = recommendationRepository::tags,
+        onSaved = { message.value = UiMessage.RATING_SAVED },
+    )
 
     private val sdkCheck = combine(
         drivingSignalRepository.drivingState,
@@ -102,7 +124,8 @@ class HomeViewModel @Inject constructor(
         message,
         sdkCheck,
         places,
-    ) { progress, shown, sdk, part ->
+        rating.item,
+    ) { progress, shown, sdk, part, prompt ->
         sdk.copy(
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
@@ -116,6 +139,7 @@ class HomeViewModel @Inject constructor(
             placeStats = part.placeStats,
             dummyRoute = part.dummyRoute,
             dummyRouteAvailable = demoFeatures.dummyRoute,
+            ratingPrompt = prompt,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -133,6 +157,18 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    /** 별점 팝업 — 별 고르기. */
+    fun selectRatingScore(score: Int) = rating.selectScore(uiState.value.ratingPrompt, score)
+
+    /** 별점 팝업 — 좋았던 점 칩 켜고 끄기. */
+    fun toggleRatingTag(tagNo: Long) = rating.toggleTag(uiState.value.ratingPrompt, tagNo)
+
+    /** 별점 팝업 「나중에」 · 바깥 · 뒤로 — 그 로드맵은 다시 자동으로 안 뜸(B-04 「별점 주기」로는 줄 수 있음). */
+    fun dismissRatingPrompt() = rating.dismiss(uiState.value.ratingPrompt)
+
+    /** 별점 팝업 「별점 주기」 — 저장되면 팝업이 사라지고 한 줄 안내. */
+    fun submitRating() = rating.submit(uiState.value.ratingPrompt)
 
     fun onRecordPlace() {
         viewModelScope.launch {

@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.driving
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
@@ -31,6 +32,7 @@ class DrivingViewModel @Inject constructor(
     private val startVoiceInput: StartVoiceInputUseCase,
     drivingSignalRepository: DrivingSignalRepository,
     private val savedStateHandle: SavedStateHandle,
+    private val ratingRepository: RatingRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -85,7 +87,11 @@ class DrivingViewModel @Inject constructor(
     /** 「종료」 — COMPLETED · 종료 시각 = 지금 · 팝업 닫음 · 화면은 주행 화면 그대로. */
     fun onConfirmEndTrip() {
         savedStateHandle[KEY_END_CONFIRM] = false
-        viewModelScope.launch { recordingRepository.endTrip() }
+        viewModelScope.launch {
+            // 별점(#41) — 안내받은 추천 로드맵이 있으면 정차 뒤 기록 화면에서 「따라간 코스 어땠나요?」(주행 중엔 안 띄움).
+            // 종료 시각은 기록 저장소가 정한 값 하나 · 이미 끝난 여행이면 null(아무 일 없음)
+            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+        }
     }
 
     fun onMessageShown() {

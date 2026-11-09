@@ -42,6 +42,7 @@ import com.example.travelcrumbs.ui.shell.components.railLabelTag
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsColors
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -162,8 +163,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 내비 연결 전이면 안내 팝업에 시연용 안내`() {
-        graph.guidance.available = false
+    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 안내 팝업에 시연용 안내 없음(실제 내비 연결)`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
@@ -174,7 +174,7 @@ class AppShellScreenTest {
         compose.onNodeWithText("속초 가족여행").performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
         button(R.string.reco_guide_from_first).performClick()
-        compose.onNodeWithText(text(R.string.guidance_demo_only)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.guidance_start)).assertIsDisplayed()
     }
 
     @Test
@@ -788,4 +788,30 @@ class AppShellScreenTest {
         /** 5 mm · 160 dpi(에뮬레이터 Pleos_Connect_v2.1.0 · 1dp = 1px) = 5 / 25.4 × 160 ≈ 31.5dp. */
         val FIVE_MM_AT_160_DPI = (5f / 25.4f * 160f).dp
     }
+
+    @Test
+    fun `R29 추천 안내 뒤 주행 중 여행 종료 — 주행 중엔 별점 팝업 없음 · 정차 뒤 기록 화면에 한 번 · 나중에면 닫힘`() {
+        runBlocking { graph.ratings.recordGuidance(101, "속초 가족여행", "민지네") }
+        show()
+        // 안내만 받고 정차(중간 정차) — 팝업 없음
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+
+        drive(DrivingState.DRIVING)
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        compose.waitForIdle()
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+
+        drive(DrivingState.PARKED)
+        compose.onNodeWithText(text(R.string.rating_title)).assertIsDisplayed()
+        compose.onNodeWithText("민지네").assertIsDisplayed()
+        button(R.string.rating_submit).assertIsNotEnabled()
+
+        button(R.string.rating_later).performClick()
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+        drive(DrivingState.DRIVING)
+        drive(DrivingState.PARKED)
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+    }
 }
+
