@@ -12,6 +12,8 @@ data class AppShellUiState(
     val drivingDestination: AppDestination = AppDestination.DRIVING_START,
     /** 작성 중 내용 있음 → 정차일 때 「이어서 쓰기」 띠(D27). */
     val unfinishedInputAvailable: Boolean = false,
+    /** 레일 「추천」 · 「추천 보러 가기」(정차)를 누를 때마다 오르는 값 — 추천 칸이 바뀐 걸 보고 B-01 부터(#37). */
+    val recommendationsEntry: Int = 0,
 ) {
     /** 판정이 정차가 아니면(주행 · 모름) 주행 모드 — 「기록」 칸은 주행 전용 화면 · 그 밖은 주행 제한 안내. */
     val isDrivingMode: Boolean get() = drivingState != DrivingState.PARKED

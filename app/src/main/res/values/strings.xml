@@ -72,6 +72,54 @@
     <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
     <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
 
+    <!-- 추천(#37 · 와이어프레임 v6 B-01 ~ B-05) — 이름 · 태그명 · 주소는 데이터 값이라 여기 없음 -->
+    <string name="reco_demo_data">시연용 데이터</string>
+    <string name="reco_selected">✓ %1$s</string>
+    <string name="reco_region_title">어느 지역으로 갈까요?</string>
+    <string name="reco_sido_label">시도</string>
+    <string name="reco_sigungu_label">%1$s · 시군구</string>
+    <string name="reco_pick_sido">시도를 고르면 시군구가 보여요</string>
+    <string name="reco_region_empty">아직 공개된 로드맵이 없어요</string>
+    <string name="reco_region_all">전체</string>
+    <string name="reco_trip_cnt">로드맵 %1$d</string>
+    <string name="reco_region_name">%1$s %2$s</string>
+    <string name="reco_change_region">지역 바꾸기</string>
+    <string name="reco_sort_rating">별점순</string>
+    <string name="reco_sort_latest">최신순</string>
+    <string name="reco_filter_all">전체</string>
+    <string name="reco_filter_child">아이와</string>
+    <string name="reco_filter_spouse">부부</string>
+    <string name="reco_filter_solo">혼자</string>
+    <string name="reco_open_tags"># 태그별로 보기</string>
+    <string name="reco_rating">★ %1$.1f · %2$d명</string>
+    <string name="reco_place_cnt">장소 %1$d곳</string>
+    <string name="reco_card_sub">장소 %1$d곳 · %2$s</string>
+    <string name="reco_ranking_empty">조건에 맞는 로드맵이 없어요</string>
+    <string name="reco_tags_title">%1$s · 이런 점이 좋았어요</string>
+    <string name="reco_tags_sub">공개 로드맵 %1$d개 · 장소에 붙은 태그 기준</string>
+    <string name="reco_tagged_title">「%1$s」 로드맵 · %2$d개</string>
+    <string name="reco_tags_empty">아직 붙은 태그가 없어요</string>
+    <string name="reco_guide_here">여기로 안내</string>
+    <string name="reco_guide_from_first">★ 첫 장소부터 안내</string>
+    <string name="reco_meta_separator">" · "</string>
+
+    <!-- 동행자 유형(표준 v0.4 COMPANION_TYPE 코드명) -->
+    <string name="companion_solo">혼자</string>
+    <string name="companion_spouse">배우자</string>
+    <string name="companion_child">아이</string>
+    <string name="companion_parent">부모님</string>
+    <string name="companion_pet">반려동물</string>
+
+    <!-- 안내 확인 팝업(B-05) · 결과 한 줄 -->
+    <string name="guidance_confirm_title">%1$s까지 안내할까요?</string>
+    <string name="guidance_confirm_body_first">%1$s · %2$s의 「%3$s」 첫 장소</string>
+    <string name="guidance_confirm_body_nth">%1$s · %2$s의 「%3$s」 %4$d번째 장소</string>
+    <string name="guidance_cancel">취소</string>
+    <string name="guidance_start">안내 시작</string>
+    <string name="guidance_requested">차량 내비에 길안내를 요청했어요</string>
+    <string name="guidance_failed">길안내를 시작할 수 없어요</string>
+    <string name="guidance_demo_only">시연용 · 실제 안내는 준비 중</string>
+
     <string name="yes">예</string>
     <string name="no">아니요</string>
 </resources>

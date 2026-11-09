@@ -50,4 +50,32 @@ object Dimens {
 
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
     val NoticeLineHeight = 40.dp
+
+    /** 추천(#37) 칩 · 작은 버튼 높이 — 터치 48 이상 + 본문 글자 한 줄. */
+    val ChipHeight = 56.dp
+
+    /** 추천 시군구 카드 높이(이름 + 로드맵 수 두 줄). */
+    val RegionCardHeight = 120.dp
+
+    /** 추천 시군구 카드 최소 폭 — 창 폭에 맞춰 줄마다 칸 수가 바뀜. */
+    val RegionCardMinWidth = 220.dp
+
+    /** 추천 로드맵 카드의 순위 칸 폭 · 경로 미리보기 칸. */
+    val RankColumnWidth = 64.dp
+    val TripThumbSize = 104.dp
+
+    /** 추천 태그 막대 높이. */
+    val TagBarHeight = 64.dp
+
+    /** 추천 상세 경로 그림 — 점 지름 · 선 굵기 · 화면 폭 중 경로 칸 비율. */
+    val SketchPinSize = 40.dp
+    val SketchLineWidth = 4.dp
+    const val DetailRouteWeight = 0.42f
+
+    /** 추천 상세 장소 칸의 「여기로 안내」 버튼 최소 폭. */
+    val GuideHereButtonMinWidth = 200.dp
+
+    /** 선택 카드 · 칩 테두리. */
+    val SelectedBorderWidth = 2.dp
+    val CardBorderWidth = 1.dp
 }

@@ -52,4 +52,6 @@ fun NoticeLine(
 
 private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.NOT_READY -> R.string.not_ready
+    UiMessage.GUIDANCE_REQUESTED -> R.string.guidance_requested
+    UiMessage.GUIDANCE_FAILED -> R.string.guidance_failed
 }
