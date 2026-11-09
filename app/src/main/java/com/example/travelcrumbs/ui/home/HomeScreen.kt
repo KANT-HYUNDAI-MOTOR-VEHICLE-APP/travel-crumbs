@@ -13,10 +13,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.BuildConfig
@@ -27,6 +29,7 @@ import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripStatusText
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
+import com.example.travelcrumbs.ui.home.components.PlaceActions
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -37,7 +40,8 @@ import com.example.travelcrumbs.ui.theme.Dimens
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「설정」(D35) · 「기록 일시정지」 · 「음성」 · 「여행 종료」는 두지 않음(#6 D10 · N12).
  * 「추천 보러 가기」 누름 = 앱 틀의 목적지를 「추천」으로 바꾸는 사용자 행동([onOpenRecommendations] · 이벤트 Flow 없음).
  *
- * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈.
+ * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
+ * [featureSections] 가 null 이면 실제 기능 구역(HomeFeatureSections · #4 「가 볼 장소」 · 「장소 고르기」).
  */
 @Composable
 fun HomeScreen(
@@ -45,9 +49,15 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
     showSdkCard: Boolean = BuildConfig.DEBUG,
-    featureSections: @Composable ColumnScope.() -> Unit = { HomeFeatureSections() },
+    featureSections: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 내비에서 돌아옴 — 놓친 길안내 시작 알림을 내비 상태로 대조(#4 R1)
+    LifecycleResumeEffect(viewModel) {
+        viewModel.onScreenResumed()
+        onPauseOrDispose { }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(
@@ -69,7 +79,21 @@ fun HomeScreen(
                 }
             }
 
-            featureSections()
+            if (featureSections != null) {
+                featureSections()
+            } else {
+                val placeActions = remember(viewModel) {
+                    PlaceActions(
+                        onGuide = viewModel::onGuide,
+                        onPin = viewModel::onPin,
+                        onUnpin = viewModel::onUnpin,
+                        onRetry = viewModel::onRetry,
+                        onShowDummyRoute = viewModel::onShowDummyRoute,
+                        onCloseDummyRoute = viewModel::onCloseDummyRoute,
+                    )
+                }
+                HomeFeatureSections(state = uiState, placeActions = placeActions)
+            }
 
             if (showSdkCard) {
                 SdkCheckCard(
@@ -78,6 +102,8 @@ fun HomeScreen(
                     navi = uiState.navi,
                     openedByGleoAction = uiState.openedByGleoAction,
                     onRefreshNavi = viewModel::refreshNavi,
+                    placeStats = uiState.placeStats,
+                    onRefreshPlaceStats = viewModel::refreshPlaceStats,
                 )
             }
         }

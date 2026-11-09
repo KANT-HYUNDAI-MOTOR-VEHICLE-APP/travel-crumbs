@@ -47,6 +47,13 @@ object Dimens {
 
     /** 주행 화면 지도 자리 테두리. */
     val MapPlaceholderBorder = 2.dp
+    /** 장소 항목 오른쪽 버튼(「여기로 안내」 · 「고정」) 최소 폭 — 높이는 [HomeButtonHeight](스펙 navigation E5 · E10). */
+    val PlaceButtonMinWidth = 220.dp
+
+    /** 더미 경로 패널(스펙 navigation E13-2) 정지 도식 — 그림 높이 고정 · 점 반지름 · 선 굵기. */
+    val DummyRouteDiagramHeight = 40.dp
+    val DummyRouteDotRadius = 10.dp
+    val DummyRouteLineWidth = 4.dp
 
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
     val NoticeLineHeight = 40.dp
