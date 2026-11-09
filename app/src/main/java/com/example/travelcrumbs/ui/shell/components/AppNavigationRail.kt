@@ -56,10 +56,7 @@ fun AppNavigationRail(
                 label = {
                     Text(
                         text = stringResource(destination.labelRes),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = Dimens.RailLabelFontSize,
-                            lineHeight = Dimens.RailLabelLineHeight,
-                        ),
+                        style = MaterialTheme.typography.bodyLarge,
                         maxLines = 1,
                         softWrap = false,
                         modifier = Modifier.testTag(railLabelTag(destination)),

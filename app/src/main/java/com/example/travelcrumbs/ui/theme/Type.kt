@@ -14,8 +14,10 @@ import androidx.compose.ui.unit.sp
 private val ScreenTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 48.sp)
 private val SectionTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
 private val CardTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp)
+// 크기를 바꾸면 Dimens.DrivingButtonsRowMinWidth(「기록 일시정지」가 한 칸에 들어가는 폭)를 다시 계산.
 private val ButtonLabel = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 36.sp)
 private val Body = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 34.sp)
+// 보조 단계(줄 높이 28 < 5 mm)는 주행 중 필수 정보에 쓰지 않음 · 중요 정보는 Body 이상(6절).
 private val Supporting = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 28.sp)
 
 /**

@@ -1,7 +1,6 @@
 package com.example.travelcrumbs.ui.theme
 
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /** 화면 크기 수치 한 곳(색은 [TravelCrumbsColors] · 글자는 [TravelCrumbsTypography]). */
 object Dimens {
@@ -28,7 +27,7 @@ object Dimens {
 
     /**
      * 레일 — 글자 높이 5 mm 이상(Pleos UI 디자인 가이드 · 에뮬레이터 160 dpi 실측 기준 · #21 사람 결정).
-     * 160 dpi 에서 1dp = 1px = 0.159 mm → 5 mm ≈ 31.5dp. 글자 줄 높이 [RailLabelLineHeight] 가 그 위.
+     * 160 dpi 에서 1dp = 1px = 0.159 mm → 5 mm ≈ 31.5dp. 글자는 본문 단계(Type.kt Body · 24 / 줄 높이 34).
      * 칸 높이 × 4 가 창 2개 영역 높이(1210dp) · 창 1개 영역 높이 안에 스크롤 없이 들어감.
      */
     val RailWidth = 120.dp
@@ -39,8 +38,6 @@ object Dimens {
 
     /** 레일 가장자리와 칸 배경 사이 여백(선택 칸 배경 모서리는 [Corner]). */
     val RailItemInset = 8.dp
-    val RailLabelFontSize = 24.sp
-    val RailLabelLineHeight = 34.sp
 
     /** 버튼 · 카드 · 팝업 · 레일 선택 칸 모서리(디자인 시스템 7절 16 · Theme 의 Shapes). */
     val Corner = 16.dp
