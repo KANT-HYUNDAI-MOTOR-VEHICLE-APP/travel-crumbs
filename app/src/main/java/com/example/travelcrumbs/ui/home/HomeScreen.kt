@@ -33,6 +33,7 @@ import com.example.travelcrumbs.ui.home.components.NoTripTop
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.home.components.TripInProgressTop
 import com.example.travelcrumbs.ui.driving.components.EndTripConfirmDialog
+import com.example.travelcrumbs.ui.roadmap.RoadmapReviewScreen
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.tripstart.TripStartScreen
 
@@ -70,6 +71,12 @@ fun HomeScreen(
     if (uiState.tripStartOpen) {
         // A-01 여행 시작(#51 U3) — 기록 칸 안 내용 영역을 바꿈 · 레일 그대로
         TripStartScreen(onDone = viewModel::onTripStartDone, onCancel = viewModel::onTripStartCancel, modifier = modifier)
+        return
+    }
+
+    uiState.reviewTripNo?.let { tripNo ->
+        // A-05 · A-06(#51 U5) — 여행이 끝난 뒤 정차 · 저장하면 내 여행 보관함(A-07)
+        RoadmapReviewScreen(tripNo = tripNo, onDone = { onOpenTrip(null) }, modifier = modifier)
         return
     }
 

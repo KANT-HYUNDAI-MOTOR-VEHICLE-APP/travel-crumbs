@@ -29,6 +29,10 @@ object Dimens {
     /** 설정 카드 오른쪽 버튼(「수정」 · 「철회」) 최소 폭(#51 U2). */
     val SettingsActionMinWidth = 160.dp
 
+    /** A-05 · A-08 — 이 폭 이상이면 경로 그림 왼쪽 · 장소 오른쪽 · 아니면 위아래(경로 그림 높이) · #51 U5. */
+    val RoadmapWideMinWidth = 1000.dp
+    val RoadmapSketchHeight = 320.dp
+
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 

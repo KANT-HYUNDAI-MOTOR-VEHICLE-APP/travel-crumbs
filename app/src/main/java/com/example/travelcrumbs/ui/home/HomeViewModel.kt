@@ -152,9 +152,11 @@ class HomeViewModel @Inject constructor(
         tripRepository.trips,
         savedStateHandle.getStateFlow(KEY_END_CONFIRM, false),
         savedStateHandle.getStateFlow(KEY_TRIP_START, false),
-    ) { user, trips, endConfirm, tripStart ->
+        tripRepository.pendingReviewTripNo,
+    ) { user, trips, endConfirm, tripStart, reviewTripNo ->
         V6Part(
             tripStartOpen = tripStart,
+            reviewTripNo = reviewTripNo,
             nicknameNm = user.nicknameNm,
             recentTrip = trips.firstOrNull { it.status == TripStatus.COMPLETED }?.toSummary(timeSource.zoneId()),
             endConfirmVisible = endConfirm,
@@ -163,6 +165,7 @@ class HomeViewModel @Inject constructor(
 
     private data class V6Part(
         val tripStartOpen: Boolean,
+        val reviewTripNo: Long?,
         val nicknameNm: String,
         val recentTrip: com.example.travelcrumbs.ui.components.TripSummaryItem?,
         val endConfirmVisible: Boolean,
@@ -196,6 +199,8 @@ class HomeViewModel @Inject constructor(
             endConfirmVisible = v6.endConfirmVisible && progress.status.inProgress,
             tripStartOpen = v6.tripStartOpen && !progress.status.inProgress,
             tagSheet = sheet.takeIf { parked },
+            // A-05 검토는 별점 팝업(#41)이 닫힌 뒤(지시서 U5 순서)
+            reviewTripNo = v6.reviewTripNo.takeIf { prompt == null },
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             placeCount = progress.placeCount,

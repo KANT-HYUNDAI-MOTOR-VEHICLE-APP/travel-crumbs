@@ -242,4 +242,25 @@
     <string name="tag_sheet_memo_label">메모 · 선택</string>
     <string name="tag_sheet_hint">태그와 메모는 여행을 저장하기 전까지 언제든 바꿀 수 있어요</string>
     <string name="tag_sheet_skip">건너뛰기 · 나중에</string>
+
+    <!-- A-05 로드맵 검토 · A-06 저장 · 공개(#51 U5) -->
+    <string name="review_title">%1$s · 로드맵</string>
+    <string name="review_save">로드맵 저장</string>
+    <string name="roadmap_add_tag">+ 태그 달기</string>
+    <string name="roadmap_draft_badge">미완성</string>
+    <string name="roadmap_place_default">장소 %1$d</string>
+    <string name="roadmap_no_location">위치 기록이 없어요</string>
+    <string name="duration_hours_minutes">%1$d시간 %2$d분</string>
+    <string name="duration_minutes">%1$d분</string>
+    <string name="publish_title">로드맵을 저장할게요</string>
+    <string name="publish_private">비공개</string>
+    <string name="publish_private_sub">나만 볼 수 있어요</string>
+    <string name="publish_public">공개</string>
+    <string name="publish_public_sub">추천에 닉네임 「%1$s」로 보여요</string>
+    <string name="publish_preview_title">추천에 이렇게 보여요</string>
+    <string name="publish_privacy_hint">정확한 위치 기록과 시각은 공개되지 않아요</string>
+    <string name="publish_consent_title">추천 공개 동의</string>
+    <string name="publish_consent_body">공개한 로드맵을 다른 사람 추천에 보여 줘요 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="action_consent_and_save">동의하고 저장</string>
+    <string name="region_unknown">지역 모름</string>
 </resources>

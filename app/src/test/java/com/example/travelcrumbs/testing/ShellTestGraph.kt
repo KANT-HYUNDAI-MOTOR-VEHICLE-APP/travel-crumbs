@@ -107,6 +107,8 @@ class ShellTestGraph(
             unfinishedInputRepository = inputs,
         )
         TripStartViewModel::class.java -> TripStartViewModel(recording, users, catalog, guide, navi, time, SavedStateHandle())
+        com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel::class.java ->
+            com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel(trips, tags, users, time, SavedStateHandle())
         SettingsViewModel::class.java -> SettingsViewModel(users, trips, time, SavedStateHandle())
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),

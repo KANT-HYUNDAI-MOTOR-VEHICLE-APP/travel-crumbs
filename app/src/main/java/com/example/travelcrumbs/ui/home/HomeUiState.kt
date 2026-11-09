@@ -65,6 +65,8 @@ data class HomeUiState(
     val tripStartOpen: Boolean = false,
     /** A-03 장소 기록 · 태그 시트 — 정차일 때만 · 없으면 null(#51 U4). */
     val tagSheet: PlaceTagSheetItem? = null,
+    /** A-05 로드맵 검토를 기다리는 여행(끝난 최근 여행 · 별점 팝업이 없을 때만 · #51 U5) — 있으면 기록 칸이 검토 화면. */
+    val reviewTripNo: Long? = null,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /

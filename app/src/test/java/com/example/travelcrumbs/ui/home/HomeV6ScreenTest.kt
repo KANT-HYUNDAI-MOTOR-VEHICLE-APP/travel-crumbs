@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -17,6 +18,7 @@ import com.example.travelcrumbs.testing.ShellTestGraph
 import com.example.travelcrumbs.testing.completedTrip
 import com.example.travelcrumbs.ui.shell.AppShellScreen
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -51,6 +53,7 @@ class HomeV6ScreenTest {
     fun `U2-1 여행 없음 — 인사 · 여행 시작 · 추천 보러 가기 한 줄 · 최근 여행 카드 공개 중`() {
         val graph = ShellTestGraph(withTrip = false)
         graph.trips.put(completedTrip(visibility = Visibility.ANONYMOUS_PUBLIC))
+        runBlocking { graph.trips.markReviewed(7) }
         show(graph)
 
         compose.onNodeWithText(compose.activity.getString(R.string.home_greeting, "민지네")).assertIsDisplayed()
@@ -70,6 +73,22 @@ class HomeV6ScreenTest {
         val reco = button(R.string.action_open_recommendations).assertIsDisplayed().getBoundsInRoot()
         assertTrue("좁은 칸은 위아래", reco.top >= start.bottom)
         compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `U5-7 끝난 여행 검토 전 — 기록 칸이 A-05 검토(로드맵 저장) · 저장 → A-06 · 저장하면 내 여행 칸`() {
+        val graph = ShellTestGraph(withTrip = false)
+        graph.trips.put(completedTrip(places = 2))
+        show(graph)
+
+        compose.onNodeWithText(compose.activity.getString(R.string.review_title, "속초 가족여행")).assertIsDisplayed()
+        button(R.string.review_save).assertIsDisplayed().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(text(R.string.publish_title)).assertIsDisplayed()
+        button(R.string.action_save).performClick()
+        compose.waitForIdle()
+
+        compose.onNode(hasText(text(R.string.nav_trips)) and isSelected()).assertIsDisplayed()
     }
 
     @Test
