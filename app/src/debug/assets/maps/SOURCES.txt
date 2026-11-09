@@ -1,0 +1,20 @@
+Travel Crumbs offline demonstration map
+
+Roads, paths and land-use geometries:
+Copyright OpenStreetMap contributors, Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Data was acquired as vector data from OpenStreetMap API 0.6. The asset lists
+the source bounding box for each region. Roads, water and greenspace were
+filtered by feature type and generalized for this vehicle display. The
+distributed map data is the machine-readable JSON alongside this notice.
+
+Sample driving routes:
+Generated with OSRM from OpenStreetMap road data between fixed sample places.
+https://routing.openstreetmap.de/
+These routes are precomputed and contain no driver or vehicle history.
+
+Korea overview boundary:
+Made with Natural Earth, public domain. Free vector map data from
+https://www.naturalearthdata.com/about/terms-of-use/

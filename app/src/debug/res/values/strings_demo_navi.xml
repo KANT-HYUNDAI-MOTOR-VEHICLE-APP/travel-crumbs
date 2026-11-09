@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_navi_first_stop">차량 내비에 보낼 첫 목적지 · %1$s</string>
+    <string name="demo_navi_start">안내 시작</string>
+    <string name="demo_navi_retry">다시 시도</string>
+    <string name="demo_navi_requesting">차량 내비에 안내 요청 중…</string>
+    <string name="demo_navi_started">차량 내비에서 경로 탐색을 시작했어요.</string>
+    <string name="demo_navi_open_unavailable">차량 내비 화면을 직접 열지 못했어요.</string>
+    <string name="demo_navi_no_destination">이 장소의 안내 목적지가 없어요.</string>
+    <string name="demo_navi_not_connected">차량 내비에 연결되지 않았어요.</string>
+    <string name="demo_navi_too_close">현재 위치와 목적지가 너무 가까워요.</string>
+    <string name="demo_navi_too_far">목적지가 너무 멀어 안내를 시작할 수 없어요.</string>
+    <string name="demo_navi_low_battery">차량 배터리가 부족해 안내를 시작할 수 없어요.</string>
+    <string name="demo_navi_route_not_found">차량 내비에서 경로를 찾지 못했어요.</string>
+    <string name="demo_navi_timeout">차량 내비의 응답을 확인하지 못했어요.</string>
+    <string name="demo_navi_failed">차량 내비에 목적지를 보내지 못했어요.</string>
+    <string name="demo_save_destination_title">여행지를 저장할까요?</string>
+    <string name="demo_save_destination_in_trip">‘%1$s’ 장소를 지금 기록 중인 여행에 추가해요.</string>
+    <string name="demo_save_destination_for_later">‘%1$s’ 장소를 저장한 여행지에 담아요.</string>
+    <string name="demo_saved_destinations">저장한 여행지</string>
+    <string name="demo_add_saved_destination">이 여행에 추가</string>
+    <string name="demo_tag_optional">경험 태그를 여러 개 고를 수 있어요. 태그 없이 저장해도 돼요.</string>
+    <string name="demo_save_with_tags">태그와 함께 저장</string>
+    <string name="demo_save_without_tags">태그 없이 저장</string>
+    <string name="demo_do_not_save">저장 안 함</string>
+    <string name="demo_recorded_places">기록한 장소</string>
+    <string name="demo_tag_place_title">%1$s 경험</string>
+    <string name="demo_add_tags">태그 추가</string>
+    <string name="demo_edit_tags">태그 편집</string>
+    <string name="demo_save_tags">태그 저장</string>
+    <string name="demo_untagged_places">태그가 없는 장소 %1$d곳</string>
+    <string name="demo_place_memo">메모</string>
+    <string name="demo_apply_place_experience">경험 입력 완료</string>
+
+    <string-array name="demo_tags_park">
+        <item>산책하기 좋아요</item>
+        <item>가족과 가기 좋아요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>한적해요</item>
+    </string-array>
+    <string-array name="demo_tags_culture">
+        <item>볼거리가 많아요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>가족과 가기 좋아요</item>
+        <item>다시 가고 싶어요</item>
+    </string-array>
+    <string-array name="demo_tags_beach">
+        <item>바다 전망이 좋아요</item>
+        <item>산책하기 좋아요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>가족과 가기 좋아요</item>
+    </string-array>
+    <string-array name="demo_tags_scenic">
+        <item>전망이 좋아요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>산책하기 좋아요</item>
+        <item>다시 가고 싶어요</item>
+    </string-array>
+    <string-array name="demo_tags_cafe">
+        <item>분위기가 좋아요</item>
+        <item>커피가 맛있어요</item>
+        <item>쉬어 가기 좋아요</item>
+        <item>다시 가고 싶어요</item>
+    </string-array>
+    <string-array name="demo_tags_night">
+        <item>야경이 예뻐요</item>
+        <item>산책하기 좋아요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>한적해요</item>
+    </string-array>
+    <string-array name="demo_tags_general">
+        <item>다시 가고 싶어요</item>
+        <item>사진 찍기 좋아요</item>
+        <item>가족과 가기 좋아요</item>
+        <item>쉬어 가기 좋아요</item>
+    </string-array>
+    <string name="demo_itinerary_title">%1$s · 순서대로 안내</string>
+    <string name="demo_itinerary_progress">도착 %1$d / %2$d곳</string>
+    <string name="demo_itinerary_arrived">최근 도착 · %1$s</string>
+    <string name="demo_itinerary_current_stop">%1$d번째 목적지 · %2$s</string>
+    <string name="demo_itinerary_next_stop">다음 장소 · %1$d번째 %2$s</string>
+    <string name="demo_itinerary_continue">이어서 안내</string>
+    <string name="demo_itinerary_save_arrival">도착한 장소 저장</string>
+    <string name="demo_itinerary_cancelled">차량 내비 안내를 종료했어요. 같은 장소부터 다시 시도할 수 있어요.</string>
+    <string name="demo_itinerary_complete">로드맵의 모든 장소에 도착했어요.</string>
+    <string name="demo_itinerary_done">완료</string>
+    <string name="demo_itinerary_end">로드맵 안내 그만하기</string>
+    <string name="demo_itinerary_arrived_simulated">최근 시연 도착 · %1$s</string>
+    <string name="demo_itinerary_simulate_arrival">도착 시뮬레이션 · 시연용</string>
+</resources>

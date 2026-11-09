@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_map_loading">시연 지도를 불러오는 중이에요.</string>
+    <string name="demo_map_unavailable">시연 지도를 불러오지 못했어요.</string>
+    <string name="demo_map_stops">장소 순서</string>
+    <string name="demo_map_sample">시연용 도로 경로 · 실제 차량 이동이나 위치를 기록한 데이터가 아니에요.</string>
+    <string name="demo_map_osm_credit">© OpenStreetMap contributors · ODbL</string>
+    <string name="demo_map_overview_credit">Natural Earth · © OpenStreetMap contributors</string>
+    <string name="demo_map_sample_location">● 시연 이동 위치 · %1$s</string>
+</resources>
