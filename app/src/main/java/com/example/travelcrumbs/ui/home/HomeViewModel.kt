@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-/** 홈(스펙 app-shell-v5 2-2) — 여행 상태는 주행 화면과 같은 출처(RecordingRepository · #6 D1). */
+/** 기록 칸 정차 화면(스펙 app-shell-v5 2-2 · D34 · 파일 자리는 N28) — 여행 상태는 주행 화면과 같은 출처(RecordingRepository · #6 D1). */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val recordingRepository: RecordingRepository,
@@ -57,6 +57,7 @@ class HomeViewModel @Inject constructor(
         sdk.copy(
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
+            placeCount = progress.placeCount,
             message = shown,
         )
     }.stateIn(
@@ -71,8 +72,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** 임시 「새 여행 시작」(D26) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행(RECORDING · PAUSED)이면 저장소가 아무 일도 안 함(N19). */
-    fun onStartNewTrip() {
+    /** 임시 「여행 시작」(D26 · D34) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행이면 저장소가 아무 일도 안 함. */
+    fun onStartTrip() {
         viewModelScope.launch { recordingRepository.startNewTrip() }
     }
 

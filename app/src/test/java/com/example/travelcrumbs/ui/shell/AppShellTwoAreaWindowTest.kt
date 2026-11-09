@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -33,6 +34,7 @@ import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.shell.components.railItemTag
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -68,7 +70,7 @@ class AppShellTwoAreaWindowTest {
     private fun button(id: Int) = compose.onNode(hasText(text(id)) and hasClickAction())
 
     @Test
-    fun `V29 창 2개 영역 주행 화면 — 레일 5칸 · 여행명 상태 경과 장소 수 · 버튼 4 · 팝업이 스크롤 없이 보이고 눌림`() {
+    fun `V29 창 2개 영역 주행 화면 — 레일 4칸 · 여행명 상태 경과 장소 수 · 버튼 4 · 팝업이 스크롤 없이 보이고 눌림`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
@@ -134,22 +136,27 @@ class AppShellTwoAreaWindowTest {
     }
 
     @Test
-    fun `V30 창 2개 영역 정차 홈 — 레일 5칸 · 설정 · 새 여행 시작 · 기록 상태 · 이 장소 기록이 보이고 눌림`() {
+    fun `V30 창 2개 영역 정차 기록 칸 — 진행 중 · 아님 두 모양이 스크롤 없이 보이고 눌림`() {
         showShell()
 
         AppDestination.railItems.forEach { compose.onNodeWithTag(railItemTag(it)).assertIsDisplayed() }
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
-        button(R.string.action_start_new_trip).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed().performClick()
         compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
-        button(R.string.nav_settings).assertIsDisplayed().performClick()
-        compose.onAllNodes(hasText(text(R.string.action_record_place))).fetchSemanticsNodes().let {
-            assertTrue(it.isEmpty())
-        }
+
+        runBlocking { graph.recording.endTrip() }
+        compose.waitForIdle()
+
+        button(R.string.action_start_trip).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
+        button(R.string.action_open_recommendations).assertIsDisplayed().performClick()
+        compose.onNode(hasText(text(R.string.nav_recommendations)) and isSelected()).assertIsDisplayed()
     }
 
     @Test
-    fun `T37 V30 창 2개 영역 홈 순서 — 맨 위 영역 · 시험 구역 · debug 카드 · 맨 위 영역은 스크롤 없이 보임`() {
+    fun `T37 V30 V68 창 2개 영역 기록 칸 순서 — 맨 위 영역 · 시험 구역 · debug 카드 · 맨 위 영역은 스크롤 없이 보임`() {
         val tallSection: @androidx.compose.runtime.Composable ColumnScope.() -> Unit = {
             Text(
                 text = "시험 구역",
@@ -162,7 +169,7 @@ class AppShellTwoAreaWindowTest {
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
-                    HomeScreen(onOpenSettings = {}, showSdkCard = true, featureSections = tallSection)
+                    HomeScreen(onOpenRecommendations = {}, showSdkCard = true, featureSections = tallSection)
                 }
             }
         }
@@ -181,11 +188,11 @@ class AppShellTwoAreaWindowTest {
     }
 
     @Test
-    fun `T34 debug 카드를 끄면 홈에 없음`() {
+    fun `T34 debug 카드를 끄면 기록 칸에 없음`() {
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
-                    HomeScreen(onOpenSettings = {}, showSdkCard = false)
+                    HomeScreen(onOpenRecommendations = {}, showSdkCard = false)
                 }
             }
         }

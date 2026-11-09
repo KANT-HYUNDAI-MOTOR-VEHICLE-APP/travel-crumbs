@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 /**
  * 앱 틀 — 주행 판정 · 정차 목적지 · 주행 중 칸 · 「이어서 쓰기」(스펙 app-shell-v5 2-1 · 2-7 · 3-2 · 3-5).
  * 두 목적지와 「주행 모드였나」는 SavedStateHandle 에 둬 프로세스 재생성 뒤 복원.
+ * 저장된 id 가 없어진 목적지(`home` · `inbox`)면 「기록」으로 읽음(AppDestination.fromId · 3-5).
  */
 @HiltViewModel
 class AppShellViewModel @Inject constructor(
@@ -86,17 +87,17 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle[if (parked) KEY_DESTINATION else KEY_DRIVING_DESTINATION] = destination.id
     }
 
-    /** 홈 오른쪽 위 「설정」(정차 홈에만 있음 · D21). */
-    fun openSettings() {
-        savedStateHandle[KEY_DESTINATION] = AppDestination.SETTINGS.id
+    /** 기록 칸 「추천 보러 가기」(진행 중 여행이 아닐 때만 보임 · D34) → 「추천」 칸. */
+    fun openRecommendations() {
+        savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
     }
 
-    /** 정차 중 시스템 뒤로 — 홈이 아닌 곳에서만 불림 → 홈. */
+    /** 정차 중 시스템 뒤로 — 「기록」이 아닌 칸에서만 불림 → 「기록」. */
     fun onBack() {
         savedStateHandle[KEY_DESTINATION] = AppDestination.START.id
     }
 
-    /** 「이어서 쓰기」 — 저장 당시 목적지로 이동 + 그 화면이 복원받음 · 저장 비움. */
+    /** 「이어서 쓰기」 — 저장 당시 목적지로 이동(없어진 id 면 「기록」 · V76) + 그 화면이 복원받음 · 저장 비움. */
     fun resumeUnfinishedInput() {
         viewModelScope.launch {
             val saved = unfinishedInputRepository.takeForRestore() ?: return@launch

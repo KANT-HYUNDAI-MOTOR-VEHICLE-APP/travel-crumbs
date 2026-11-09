@@ -20,7 +20,7 @@ object Dimens {
      */
     val DrivingButtonsRowMinWidth = 880.dp
 
-    /** 홈 맨 위 영역 버튼. */
+    /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 
     /** 터치 대상 최소 크기 — Android 접근성 권장 48 × 48dp(스펙 app-shell-v5 2-1 · V46). */
@@ -29,11 +29,17 @@ object Dimens {
     /**
      * 레일 — 글자 높이 5 mm 이상(Pleos UI 디자인 가이드 · 에뮬레이터 160 dpi 실측 기준 · #21 사람 결정).
      * 160 dpi 에서 1dp = 1px = 0.159 mm → 5 mm ≈ 31.5dp. 글자 줄 높이 [RailLabelLineHeight] 가 그 위.
-     * 칸 높이 × 5 가 창 2개 영역 높이(1210dp) · 창 1개 영역 높이 안에 스크롤 없이 들어감.
+     * 칸 높이 × 4 가 창 2개 영역 높이(1210dp) · 창 1개 영역 높이 안에 스크롤 없이 들어감.
      */
     val RailWidth = 120.dp
     val RailItemHeight = 96.dp
+
+    /** 레일 아이콘 — 디자인 시스템 10절 32 이상(D38). */
     val RailIconSize = 32.dp
+
+    /** 선택 칸 배경 모서리 · 레일 가장자리와 칸 배경 사이 여백. */
+    val RailItemCorner = 16.dp
+    val RailItemInset = 8.dp
     val RailLabelFontSize = 24.sp
     val RailLabelLineHeight = 34.sp
 

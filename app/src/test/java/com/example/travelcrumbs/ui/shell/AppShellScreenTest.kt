@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -35,8 +37,10 @@ import com.example.travelcrumbs.testing.FakeInputContent
 import com.example.travelcrumbs.testing.ShellTestGraph
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.shell.components.railItemTag
+import com.example.travelcrumbs.ui.shell.components.railIconTag
 import com.example.travelcrumbs.ui.shell.components.railLabelTag
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.theme.RailColors
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -96,22 +100,27 @@ class AppShellScreenTest {
     private fun systemHandledBack(): Boolean = compose.activity.isFinishing
 
     @Test
-    fun `V1 레일 위에서 아래로 홈 기록 여행 받은함 추천 5칸 · 설정 칸 없음 · 홈 강조`() {
+    fun `V1 V67 V68 레일 위에서 아래로 기록 내 여행 추천 설정 4칸 · 기록 강조 · 기록 칸 · 설정 버튼 없음`() {
         show()
 
         val tops = AppDestination.railItems.map { rail(it).assertIsDisplayed().getBoundsInRoot().top }
         assertEquals(tops.sorted(), tops)
-        assertEquals(5, tops.size)
-        compose.onAllNodes(hasText(text(R.string.nav_settings)) and isSelected()).assertCountEquals(0)
-        compose.onNodeWithTag(railItemTag(AppDestination.SETTINGS)).assertDoesNotExist()
-        assertHighlighted(AppDestination.HOME)
+        assertEquals(4, tops.size)
+        assertEquals(
+            listOf(R.string.nav_records, R.string.nav_trips, R.string.nav_recommendations, R.string.nav_settings),
+            AppDestination.railItems.map { it.labelRes },
+        )
+        assertHighlighted(AppDestination.RECORDS)
+        // 기록 칸 · 진행 중(첫 실행) 모양
+        compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
+        assertOnlyRailSettings()
     }
 
     @Test
-    fun `V2 V3 V4 기록 받은함 추천 — 제목 · 준비 중 · 그 칸 강조`() {
+    fun `V2 V3 V4 내 여행 추천 설정 — 제목 · 준비 중 · 그 칸 강조`() {
         show()
 
-        listOf(AppDestination.RECORDS, AppDestination.INBOX, AppDestination.RECOMMENDATIONS).forEach { destination ->
+        listOf(AppDestination.TRIPS, AppDestination.RECOMMENDATIONS, AppDestination.SETTINGS).forEach { destination ->
             rail(destination).performClick()
             assertHighlighted(destination)
             compose.onAllNodes(hasText(text(destination.labelRes))).assertCountEquals(2)
@@ -120,27 +129,25 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V5 V6 홈 오른쪽 위 설정 — 설정 화면 · 강조 홈 · 뒤로는 홈`() {
+    fun `V6 설정에서 뒤로 — 기록 · 기록에서 뒤로는 앱이 처리 안 함`() {
         show()
+        rail(AppDestination.SETTINGS).performClick()
 
-        button(R.string.nav_settings).performClick()
         compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
-        assertHighlighted(AppDestination.HOME)
-        compose.onAllNodes(hasText(text(R.string.action_record_place))).assertCountEquals(0)
-
         pressBack()
+        assertHighlighted(AppDestination.RECORDS)
         compose.onNodeWithText(text(R.string.action_record_place)).assertIsDisplayed()
         assertFalse(systemHandledBack())
     }
 
     @Test
-    fun `V7 T4 기록 → 추천에서 뒤로 — 홈 · 홈에서 뒤로는 앱이 처리 안 함`() {
+    fun `V7 T4 내 여행 → 추천에서 뒤로 — 기록 · 기록에서 뒤로는 앱이 처리 안 함`() {
         show()
-        rail(AppDestination.RECORDS).performClick()
+        rail(AppDestination.TRIPS).performClick()
         rail(AppDestination.RECOMMENDATIONS).performClick()
 
         pressBack()
-        assertHighlighted(AppDestination.HOME)
+        assertHighlighted(AppDestination.RECORDS)
         assertFalse(systemHandledBack())
 
         pressBack()
@@ -148,23 +155,34 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V8 설정 버튼은 홈에만`() {
+    fun `V8 V67 어느 칸에도 설정 버튼 없음 — 레일 칸만`() {
         show()
+        assertOnlyRailSettings()
 
-        AppDestination.railItems.filter { it != AppDestination.HOME }.forEach { destination ->
+        AppDestination.railItems.forEach { destination ->
             rail(destination).performClick()
-            compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(0)
+            assertOnlyRailSettings()
         }
-        button(R.string.nav_settings).assertDoesNotExist()
-        rail(AppDestination.HOME).performClick()
-        button(R.string.nav_settings).performClick()
-        compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(0)
+        // 진행 중 아님 모양에도 없음
+        drive(DrivingState.DRIVING)
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        drive(DrivingState.PARKED)
+        rail(AppDestination.RECORDS).performClick()
+        button(R.string.action_start_trip).assertIsDisplayed()
+        assertOnlyRailSettings()
+    }
+
+    /** 「설정」 글자로 눌리는 것은 레일 칸 하나뿐(D35). */
+    private fun assertOnlyRailSettings() {
+        compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(1)
+        rail(AppDestination.SETTINGS).assertIsDisplayed()
     }
 
     @Test
-    fun `V9 설정에서 주행 — 레일 보임 · 강조 기록 · 주행 전용 화면 → 정차하면 설정 · 강조 홈`() {
+    fun `V9 설정에서 주행 — 레일 보임 · 강조 기록 · 주행 전용 화면 → 정차하면 설정 · 강조 설정`() {
         show()
-        button(R.string.nav_settings).performClick()
+        rail(AppDestination.SETTINGS).performClick()
 
         drive(DrivingState.DRIVING)
         AppDestination.railItems.forEach { rail(it).assertIsDisplayed() }
@@ -172,13 +190,12 @@ class AppShellScreenTest {
         button(R.string.action_end_trip).assertIsDisplayed()
 
         drive(DrivingState.PARKED)
-        assertHighlighted(AppDestination.HOME)
+        assertHighlighted(AppDestination.SETTINGS)
         compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
-        button(R.string.nav_settings).assertDoesNotExist()
     }
 
     @Test
-    fun `V11 V47 주행 첫 실행 — 레일 5칸 · 새 여행 · 기록 중 · 0분 · 장소 0 · 지도 자리 · 버튼 4개뿐`() {
+    fun `V11 V47 주행 첫 실행 — 레일 4칸 · 새 여행 · 기록 중 · 0분 · 장소 0 · 지도 자리 · 버튼 4개뿐`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
@@ -205,12 +222,12 @@ class AppShellScreenTest {
         button(R.string.action_voice).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_end_trip).assertIsDisplayed().assertIsEnabled()
-        // 눌리는 것 = 레일 5칸 + 버튼 4개뿐
+        // 눌리는 것 = 레일 4칸 + 버튼 4개뿐
         compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4)
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.unfinished_input_banner_text))).assertCountEquals(0)
-        compose.onAllNodes(hasText(text(R.string.action_start_new_trip))).assertCountEquals(0)
+        compose.onAllNodes(hasText(text(R.string.action_start_trip))).assertCountEquals(0)
     }
 
     @Test
@@ -229,7 +246,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V15 V18 V25 종료 — 완료 · 버튼 비활성 · 음성 활성 · 주행 화면 그대로 → 정차 홈도 완료`() {
+    fun `V15 V18 V25 종료 — 완료 · 버튼 비활성 · 음성 활성 · 주행 화면 그대로 → 정차 기록 칸은 진행 중 아님 모양`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
@@ -245,12 +262,65 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
 
         drive(DrivingState.PARKED)
-        compose.onNodeWithText(text(R.string.trip_status_completed)).assertIsDisplayed()
-        button(R.string.action_record_place).assertIsNotEnabled()
+        assertNoTripTop()
+    }
+
+    /** 기록 칸 진행 중 아님 모양 — 「여행 시작」 · 「최근 여행이 없어요」 · 「추천 보러 가기」만 · 진행 중 요소 없음(D34). */
+    private fun assertNoTripTop() {
+        button(R.string.action_start_trip).assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
+        button(R.string.action_open_recommendations).assertIsDisplayed().assertIsEnabled()
+        listOf(
+            R.string.trip_status_recording,
+            R.string.recording_status_paused,
+            R.string.trip_status_completed,
+            R.string.action_record_place,
+        ).forEach { compose.onAllNodes(hasText(text(it))).assertCountEquals(0) }
+        compose.onAllNodes(hasText(compose.activity.getString(R.string.trip_place_count, 0))).assertCountEquals(0)
+    }
+
+    /** 기록 칸 진행 중 모양 — 「여행 시작」 · 최근 여행 자리 · 「추천 보러 가기」 없음(비활성으로 남지 않음 · V35). */
+    private fun assertNoStartTripElements() {
+        compose.onAllNodes(hasText(text(R.string.action_start_trip))).assertCountEquals(0)
+        compose.onAllNodes(hasText(text(R.string.recent_trip_empty))).assertCountEquals(0)
+        compose.onAllNodes(hasText(text(R.string.action_open_recommendations))).assertCountEquals(0)
     }
 
     @Test
-    fun `V17 팝업 열린 채 정차 → 다시 주행 — 홈(팝업 없음 · 기록 중) → 팝업 저절로 안 열림`() {
+    fun `V68 V69 완료 뒤 기록 칸 — 추천 보러 가기 → 추천 칸 · 강조 추천 → 뒤로 기록`() {
+        graph.driving.emit(DrivingState.DRIVING)
+        show()
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        drive(DrivingState.PARKED)
+
+        button(R.string.action_open_recommendations).performClick()
+        assertHighlighted(AppDestination.RECOMMENDATIONS)
+        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+
+        pressBack()
+        assertHighlighted(AppDestination.RECORDS)
+        assertNoTripTop()
+    }
+
+    @Test
+    fun `V70 V71 기록 칸 첫 실행 — 기록 중 · 0분 · 장소 0 · 이 장소 기록 → 준비 중 안내 · 화면 이동 없음`() {
+        show()
+
+        compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
+        assertNoStartTripElements()
+
+        button(R.string.action_record_place).performClick()
+        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        assertHighlighted(AppDestination.RECORDS)
+        compose.mainClock.advanceTimeBy(AppConfig.NOT_READY_NOTICE_MILLIS + FRAME_MILLIS)
+        compose.onAllNodes(hasText(text(R.string.not_ready))).assertCountEquals(0)
+    }
+
+    @Test
+    fun `V17 팝업 열린 채 정차 → 다시 주행 — 기록 칸(팝업 없음 · 기록 중) → 팝업 저절로 안 열림`() {
         show()
         drive(DrivingState.DRIVING)
         button(R.string.action_end_trip).performClick()
@@ -258,7 +328,7 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
         compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
-        button(R.string.action_start_new_trip).assertIsNotEnabled()
+        assertNoStartTripElements()
 
         drive(DrivingState.DRIVING)
         compose.onAllNodes(hasText(text(R.string.end_trip_confirm_body))).assertCountEquals(0)
@@ -318,7 +388,7 @@ class AppShellScreenTest {
         compose.onNodeWithTag(FAKE_INPUT_TAG).performTextInput("메모")
         drive(DrivingState.DRIVING)
         drive(DrivingState.PARKED)
-        rail(AppDestination.HOME).performClick()
+        rail(AppDestination.RECORDS).performClick()
 
         compose.onNodeWithText(text(R.string.unfinished_input_banner_action)).performClick()
         compose.waitForIdle()
@@ -338,10 +408,10 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V33 V35 V56 홈 기록 중 · 일시정지 각각 — 일시정지 · 재개 · 음성 · 여행 종료 버튼 없음 · 새 여행 시작 비활성`() {
+    fun `V33 V35 V56 기록 칸 기록 중 · 일시정지 각각 — 일시정지 · 재개 · 음성 · 여행 종료 · 설정 버튼 없음 · 여행 시작 없음`() {
         show()
         assertHomeHasNoDrivingButtons()
-        button(R.string.action_start_new_trip).assertIsDisplayed().assertIsNotEnabled()
+        assertNoStartTripElements()
 
         drive(DrivingState.DRIVING)
         button(R.string.action_pause_recording).performClick()
@@ -349,10 +419,10 @@ class AppShellScreenTest {
 
         compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         assertHomeHasNoDrivingButtons()
         button(R.string.action_record_place).assertIsEnabled()
-        button(R.string.action_start_new_trip).assertIsDisplayed().assertIsNotEnabled().performClick()
-        compose.onNodeWithText(text(R.string.recording_status_paused)).assertIsDisplayed()
+        assertNoStartTripElements()
     }
 
     private fun assertHomeHasNoDrivingButtons() {
@@ -360,6 +430,7 @@ class AppShellScreenTest {
         button(R.string.action_resume_recording).assertDoesNotExist()
         button(R.string.action_voice).assertDoesNotExist()
         button(R.string.action_end_trip).assertDoesNotExist()
+        compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(1)
     }
 
     @Test
@@ -441,20 +512,20 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V34 V36 완료 뒤 홈 새 여행 시작 — 기록 중 · 0분 · 버튼 상태 → 주행 화면도 같은 여행`() {
+    fun `V34 V36 완료 뒤 기록 칸 여행 시작 — 진행 중 모양 · 기록 중 · 0분 · 장소 0 → 주행 화면도 같은 여행`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
         button(R.string.action_end_trip).performClick()
         button(R.string.end_trip_confirm_end).performClick()
         drive(DrivingState.PARKED)
-        button(R.string.action_start_new_trip).assertIsEnabled()
 
-        button(R.string.action_start_new_trip).performClick()
+        button(R.string.action_start_trip).performClick()
 
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
-        button(R.string.action_start_new_trip).assertIsNotEnabled()
+        compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsEnabled()
+        assertNoStartTripElements()
 
         drive(DrivingState.DRIVING)
         compose.onNodeWithText(text(R.string.trip_name_default)).assertIsDisplayed()
@@ -466,15 +537,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V35 기록 중 홈 — 새 여행 시작은 보이나 비활성`() {
-        show()
-
-        button(R.string.action_start_new_trip).assertIsDisplayed().assertIsNotEnabled()
-        button(R.string.action_record_place).assertIsEnabled()
-    }
-
-    @Test
-    fun `V39 V42 주행 중 레일 여행 — 제목 · 정차 후 볼 수 있어요 · 강조 여행 → 기록으로 돌아옴`() {
+    fun `V39 V42 주행 중 레일 내 여행 — 제목 · 정차 후 볼 수 있어요 · 강조 내 여행 → 기록으로 돌아옴`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
@@ -493,26 +556,27 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V40 주행 중 레일 홈 — 정차 홈 내용 하나도 없음`() {
+    fun `V40 주행 중 레일 설정 — 제목 · 정차 후 볼 수 있어요 · 설정 내용 없음`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
-        rail(AppDestination.HOME).performClick()
+        rail(AppDestination.SETTINGS).performClick()
 
+        assertHighlighted(AppDestination.SETTINGS)
+        compose.onAllNodes(hasText(text(R.string.nav_settings))).assertCountEquals(2)
         compose.onNodeWithText(text(R.string.driving_restricted)).assertIsDisplayed()
-        button(R.string.nav_settings).assertDoesNotExist()
-        button(R.string.action_start_new_trip).assertDoesNotExist()
+        compose.onAllNodes(hasText(text(R.string.not_ready))).assertCountEquals(0)
         button(R.string.action_record_place).assertDoesNotExist()
         compose.onAllNodes(hasText(text(R.string.sdk_card_title))).assertCountEquals(0)
         compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size)
     }
 
     @Test
-    fun `V41 주행 중 레일 받은함 · 추천 — 각 제목 + 정차 후 볼 수 있어요`() {
+    fun `V41 주행 중 레일 추천 — 제목 + 정차 후 볼 수 있어요`() {
         graph.driving.emit(DrivingState.DRIVING)
         show()
 
-        listOf(AppDestination.INBOX, AppDestination.RECOMMENDATIONS).forEach { destination ->
+        listOf(AppDestination.RECOMMENDATIONS).forEach { destination ->
             rail(destination).performClick()
             compose.onAllNodes(hasText(text(destination.labelRes))).assertCountEquals(2)
             compose.onNodeWithText(text(R.string.driving_restricted)).assertIsDisplayed()
@@ -520,7 +584,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V43 정차 홈 → 주행 → 레일 여행 → 정차 — 여행 정차 화면 · 강조 여행`() {
+    fun `V43 정차 기록 → 주행 → 레일 내 여행 → 정차 — 내 여행 정차 화면 · 강조 내 여행`() {
         show()
         drive(DrivingState.DRIVING)
         rail(AppDestination.TRIPS).performClick()
@@ -535,13 +599,13 @@ class AppShellScreenTest {
     @Test
     fun `V44 T28 주행 제한 안내에서 뒤로 — 앱이 잡지 않아 정차 내용이 드러나지 않음`() {
         show()
-        button(R.string.nav_settings).performClick()
+        rail(AppDestination.SETTINGS).performClick()
         drive(DrivingState.DRIVING)
         rail(AppDestination.RECOMMENDATIONS).performClick()
 
         pressBack()
 
-        // 레일의 뒤로(설정 → 홈)가 아니라 시스템 기본 동작
+        // 정차 칸의 뒤로(설정 → 기록)가 아니라 시스템 기본 동작
         assertTrue(systemHandledBack())
     }
 
@@ -555,7 +619,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `V46 레일 글자 5 mm 이상(160 dpi 기준) · 한 줄 · 칸 안에 들어감 · 5칸이 화면 높이 안 — 주행 · 정차 같음`() {
+    fun `V46 레일 글자 5 mm 이상(160 dpi 기준) · 한 줄 · 칸 안에 들어감 · 4칸이 화면 높이 안 — 주행 · 정차 같음`() {
         show()
         assertRailLabels()
 
@@ -575,7 +639,37 @@ class AppShellScreenTest {
             item.bottom
         }
         val root = compose.onRoot().getBoundsInRoot()
-        assertTrue("레일 5칸이 화면 높이 안 · ${railBottoms.max()}", railBottoms.max() <= root.bottom)
+        assertTrue("레일 4칸이 화면 높이 안 · ${railBottoms.max()}", railBottoms.max() <= root.bottom)
+    }
+
+    @Test
+    fun `V72 V73 레일 시각 — 4칸 모두 아이콘 32dp 이상 + 글자 · 선택 칸 배경 아이콘 글자 색이 기본 칸과 다름 — 정차 · 주행`() {
+        show()
+        assertRailVisuals(AppDestination.RECORDS)
+
+        rail(AppDestination.TRIPS).performClick()
+        assertRailVisuals(AppDestination.TRIPS)
+
+        drive(DrivingState.DRIVING)
+        assertRailVisuals(AppDestination.RECORDS)
+    }
+
+    private fun assertRailVisuals(selected: AppDestination) {
+        AppDestination.railItems.forEach { destination ->
+            val icon = compose.onNodeWithTag(railIconTag(destination), useUnmergedTree = true)
+                .assertIsDisplayed()
+                .getBoundsInRoot()
+            assertTrue("${destination.id} 아이콘 ${icon.width}", icon.width >= Dimens.RailIconSize && icon.height >= Dimens.RailIconSize)
+            compose.onNodeWithTag(railLabelTag(destination), useUnmergedTree = true)
+                .assertIsDisplayed()
+                .assertTextEquals(text(destination.labelRes))
+            assertEquals(destination == selected, rail(destination).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Selected))
+        }
+        // 색 규칙(10절 토큰)은 RailColors 한 곳 — 선택 · 기본의 배경 · 아이콘 · 글자 세 가지가 모두 다름
+        assertTrue(RailColors.BackgroundSelected != RailColors.UnselectedBackground)
+        assertTrue(RailColors.BrandSecondary != RailColors.Unselected)
+        assertEquals(androidx.compose.ui.graphics.Color.Transparent, RailColors.UnselectedBackground)
+        assertEquals(androidx.compose.ui.graphics.Color.White, RailColors.Unselected)
     }
 
     private fun assertRailTouchTargets() {

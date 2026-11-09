@@ -15,10 +15,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.driving.DrivingScreen
 import com.example.travelcrumbs.ui.home.HomeScreen
-import com.example.travelcrumbs.ui.inbox.InboxScreen
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.recommendations.RecommendationsScreen
-import com.example.travelcrumbs.ui.records.RecordsScreen
 import com.example.travelcrumbs.ui.settings.SettingsScreen
 import com.example.travelcrumbs.ui.shell.components.AppNavigationRail
 import com.example.travelcrumbs.ui.shell.components.DrivingRestrictedContent
@@ -26,7 +24,7 @@ import com.example.travelcrumbs.ui.shell.components.UnfinishedInputBanner
 import com.example.travelcrumbs.ui.trips.TripsScreen
 
 /**
- * 앱 틀 — 레일은 늘 보이고 눌림 · 내용 영역만 판정대로(스펙 app-shell-v5 2 · 2-1 · 2-7 · D29).
+ * 앱 틀 — 레일 4칸은 늘 보이고 눌림 · 내용 영역만 판정대로(스펙 app-shell-v5 2 · 2-1 · 2-7 · D29 · D33).
  * 정차: 고른 목적지의 정차 화면 + 「이어서 쓰기」 띠. 주행 · 모름: 「기록」 칸 = 주행 전용 화면 · 그 밖 = 주행 제한 안내.
  * 전환은 애니메이션 없이 바로. 주행 · 모름에선 BackHandler 를 두지 않음 → 시스템 뒤로가 앱을 뒤로 보냄(#6 D7).
  *
@@ -37,7 +35,7 @@ fun AppShellScreen(
     modifier: Modifier = Modifier,
     viewModel: AppShellViewModel = viewModel(),
     destinationContent: @Composable (AppDestination) -> Unit = { destination ->
-        ParkedDestinationContent(destination, onOpenSettings = viewModel::openSettings)
+        ParkedDestinationContent(destination, onOpenRecommendations = viewModel::openRecommendations)
     },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -90,13 +88,12 @@ private fun DrivingContent(destination: AppDestination) {
 @Composable
 private fun ParkedDestinationContent(
     destination: AppDestination,
-    onOpenSettings: () -> Unit,
+    onOpenRecommendations: () -> Unit,
 ) {
     when (destination) {
-        AppDestination.HOME -> HomeScreen(onOpenSettings = onOpenSettings)
-        AppDestination.RECORDS -> RecordsScreen()
+        // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
+        AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations)
         AppDestination.TRIPS -> TripsScreen()
-        AppDestination.INBOX -> InboxScreen()
         AppDestination.RECOMMENDATIONS -> RecommendationsScreen()
         AppDestination.SETTINGS -> SettingsScreen()
     }
