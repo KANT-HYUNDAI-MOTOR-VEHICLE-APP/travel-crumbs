@@ -4,7 +4,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
-/** 기기 안 저장(DataStore Preferences)의 파일 이름 · 키 한 곳 — 지금 여행 요약 · 작성 중 내용(스펙 app-shell-v5 4-1). */
+/**
+ * 기기 안 저장(DataStore Preferences)의 파일 이름 · 키 한 곳 — 지금 여행 요약 · 작성 중 내용(스펙 app-shell-v5 4-1) ·
+ * 「가 볼 장소」 고정 목록(스펙 navigation U20).
+ */
 object AppPreferencesKeys {
     const val FILE_NAME = "app_shell"
 
@@ -14,6 +17,9 @@ object AppPreferencesKeys {
     val TRIP_START_AT_MILLIS = longPreferencesKey("trip_start_at_millis")
     val TRIP_END_AT_MILLIS = longPreferencesKey("trip_end_at_millis")
     val TRIP_PLACE_COUNT = intPreferencesKey("trip_place_count")
+
+    /** 고정한 장소 id · 고정 순서(쉼표로 이음) — 이름 · 주소 · 좌표는 저장하지 않음. */
+    val PINNED_PLACE_IDS = stringPreferencesKey("pinned_place_ids")
 
     /** 누적 기록 시간 · 지금 기록 구간 시작(v0.4 · 일시정지). #21 첫 판(PR #23) 저장 값엔 없음 — 읽기 변환은 RecordingLocalDataSource 한 곳(N10). */
     val TRIP_ACCUMULATED_MILLIS = longPreferencesKey("trip_accumulated_millis")

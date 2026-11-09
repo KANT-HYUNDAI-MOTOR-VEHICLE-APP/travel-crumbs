@@ -72,6 +72,39 @@
     <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
     <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
 
+    <!-- debug 카드 「안내 건수」 한 줄(스펙 navigation 4.6 · U41 · debug 전용 · 사용자 문구 아님) -->
+    <string name="home_stats_label">안내 건수 · 서버 조회</string>
+    <string name="stats_item">%1$s %2$d</string>
+    <string name="stats_none">아직 없음</string>
+    <string name="stats_failed">안내 건수를 불러오지 못했어요</string>
+
+    <!-- 「가 볼 장소」(스펙 navigation 2.1 문구 표 · U9 · E6 은 초안 U24) -->
+    <string name="places_title">가 볼 장소</string>
+    <string name="places_navi_not_connected">내비 서비스에 연결되지 않았어요</string>
+    <string name="places_guide">여기로 안내</string>
+    <string name="places_guide_requesting">안내 요청 중…</string>
+    <string name="places_route_started">%1$s까지 안내를 시작했어요</string>
+    <string name="places_route_failed">안내를 시작하지 못했어요 · %1$s</string>
+    <string name="places_reason_too_close">너무 가까운 곳이에요</string>
+    <string name="places_reason_too_far">너무 먼 곳이에요</string>
+    <string name="places_reason_low_battery">배터리가 부족해요</string>
+    <string name="places_reason_route_not_found">경로를 찾지 못했어요</string>
+    <string name="places_reason_timeout">내비가 응답하지 않아요</string>
+    <string name="places_reason_request_failed">요청을 보내지 못했어요</string>
+    <string name="places_empty">아직 가 볼 장소가 없어요 · 아래에서 장소를 고정해 보세요</string>
+
+    <!-- 실패 폴백(스펙 navigation 2.1 E11 ~ E13 · 와이어프레임 A-14 · 문구 U57 (a) 초안 그대로) -->
+    <string name="places_retry">다시 시도</string>
+    <string name="places_dummy_route">더미 경로</string>
+    <string name="dummy_route_notice">시연용 더미 경로예요 · 실제 길안내가 아니에요</string>
+    <string name="dummy_route_origin">현재 위치</string>
+    <string name="dummy_route_close">닫기</string>
+
+    <!-- 「장소 고르기」(스펙 navigation 2.2 · 초안 U24) -->
+    <string name="picker_title">장소 고르기</string>
+    <string name="picker_limit">가 볼 장소는 최대 %1$d곳까지 고정할 수 있어요</string>
+    <string name="picker_pin">고정</string>
+    <string name="picker_unpin">고정 해제</string>
     <!-- 추천(#37 · 와이어프레임 v6 B-01 ~ B-05) — 이름 · 태그명 · 주소는 데이터 값이라 여기 없음 -->
     <string name="reco_demo_data">시연용 데이터</string>
     <string name="reco_selected">✓ %1$s</string>

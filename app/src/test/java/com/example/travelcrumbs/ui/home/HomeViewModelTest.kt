@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.ui.home
 
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.SdkStatus
@@ -8,8 +9,12 @@ import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
+import com.example.travelcrumbs.testing.FakePinRepository
+import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
+import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.pinnedPlacesRepositoryOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +58,11 @@ class HomeViewModelTest {
         drivingSignalRepository = FakeDrivingSignalRepository(DrivingState.PARKED),
         gleoActionRepository = gleo,
         naviRepository = navi,
+        placeCatalogRepository = FakePlaceCatalogRepository(),
+        pinnedPlacesRepository = pinnedPlacesRepositoryOf(),
+        pinRepository = FakePinRepository(),
+        placeStatsRepository = FakePlaceStatsRepository(),
+        demoFeatures = DemoFeatures(dummyRoute = true),
     )
 
     @Test

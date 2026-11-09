@@ -5,7 +5,11 @@ import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviRouteState
+import com.example.travelcrumbs.domain.model.Place
+import com.example.travelcrumbs.domain.model.RouteRequestResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,9 +33,59 @@ class FakeNaviRepository(
     ready: Boolean = true,
 ) : NaviRepository {
 
-    override val ready: StateFlow<Boolean> = MutableStateFlow(ready)
+    private val readyState = MutableStateFlow(ready)
+
+    override val ready: StateFlow<Boolean> = readyState
 
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
+
+    /** 길안내 요청을 받은 장소들(#4) — 요청 건수를 셈. */
+    val routeRequests = mutableListOf<Place>()
+
+    /** 요청 호출이 던질 예외(T15) — null 이면 [answerRoute] 를 기다림. */
+    var routeError: Throwable? = null
+
+    private var pendingAnswer = CompletableDeferred<RouteRequestResult>()
+
+    override suspend fun requestRoute(place: Place): RouteRequestResult {
+        routeRequests += place
+        routeError?.let { throw it }
+        return pendingAnswer.await()
+    }
+
+    /** 내비가 시작 · 오류를 알림 — 기다리던 요청에 답하고 다음 요청은 새로 기다림. */
+    fun answerRoute(result: RouteRequestResult) {
+        val answer = pendingAnswer
+        pendingAnswer = CompletableDeferred()
+        answer.complete(result)
+    }
+
+    fun setReady(value: Boolean) {
+        readyState.value = value
+    }
+
+    /** 지금 안내 상태(R1 대조) — 기본은 안내 중 아님. */
+    var activeRoute: NaviActiveRoute = NaviActiveRoute(routing = false, destinationName = "", 0.0, 0.0)
+    var activeRouteQueries: Int = 0
+        private set
+
+    /** 조회가 던질 예외(T90) — null 이면 [activeRoute] 를 돌려줌. */
+    var activeRouteError: Throwable? = null
+
+    /** 조회 응답을 늦춤(T90 조회 한도) — 완료되기 전엔 답하지 않음. */
+    var activeRouteGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun activeRoute(): NaviActiveRoute {
+        activeRouteQueries++
+        activeRouteGate?.await()
+        activeRouteError?.let { throw it }
+        return activeRoute
+    }
+
+    /** 내비가 [place] 로 안내 중인 상태로 둠. */
+    fun guidingTo(place: Place) {
+        activeRoute = NaviActiveRoute(true, place.name, place.latitude, place.longitude)
+    }
 }
 
 class FakeGleoActionRepository(

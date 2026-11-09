@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,13 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// debug 시드 토큰(스펙 navigation U27) — 저장소에 커밋하지 않는 local.properties 에서만 읽음 · release 엔 넣지 않음
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val debugSeedToken: String = localProperties.getProperty("travelcrumbs.debugSeedToken", "")
 
 android {
     namespace = "com.example.travelcrumbs"
@@ -27,10 +36,12 @@ android {
         debug {
             // 서버 주소는 빌드 타입별로 BuildConfig 한 곳 — 실제 주소는 서버 이슈에서 정함
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:4000/\"")
+            buildConfigField("String", "DEBUG_SEED_TOKEN", "\"$debugSeedToken\"")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("String", "API_BASE_URL", "\"https://api.invalid/\"")
+            buildConfigField("String", "DEBUG_SEED_TOKEN", "\"\"")
         }
     }
 
@@ -42,12 +53,19 @@ android {
     testOptions {
         // Robolectric 이 문자열 · 드로어블 자원을 읽게 함(Compose UI 테스트)
         unitTests.isIncludeAndroidResources = true
+        // 저장소의 실패 로그(android.util.Log)를 JVM 단위 테스트에서 부를 수 있게 — 값은 기본값(0 · null)
+        unitTests.isReturnDefaultValues = true
     }
 
     buildFeatures {
         buildConfig = true
         compose = true
     }
+}
+
+// Room 스키마(핀 표) — 다음 판의 마이그레이션 근거로 커밋
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -67,6 +85,8 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)

@@ -10,8 +10,12 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
-    <!-- 서버 API 호출(#4 부터 · 팀 서버 사용 결정 2026-11-05) — 이 이슈(#6)는 네트워크 호출 없음 -->
+    <!-- 길안내 요청(requestRoute) — data/navi/NaviInfoDataSource · 스펙 navigation 4.3 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- 서버 API 호출 — 핀의 안내 시작 기록 보내기 · debug 카드 안내 건수(스펙 navigation 4.3 · 4.6) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 연결되면 다시 보내기 — JobScheduler 연결 조건(targetSdk 34 요구) · data/pin(스펙 navigation 4.3 · U30) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".TravelCrumbsApplication"
@@ -46,6 +50,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- 대기 핀 다시 보내기(스펙 navigation 4.6) — 시스템(JobScheduler)만 묶을 수 있음 · 밖에 열지 않음 -->
+        <service
+            android:name=".data.pin.PinUploadJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>
