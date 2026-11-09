@@ -2,6 +2,7 @@ package com.example.travelcrumbs.ui.recommendations
 
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.domain.model.RouteMap
 import com.example.travelcrumbs.domain.model.SketchPoint
 import com.example.travelcrumbs.ui.components.UiMessage
 
@@ -105,6 +106,8 @@ data class TripDetailItem(
     val places: List<PlaceItem>,
     /** 경로 그림 점 — 장소 순서대로 · 0 ~ 1 상대 위치. */
     val sketch: List<SketchPoint>,
+    /** 시연용 도로 지도 — 앱에 묶은 지도가 이 로드맵을 덮을 때만 · null 이면 [sketch] 로 그림. */
+    val routeMap: RouteMap? = null,
 )
 
 /** B-04 장소 하나. */

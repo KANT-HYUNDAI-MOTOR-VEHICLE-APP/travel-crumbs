@@ -3,12 +3,15 @@ package com.example.travelcrumbs.ui.recommendations
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.map.OfflineMapRepository
 import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuidanceRequestResult
 import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
+import com.example.travelcrumbs.domain.RoadmapMapRules
 import com.example.travelcrumbs.domain.model.CompanionType
+import com.example.travelcrumbs.domain.model.OfflineMapPack
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
@@ -36,6 +39,7 @@ class RecommendationsViewModel @Inject constructor(
     private val repository: RecommendationRepository,
     private val requestRouteGuidance: RequestRouteGuidanceUseCase,
     private val savedStateHandle: SavedStateHandle,
+    private val offlineMap: OfflineMapRepository,
 ) : ViewModel() {
 
     private val selection = MutableStateFlow(restoreSelection())
@@ -44,15 +48,19 @@ class RecommendationsViewModel @Inject constructor(
     private val sidoRegions = MutableStateFlow<List<SidoRegion>>(emptyList())
     private val sidoTrips = MutableStateFlow(SidoTrips(sidoNm = null, trips = emptyList()))
 
+    /** 상세 도로 지도 묶음(앱 에셋) — 못 읽었거나 읽기 전이면 null → 기존 경로 그림. */
+    private val mapPack = MutableStateFlow<OfflineMapPack?>(null)
+
     val uiState: StateFlow<RecommendationsUiState> = combine(
         selection,
         sidoRegions,
         sidoTrips,
         guidance,
-    ) { sel, regions, loaded, progress ->
+        mapPack,
+    ) { sel, regions, loaded, progress, pack ->
         // 시도를 바꾼 직후 옛 시도 로드맵이 한 번 섞이지 않게 — 불러온 시도가 지금 시도일 때만 씀
         val trips = if (loaded.sidoNm == sel.sidoNm) loaded.trips else emptyList()
-        buildState(sel, regions, trips, progress)
+        buildState(sel, regions, trips, progress, pack)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
@@ -65,6 +73,7 @@ class RecommendationsViewModel @Inject constructor(
     init {
         // 자료는 화면 구독과 따로 불러 둠 — 행동(첫 장소 · 안내 목적지)이 화면이 안 보일 때도 같은 값을 보게
         viewModelScope.launch { sidoRegions.value = repository.sidoRegions() }
+        viewModelScope.launch { mapPack.value = offlineMap.mapPack() }
         viewModelScope.launch {
             selection.map { it.sidoNm }.distinctUntilChanged().collect { sido ->
                 sidoTrips.value = SidoTrips(sido, if (sido == null) emptyList() else repository.publicTrips(sido))
@@ -164,6 +173,7 @@ class RecommendationsViewModel @Inject constructor(
         regions: List<SidoRegion>,
         trips: List<RecommendedTrip>,
         progress: GuidanceProgress,
+        pack: OfflineMapPack?,
     ): RecommendationsUiState {
         val sigunguNms = regions.firstOrNull { it.sidoNm == sel.sidoNm }?.sigunguNms.orEmpty()
         val sigunguCnts = if (sel.sidoNm == null) emptyMap() else RecommendationRules.sigunguTripCnts(trips, sel.sidoNm, sigunguNms)
@@ -199,7 +209,7 @@ class RecommendationsViewModel @Inject constructor(
             tagCounts = tagCounts.map { TagCountItem(it.tag.tagNo, it.tag.tagNm, it.cnt) },
             selectedTagNo = selectedTagNo,
             taggedTrips = tagged,
-            detail = trip?.toDetail(),
+            detail = trip?.toDetail(pack),
             confirm = confirmPlace?.let { place ->
                 GuidanceConfirmItem(
                     placeNo = place.placeNo,
@@ -229,7 +239,7 @@ class RecommendationsViewModel @Inject constructor(
         )
     }
 
-    private fun RecommendedTrip.toDetail(): TripDetailItem {
+    private fun RecommendedTrip.toDetail(pack: OfflineMapPack?): TripDetailItem {
         val ordered = places.sortedBy { it.placeOrd }
         return TripDetailItem(
             tripNo = tripNo,
@@ -243,6 +253,7 @@ class RecommendationsViewModel @Inject constructor(
             sigunguNm = region.sigunguNm,
             places = ordered.map { PlaceItem(it.placeNo, it.placeOrd, it.placeNm, it.tags.map { tag -> tag.tagNm }) },
             sketch = RecommendationRules.sketch(ordered),
+            routeMap = pack?.let { RoadmapMapRules.routeMap(it, ordered) },
         )
     }
 

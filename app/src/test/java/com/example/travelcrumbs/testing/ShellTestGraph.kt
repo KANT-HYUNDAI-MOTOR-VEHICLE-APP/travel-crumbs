@@ -74,6 +74,7 @@ class ShellTestGraph(
             repository = SeedRecommendationRepository(),
             requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
             savedStateHandle = SavedStateHandle(),
+            offlineMap = FakeOfflineMapRepository(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }

@@ -6,6 +6,7 @@ import com.example.travelcrumbs.domain.GuidanceRequestResult
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.testing.FakeOfflineMapRepository
 import com.example.travelcrumbs.testing.FakeRouteGuidanceRequester
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class RecommendationsViewModelTest {
         repository = SeedRecommendationRepository(),
         requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
         savedStateHandle = saved,
+        offlineMap = FakeOfflineMapRepository(),
     )
 
     private val state get() = vm.uiState.value
