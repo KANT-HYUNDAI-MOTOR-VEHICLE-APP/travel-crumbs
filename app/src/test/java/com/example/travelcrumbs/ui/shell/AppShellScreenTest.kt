@@ -698,7 +698,7 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         assertHighlighted(AppDestination.TRIPS)
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.trips_sub)).assertIsDisplayed()
         compose.onAllNodes(hasText(text(R.string.driving_restricted))).assertCountEquals(0)
     }
 

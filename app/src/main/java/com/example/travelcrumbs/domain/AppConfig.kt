@@ -69,6 +69,12 @@ object AppConfig {
     const val PLACE_NAME_MAX_LENGTH: Int = 60
     const val MEMO_MAX_LENGTH: Int = 500
 
+    /**
+     * 내 공개 여행이 추천 로드맵에 오를 때 쓰는 번호 = 이 값 + trip_no(#51 U6 · U7) — 시드 로드맵 번호(101 ~ 301)와 겹치지 않게.
+     * 별점 기록(기기 안)도 이 번호로 남음. 서버 추천 API 가 생기면 서버 번호로 바뀜.
+     */
+    const val LOCAL_TRIP_RECO_NO_OFFSET: Long = 1_000_000L
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 

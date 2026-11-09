@@ -109,6 +109,10 @@ class ShellTestGraph(
         TripStartViewModel::class.java -> TripStartViewModel(recording, users, catalog, guide, navi, time, SavedStateHandle())
         com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel::class.java ->
             com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel(trips, tags, users, time, SavedStateHandle())
+        com.example.travelcrumbs.ui.trips.TripsViewModel::class.java ->
+            com.example.travelcrumbs.ui.trips.TripsViewModel(trips, users, ratings, time, SavedStateHandle())
+        com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel::class.java ->
+            com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel(trips, tags, users, ratings, time, SavedStateHandle())
         SettingsViewModel::class.java -> SettingsViewModel(users, trips, time, SavedStateHandle())
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),

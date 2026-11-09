@@ -41,6 +41,8 @@ fun AppShellScreen(
             onOpenRecommendations = viewModel::openRecommendations,
             onOpenTrip = viewModel::openTrip,
             recommendationsEntry = shell.recommendationsEntry,
+            tripsEntry = shell.tripsEntry,
+            tripsOpenTripNo = shell.tripsOpenTripNo,
         )
     },
 ) {
@@ -97,11 +99,13 @@ private fun ParkedDestinationContent(
     onOpenRecommendations: () -> Unit,
     onOpenTrip: (Long?) -> Unit,
     recommendationsEntry: Int,
+    tripsEntry: Int,
+    tripsOpenTripNo: Long?,
 ) {
     when (destination) {
         // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
         AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations, onOpenTrip = onOpenTrip)
-        AppDestination.TRIPS -> TripsScreen()
+        AppDestination.TRIPS -> TripsScreen(entry = tripsEntry, openTripNo = tripsOpenTripNo)
         AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry)
         AppDestination.SETTINGS -> SettingsScreen()
     }

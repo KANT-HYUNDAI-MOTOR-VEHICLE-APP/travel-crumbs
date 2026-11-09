@@ -263,4 +263,14 @@
     <string name="publish_consent_body">공개한 로드맵을 다른 사람 추천에 보여 줘요 · 설정에서 언제든 철회할 수 있어요</string>
     <string name="action_consent_and_save">동의하고 저장</string>
     <string name="region_unknown">지역 모름</string>
+
+    <!-- A-07 내 여행 보관함 · A-08 상세(#51 U6) -->
+    <string name="trips_sub">다녀온 곳 · 여행마다 공개 / 비공개</string>
+    <string name="trips_empty">아직 끝낸 여행이 없어요 · 「기록」에서 여행을 시작해 보세요</string>
+    <string name="trips_public_toggle">%1$s 공개</string>
+    <string name="action_consent_and_publish">동의하고 공개</string>
+    <string name="trip_rename_title">여행 이름 수정</string>
+    <string name="trip_rename_action">이름 수정</string>
+    <string name="trip_detail_rating">★ %1$.1f · %2$d명</string>
+    <string name="trip_detail_rating_none">받은 별점 없음</string>
 </resources>
