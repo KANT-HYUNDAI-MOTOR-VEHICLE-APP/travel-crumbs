@@ -219,6 +219,33 @@ class LocalTripStoreTest {
     }
 
     @Test
+    fun `R2-1 지운 여행의 장소까지 — 여행 삭제면 좌표 · 주소 · 메모 비움 · 그 뒤 철회도 남김없이 · 별점 기록 키는 모두 지우기로 사라짐`() = runBlocking {
+        recording.startTrip(NewTrip("지울 여행", emptySet(), "경복궁"))
+        val deletedNo = recording.progress.first().tripNo!!
+        val p1 = trips.addPlace(deletedNo, CurrentLocation(38.2, 128.59, "강원 속초시 중앙로 147"), draft = true)
+        trips.savePlace(p1, "중앙로 147", "지하 2층", emptySet())
+        recording.endTrip()
+        trips.deleteTrip(deletedNo)
+        var raw = db().travelDao().allPlacesOfUser(AppConfig.LOCAL_USER_NO).single { it.tripPlaceNo == p1 }
+        assertNull(raw.lat)
+        assertNull(raw.addr)
+        assertNull(raw.memo)
+
+        recording.startTrip(NewTrip("남는 여행", emptySet(), "남산서울타워"))
+        val keptNo = recording.progress.first().tripNo!!
+        trips.addPlace(keptNo, CurrentLocation(38.3, 128.6, "강원 속초시 영랑호반길 1"), draft = true)
+        trips.clearLocations()
+        assertTrue(db().travelDao().allPlacesOfUser(AppConfig.LOCAL_USER_NO).all { it.lat == null && it.lng == null && it.addr == null })
+        raw = db().travelDao().allPlacesOfUser(AppConfig.LOCAL_USER_NO).single { it.tripNo == keptNo }
+        assertNull("주소에서 만든 이름도 비움", raw.userPlaceNm)
+        assertEquals("목적지 이름은 남김", "남산서울타워", db().travelDao().latestTripOnce(AppConfig.LOCAL_USER_NO)?.destPlaceNm)
+
+        dataStore.edit { it[AppPreferencesKeys.RATING_RECORDS_JSON] = "{}" }
+        trips.deleteAll()
+        assertNull(dataStore.data.first()[AppPreferencesKeys.RATING_RECORDS_JSON])
+    }
+
+    @Test
     fun `U1-8 태그 마스터 — 처음 읽으면 시드 5개 · sort_ord 순 · 두 번 읽어도 그대로`() = runBlocking {
         val tags = LocalTagRepository(db().travelDao(), time)
         val first = tags.tags.first()

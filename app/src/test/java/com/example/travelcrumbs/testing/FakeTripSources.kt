@@ -128,6 +128,11 @@ class FakeTripRepository(
         state.value = state.value.filterNot { it.tripNo == tripNo }
     }
 
+    /** 다른 화면에서 지워짐 흉내(A-08 이 목록으로 돌아가는지). */
+    fun removeQuietly(tripNo: Long) {
+        state.value = state.value.filterNot { it.tripNo == tripNo }
+    }
+
     override suspend fun deleteAll() {
         state.value = emptyList()
     }

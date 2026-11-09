@@ -138,6 +138,21 @@ class TripsViewModelTest {
     }
 
     @Test
+    fun `R2-2 상세를 연 여행이 다른 곳에서 지워지면 목록으로 · 다시 열면 삭제 확인 팝업은 닫힌 채`() = runTest(dispatcher) {
+        val vm = detail(2)
+        vm.onAskDelete()
+        runCurrent()
+        trips.removeQuietly(2)
+        runCurrent()
+        assertTrue(vm.uiState.value.deleted)
+        vm.onDeletedHandled()
+        vm.load(1)
+        runCurrent()
+        assertFalse(vm.uiState.value.deleteAsk)
+        assertFalse(vm.uiState.value.deleted)
+    }
+
+    @Test
     fun `R1-3 여행 삭제 — 확인 팝업 · 지우면 보관함에서 빠지고 화면은 목록으로`() = runTest(dispatcher) {
         val list = list()
         val vm = detail(1)

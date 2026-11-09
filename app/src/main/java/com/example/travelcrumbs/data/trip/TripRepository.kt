@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -62,13 +61,16 @@ interface TripRepository {
     /** 추천 공개 동의 철회(C-03) — 내 공개 여행을 모두 비공개로. */
     suspend fun makeAllPrivate()
 
-    /** 위치 수집 동의 철회(C-03) — 내 장소의 좌표 · 주소(와 주소에서 온 이름)를 기기에서 지움(물리). */
+    /**
+     * 위치 수집 동의 철회(C-03) — 내 장소의 좌표 · 주소(와 주소에서 온 이름)를 기기에서 지움(물리 · 지운 여행의 장소까지).
+     * trip_mst.dest_place_nm 은 남김 — A-01 에서 앱 장소 목록(places.json 후보)에서 고른 이름이지 위치 수집 결과가 아님.
+     */
     suspend fun clearLocations()
 
     /** A-08 「여행 삭제」 — 그 여행을 지움(논리 삭제 · 목록 · 추천에서 빠짐). */
     suspend fun deleteTrip(tripNo: Long)
 
-    /** C-03 「내 기록 모두 지우기」 — 내 여행 · 동행 · 장소 · 태그 관계를 물리 삭제(진행 중 기록도 끝남 · 동의 이력은 남김). */
+    /** C-03 「내 기록 모두 지우기」 — 내 여행 · 동행 · 장소 · 태그 관계를 물리 삭제 + 별점 기록 · 검토 표시 키 삭제(진행 중 기록도 끝남 · 동의 이력은 남김). */
     suspend fun deleteAll()
 }
 
@@ -162,20 +164,12 @@ class LocalTripRepository @Inject constructor(
 
     override suspend fun clearLocations() {
         val userNo = users.currentUserNo()
-        val now = timeSource.nowMillis()
-        dao.places().first()
-            .filter { place -> place.lat != null || place.lng != null || place.addr != null }
-            .filter { place -> mineTripNos(userNo).contains(place.tripNo) }
-            .forEach { place ->
-                // 장소 이름이 주소에서 만든 처음 값 그대로면 그것도 위치 정보 — 비움. 사람이 고친 이름은 남김
-                val derived = place.addr?.let(::placeNameFromAddr)
-                val keep = place.userPlaceNm?.takeIf { it != derived }
-                dao.clearPlaceLocation(place.tripPlaceNo, keep, now)
-            }
+        // 장소 이름이 주소에서 만든 처음 값 그대로면 그것도 위치 정보 — 비움(지운 행까지). 사람이 고친 이름은 남김
+        val derivedNameNos = dao.allPlacesOfUser(userNo)
+            .filter { place -> place.addr != null && place.userPlaceNm != null && place.userPlaceNm == placeNameFromAddr(place.addr) }
+            .map { it.tripPlaceNo }
+        dao.clearLocations(userNo, derivedNameNos, timeSource.nowMillis())
     }
-
-    private suspend fun mineTripNos(userNo: Long): Set<Long> =
-        dao.trips().first().filter { it.userNo == userNo }.map { it.tripNo }.toSet()
 
     override suspend fun deleteTrip(tripNo: Long) {
         dao.markTripDeleted(tripNo, timeSource.nowMillis())
@@ -183,7 +177,11 @@ class LocalTripRepository @Inject constructor(
 
     override suspend fun deleteAll() {
         dao.deleteAllTripsOfUser(users.currentUserNo())
-        dataStore.edit { it.remove(AppPreferencesKeys.REVIEWED_TRIP_NOS) }
+        dataStore.edit {
+            it.remove(AppPreferencesKeys.REVIEWED_TRIP_NOS)
+            // 별점 기록(안내받은 로드맵 · 내 별점 · RatingRepository 의 키)도 내 기록 — 함께 지움(#51 리뷰 2바퀴 B)
+            it.remove(AppPreferencesKeys.RATING_RECORDS_JSON)
+        }
     }
 
     override suspend fun makeAllPrivate() {

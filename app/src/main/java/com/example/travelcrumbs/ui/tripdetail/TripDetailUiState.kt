@@ -20,7 +20,7 @@ data class TripDetailUiState(
     val consentAsk: Boolean = false,
     /** 「여행 삭제」 확인 팝업. */
     val deleteAsk: Boolean = false,
-    /** 삭제 끝 — 화면이 받아 보관함 목록으로. */
+    /** 삭제 끝(여기서 지움 또는 고른 여행이 없어짐) — 화면이 받아 보관함 목록으로. */
     val deleted: Boolean = false,
     val tagSheet: PlaceTagSheetItem? = null,
     val message: UiMessage? = null,

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -55,8 +56,9 @@ class TripDetailViewModel @Inject constructor(
         onSaved = { message.value = it },
     )
 
+    /** 고른 여행 번호와 그 여행(없으면 null) — 번호가 있는데 여행이 없으면 지워진 것. */
     private val trip = savedStateHandle.getStateFlow<Long?>(KEY_TRIP, null)
-        .flatMapLatest { no -> if (no == null) flowOf(null) else tripRepository.trip(no) }
+        .flatMapLatest { no -> if (no == null) flowOf(null to null) else tripRepository.trip(no).map { no to it } }
 
     private val deleted = MutableStateFlow(false)
 
@@ -82,7 +84,7 @@ class TripDetailViewModel @Inject constructor(
         ratingRepository.records,
         dialogs,
         tagSheet.item,
-    ) { record, tags, ratings, d, sheet ->
+    ) { (selectedNo, record), tags, ratings, d, sheet ->
         val names = tags.associate { it.tagNo to it.tagNm }
         val mine = record?.let { ratings.ratingOf(AppConfig.LOCAL_TRIP_RECO_NO_OFFSET + it.tripNo) }
         TripDetailUiState(
@@ -95,7 +97,7 @@ class TripDetailViewModel @Inject constructor(
             renameDraft = d.rename,
             consentAsk = d.consentAsk,
             deleteAsk = d.deleteAsk,
-            deleted = d.deleted,
+            deleted = d.deleted || (selectedNo != null && record == null),
             tagSheet = sheet,
             message = d.message,
         )
@@ -110,6 +112,7 @@ class TripDetailViewModel @Inject constructor(
         savedStateHandle[KEY_TRIP] = tripNo
         savedStateHandle[KEY_RENAME] = null
         savedStateHandle[KEY_CONSENT_ASK] = false
+        savedStateHandle[KEY_DELETE_ASK] = false
     }
 
     fun onEditName() {

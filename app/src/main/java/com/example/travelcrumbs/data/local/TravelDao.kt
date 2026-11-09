@@ -113,16 +113,42 @@ interface TravelDao {
         if (tags.isNotEmpty()) insertPlaceTags(tags)
     }
 
-    /** 위치 칸 비우기(위치 수집 동의 철회 · #51 리뷰 P1) — 좌표 · 주소를 물리적으로 지움 · 장소 이름이 주소에서 온 처음 값이면 그것도. */
-    @Query(
-        "UPDATE trip_place_dtl SET lat = NULL, lng = NULL, addr = NULL, user_place_nm = :userPlaceNm, updated_at = :now " +
-            "WHERE trip_place_no = :tripPlaceNo",
-    )
-    suspend fun clearPlaceLocation(tripPlaceNo: Long, userPlaceNm: String?, now: Long)
+    /** 이 사용자의 장소 전부 — 지운 여행 · 지운 행까지(위치 철회가 남김없이 비우게 · #51 리뷰 2바퀴 A). */
+    @Query("SELECT * FROM trip_place_dtl WHERE trip_no IN (SELECT trip_no FROM trip_mst WHERE user_no = :userNo)")
+    suspend fun allPlacesOfUser(userNo: Long): List<TripPlaceDtlEntity>
 
-    /** 여행 하나 지우기(A-08 「여행 삭제」 · 논리 삭제 · #51 리뷰 P2) — 목록 · 추천 · 지금 여행에서 빠짐. */
+    @Query("UPDATE trip_place_dtl SET user_place_nm = NULL, updated_at = :now WHERE trip_place_no IN (:tripPlaceNos)")
+    suspend fun clearPlaceNames(tripPlaceNos: List<Long>, now: Long)
+
+    /** 이 사용자의 모든 장소 좌표 · 주소를 한 번에 NULL(deleted_yn 과 무관 · 물리 갱신). */
+    @Query(
+        "UPDATE trip_place_dtl SET lat = NULL, lng = NULL, addr = NULL, updated_at = :now " +
+            "WHERE trip_no IN (SELECT trip_no FROM trip_mst WHERE user_no = :userNo)",
+    )
+    suspend fun clearLocationsOfUser(userNo: Long, now: Long)
+
+    /** 위치 철회 — 주소에서 만든 처음 이름([derivedNameNos])을 비우고 좌표 · 주소를 한 쿼리로 비움(한 트랜잭션). */
+    @Transaction
+    suspend fun clearLocations(userNo: Long, derivedNameNos: List<Long>, now: Long) {
+        if (derivedNameNos.isNotEmpty()) clearPlaceNames(derivedNameNos, now)
+        clearLocationsOfUser(userNo, now)
+    }
+
     @Query("UPDATE trip_mst SET deleted_yn = '${YesNo.YES}', updated_at = :now, updated_user_no = user_no WHERE trip_no = :tripNo")
-    suspend fun markTripDeleted(tripNo: Long, now: Long)
+    suspend fun markTripDeletedOnly(tripNo: Long, now: Long)
+
+    @Query("UPDATE trip_place_dtl SET lat = NULL, lng = NULL, addr = NULL, memo = NULL, updated_at = :now WHERE trip_no = :tripNo")
+    suspend fun clearTripPlaceDetails(tripNo: Long, now: Long)
+
+    /**
+     * 여행 하나 지우기(A-08 「여행 삭제」 · #51 리뷰 P2 · 2바퀴 C) — 여행은 논리 삭제(목록 · 추천 · 지금 여행에서 빠짐) +
+     * 그 여행 장소의 좌표 · 주소 · 메모는 물리적으로 비움(「장소 · 태그 · 메모가 함께 사라지고」 문구와 맞춤).
+     */
+    @Transaction
+    suspend fun markTripDeleted(tripNo: Long, now: Long) {
+        markTripDeletedOnly(tripNo, now)
+        clearTripPlaceDetails(tripNo, now)
+    }
 
     @Query(
         "DELETE FROM trip_place_tag_rel WHERE trip_place_no IN (SELECT trip_place_no FROM trip_place_dtl " +
