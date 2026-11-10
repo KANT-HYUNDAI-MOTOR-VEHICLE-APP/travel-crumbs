@@ -58,15 +58,27 @@
 | 콜드 3회 | 앱이 꺼져 있을 때 속도 | 3회 모두 성공 · 약 3초 |
 | 앱 열기 시험 | OPEN 함수를 빼도 열리는지 | 「트래블 크럼스 앱 열어 줘」로 성공 |
 
-## 5. DB 구축 참고(Gleo 기능이 쓰는 데이터)
+## 5. DB 구축 참고 — 데이터 표준정의서 v0.4 기준
 
-| Gleo 기능 | 읽기 · 쓰기 | 데이터 | 주의 |
+Gleo 기능은 **새 테이블 · 칸을 만들지 않고** 화면 버튼과 같은 저장 경로를 씀. 아래는 표준정의서 v0.4 · 데이터 결정 로그 기준으로 Gleo 기능이 닿는 데이터.
+
+| Gleo 기능 | 표준 기준 데이터(읽기 · 쓰기) |
+|---|---|
+| 장소 기록 | **쓰기** `trip_place_dtl` 1행 — `draft_yn='Y'` · `lat` · `lng` · `recorded_at` · 공통 칸. 방문 순서는 `recorded_at`(D09) · `trip_mst.place_cnt` +1 |
+| 멈춤 · 재개 | **쓰기** `trip_mst.trip_status_cd` RECORDING ↔ PAUSED + **`trip_status_hist` 1행**(R12 · D27) |
+| 여행 종료 | 쓰기 없음(확인 팝업만). 사람이 「종료」를 누르면 기존 경로로 `trip_status_cd=COMPLETED` · `end_at` · `trip_status_hist` |
+| 오늘 기록 | 읽기 `trip_place_dtl.recorded_at`(기기 시간대 자정 이후) · `trip_mst.trip_status_cd` · `place_cnt` |
+| 경로 추천 | 읽기 `route_reco_dtl`(추천유형코드 · 유사도 · 여행개수 · 소요시간) · `route_reco_place_dtl`(장소순서) — 4절 참고 |
+
+### 5.1 표준과 다른 지금 구현(DB 구축 때 맞출 것)
+
+| # | 지금(develop 앱 Room · 시드) | 표준 v0.4 | Gleo 쪽 영향 |
 |---|---|---|---|
-| 장소 기록 | **쓰기** | `trip_place_dtl` 1행 — `draft_yn=Y` · `lat` · `lng` · `addr`(내비 현재 위치) · `recorded_at` · `place_ord`(마지막+1) | 화면 「이 장소 기록」과 같은 경로(`TripPlaceRecorder` → `TripRepository.addPlace`). 위치 동의가 없으면 Gleo 는 기록하지 않음 |
-| 멈춤 · 재개 | **쓰기** | `trip_mst.trip_status_cd` RECORDING ↔ PAUSED | 화면 버튼과 같은 `RecordingRepository.togglePause()` · 현재 상태를 보고 맞을 때만 |
-| 여행 종료 | 쓰기 없음 | — | 팝업만 띄움. 실제 종료(COMPLETED · `end_at`)는 사람이 「종료」를 눌러 기존 경로로 |
-| 오늘 기록 | 읽기 | `trip_place_dtl.recorded_at`(기기 시간대 자정 이후) · 지금 여행 상태 · 장소 수 | `recorded_at` 은 밀리초 시각이어야 함 |
-| 경로 추천 | 읽기 | 추천 로드맵 — 지역(시도 짧은 이름 「경북」 + 시군구 「경주시」) · 별점 평균 · 참여 수 · 첫 장소 좌표 | 지역 맞추기가 **시도 짧은 이름(SidoNames)과 시군구 정식 이름**에 기대어 있음. DB 에서 이름 꼴을 바꾸면(「경상북도」 등) 맞추기 규칙도 같이 바꿔야 함 |
-| 서버 | — | `trip_place_dtl.req_uuid` · `req_hash`(Alembic `4a93d2b71f64` · 확정) | 지금 앱은 기기 안 저장이라 쓰지 않음. 서버 동기화를 되살리면 Gleo 요청 ID 를 `Idempotency-Key` 로 보냄 |
+| S1 | `trip_place_dtl.place_ord`(마지막+1) | D09 — trip_place_dtl 에 place_ord 없음 · 순서는 `recorded_at` | 없음 — Gleo 는 순서를 쓰지 않음 |
+| S2 | `trip_place_dtl.addr`(내비 주소) | 표준 용어에 `addr` 없음 | 없음 — Gleo 는 주소를 읽거나 말하지 않음 |
+| S3 | 멈춤 · 재개 때 `trip_status_hist` 행을 남기지 않음 | R12 · D27 — 상태가 바뀔 때마다 1행 | Gleo 멈춤 · 재개도 같은 저장소를 쓰므로 **저장소를 고치면 Gleo 도 자동으로 따라감** |
+| S4 | 추천 = 시연 시드(지역 「경북 · 경주시」 · 별점 평균 · 참여 수) | `route_reco_dtl` · `route_reco_place_dtl` · 지역 · 별점 칸 없음 | **있음** — Gleo 지역 맞추기(「경주」 → 경주시)가 시드의 시도 짧은 이름 · 시군구 정식 이름에 기댐. 표준 추천 DB 로 바꿀 때 지역을 어디서 읽을지(장소 `place_mst` 주소 · 행정구역 등) 정해야 함 |
+| S5 | 서버 `trip_place_dtl.req_uuid` · `req_hash` | 결정 로그 「확정」 · 정의서 v0.4 본문 미반영(다음 버전) | 없음 — 지금 앱은 기기 안 저장이라 안 씀 |
 
-- 새로 만든 테이블 · 칸 없음(서버 `req_uuid` · `req_hash` 제외). 좌표는 콜백 · 로그에 넣지 않음.
+- Gleo 코드는 저장소 인터페이스(`TripRepository.addPlace` · `RecordingRepository.togglePause` · `RecommendationRepository`)만 부름 → **S1 ~ S3 · S5 는 저장소 구현만 표준대로 바꾸면 Gleo 수정 없음.** S4 만 지역 맞추기 입력을 새 추천 DB 에 맞춰야 함.
+- 좌표는 콜백 · 로그에 넣지 않음.
