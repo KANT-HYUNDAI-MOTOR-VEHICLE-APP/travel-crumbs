@@ -19,6 +19,7 @@ import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuideRequestState
 import com.example.travelcrumbs.domain.GuideRequestTracker
+import com.example.travelcrumbs.domain.EndTripUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -77,6 +78,7 @@ class HomeViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val tagRepository: TagRepository,
     private val unfinishedInputRepository: UnfinishedInputRepository,
+    private val endTrip: EndTripUseCase,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -309,7 +311,8 @@ class HomeViewModel @Inject constructor(
     fun onConfirmEndTrip() {
         savedStateHandle[KEY_END_CONFIRM] = false
         viewModelScope.launch {
-            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+            // 기록 대기 확정 → 종료(#66 N3 · 주행 화면과 같은 동작 하나)
+            endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
         }
     }
 

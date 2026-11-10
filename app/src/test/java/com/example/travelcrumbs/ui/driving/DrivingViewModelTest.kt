@@ -64,6 +64,7 @@ class DrivingViewModelTest {
         savedStateHandle = handle,
         ratingRepository = ratings,
         naviRepository = navi,
+        endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
     )
 
     @Test

@@ -5,12 +5,15 @@ import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.NaviGuidance
 import com.example.travelcrumbs.domain.model.CurrentLocation
 import com.example.travelcrumbs.domain.model.NaviActiveRoute
+import com.example.travelcrumbs.domain.model.NaviDestination
+import com.example.travelcrumbs.domain.model.NaviEvent
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteRequestResult
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -25,6 +28,12 @@ interface NaviRepository : NaviGuidance {
 
     /** 지금 위치(위도 · 경도 · 주소) — 연결 안 됨 · 조회 실패 · 한도 지남이면 null(#51 U4 · 값은 로그에 없음). */
     suspend fun currentLocation(): CurrentLocation?
+
+    /** 내비 상시 알림(시작 · 도착(이름) · 취소 · #66) — 연결된 동안만 옴 · 받은 순서대로. */
+    val events: Flow<NaviEvent>
+
+    /** 지금 안내 중인 목적지(#66 시작 알림 때) — 안내 중 아님 · 미연결 · 실패 · 한도 지남이면 null(값은 로그에 없음). */
+    suspend fun guidedDestination(): NaviDestination?
 
     /** 차량 내비 앱을 열 수 있나(「내비 보기」 버튼 표시 · #51 U0). */
     fun naviAppAvailable(): Boolean
@@ -54,6 +63,20 @@ class DefaultNaviRepository @Inject constructor(
     }
 
     override fun openNaviApp(): Boolean = naviApp.open()
+
+    override val events: Flow<NaviEvent> = dataSource.events
+
+    override suspend fun guidedDestination(): NaviDestination? {
+        if (!dataSource.ready.value) return null
+        return try {
+            withTimeoutOrNull(AppConfig.SDK_CALL_TIMEOUT_MS) { dataSource.guidedDestination() }
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (error: Exception) {
+            Log.w(TAG, "안내 목적지 조회 실패: ${error.javaClass.simpleName}")
+            null
+        }
+    }
 
     override val ready: StateFlow<Boolean> = dataSource.ready
 

@@ -85,6 +85,7 @@ class HomeViewModelTest {
         tripRepository = FakeTripRepository(),
         tagRepository = FakeTagRepository(),
         unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
+        endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
     )
 
     @Test

@@ -2,6 +2,7 @@ package com.example.travelcrumbs.data.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
 import ai.pleos.playground.navi.data.CurrentLocationInfo
+import ai.pleos.playground.navi.data.DestinationArrivedInfo
 import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.RouteInfo
 import ai.pleos.playground.navi.data.RouteStartInfo
@@ -12,6 +13,8 @@ import android.content.Context
 import android.util.Log
 import com.example.travelcrumbs.domain.model.CurrentLocation
 import com.example.travelcrumbs.domain.model.NaviActiveRoute
+import com.example.travelcrumbs.domain.model.NaviDestination
+import com.example.travelcrumbs.domain.model.NaviEvent
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
@@ -22,7 +25,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -30,7 +36,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 /**
  * Pleos NaviHelper 를 감싸는 유일한 파일 — `ai.pleos.*` 타입은 이 패키지 밖으로 나가지 않음.
  * 쓰는 범위: 조회 getRouteStateInfo · getDestinationInfo · getCurrentLocationInfo(권한 `NAVI_ROUTE` · 현재 위치는 #51 U4 가 더함) ·
- * 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
+ * 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4) · 상시 리스너(시작 · 도착 · 취소 알림 · 권한 표시 없음 · #66).
  * 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations
  */
 @Singleton
@@ -45,13 +51,48 @@ class NaviInfoDataSource @Inject constructor(
     /** 내비 서비스에 붙었는지. */
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
 
+    private val _events = MutableSharedFlow<NaviEvent>(extraBufferCapacity = EVENT_BUFFER)
+
+    /**
+     * 내비 상시 알림(#66 스펙 3.8) — 시작 · 도착(이름) · 취소를 domain 이벤트로. 받은 순서 그대로 · 구독자가 없으면 버림.
+     * 로그에는 콜백 이름만(이름 · 주소 · 좌표 없음 · 4.3).
+     */
+    val events: SharedFlow<NaviEvent> = _events.asSharedFlow()
+
+    private val eventListener = object : NaviHelperEventListener {
+        override fun onRouteStarted(routeStartInfo: RouteStartInfo) {
+            Log.i(TAG, "상시 onRouteStarted")
+            _events.tryEmit(NaviEvent.RouteStarted)
+        }
+
+        override fun onDestinationArrived(destinationArrivedInfo: DestinationArrivedInfo) {
+            Log.i(TAG, "상시 onDestinationArrived")
+            _events.tryEmit(NaviEvent.DestinationArrived(destinationArrivedInfo.name))
+        }
+
+        override fun onRouteCancelled() {
+            Log.i(TAG, "상시 onRouteCancelled")
+            _events.tryEmit(NaviEvent.RouteCancelled)
+        }
+    }
+
+    /** 상시 리스너 1개 — 붙을 때 · 다시 붙을 때 1개 · 끊김 · release 때 뗌(중복 없음 · T50). */
+    private val listenerSlot = NaviListenerSlot(
+        add = { naviHelper.addListener(eventListener) },
+        remove = { naviHelper.removeListener(eventListener) },
+    )
+
     fun initialize() {
         if (!initialized.compareAndSet(false, true)) return
         runCatching {
             naviHelper.initialize(
-                { _ready.value = true },
+                {
+                    listenerSlot.attach()
+                    _ready.value = true
+                },
                 { error ->
                     _ready.value = false
+                    listenerSlot.detach()
                     Log.w(TAG, "NaviHelper initialize 실패: ${error.javaClass.simpleName}")
                 },
             )
@@ -64,6 +105,7 @@ class NaviInfoDataSource @Inject constructor(
     fun release() {
         if (initialized.compareAndSet(true, false)) {
             _ready.value = false
+            listenerSlot.detach()
             runCatching { naviHelper.release() }
                 .onFailure { Log.w(TAG, "NaviHelper release 실패: ${it.javaClass.simpleName}") }
         }
@@ -87,6 +129,21 @@ class NaviInfoDataSource @Inject constructor(
             destinationName = destination.name,
             destinationLatitude = destination.latitude,
             destinationLongitude = destination.longitude,
+        )
+    }
+
+    /**
+     * 지금 안내 중인 목적지(#66 시작 알림 때만) — 안내 중이 아니면 null(목적지를 묻지 않음 · F7). 이름 · 주소 · 좌표(입구 좌표 안 씀).
+     * 실패는 예외 · 값은 로그에 남기지 않음.
+     */
+    suspend fun guidedDestination(): NaviDestination? {
+        if (routeStateInfo().naviMode.name !in GUIDING_MODES) return null
+        val destination = destinationInfo()
+        return NaviDestination(
+            name = destination.name,
+            address = destination.address,
+            latitude = destination.latitude,
+            longitude = destination.longitude,
         )
     }
 
@@ -233,6 +290,9 @@ class NaviInfoDataSource @Inject constructor(
 
     private companion object {
         const val TAG = "NaviInfoDataSource"
+
+        /** 상시 알림 버퍼 — 얼림이 풀릴 때 쌓인 알림이 한꺼번에 와도 처리 전에 버리지 않을 만큼. */
+        const val EVENT_BUFFER = 64
 
         /** 목적지로 안내 중인 내비 모드(SDK NaviMode 이름 — NOT_WORKING · SAFE_GUIDING 은 안내 아님). */
         val GUIDING_MODES = setOf("ROUTE_GUIDING", "SIMULATION_GUIDING")

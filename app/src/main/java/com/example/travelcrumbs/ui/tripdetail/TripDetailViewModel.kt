@@ -8,6 +8,7 @@ import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.PlaceRecordCleanup
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.Visibility
@@ -43,6 +44,7 @@ class TripDetailViewModel @Inject constructor(
     ratingRepository: RatingRepository,
     private val timeSource: TimeSource,
     private val savedStateHandle: SavedStateHandle,
+    private val placeCleanup: PlaceRecordCleanup,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -190,7 +192,7 @@ class TripDetailViewModel @Inject constructor(
         val tripNo = savedStateHandle.get<Long>(KEY_TRIP) ?: return
         savedStateHandle[KEY_DELETE_ASK] = false
         viewModelScope.launch {
-            tripRepository.deleteTrip(tripNo)
+            placeCleanup.deleteTrip(tripNo)
             deleted.value = true
         }
     }

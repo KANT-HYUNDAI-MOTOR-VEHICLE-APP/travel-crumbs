@@ -37,6 +37,15 @@ object AppConfig {
     /** 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소를 같다고 보는 거리(미터 · R1). */
     const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
 
+    /**
+     * 내비 목적지 자동 장소 기록(#66 스펙 3.8 「수치」) — 기록 대기 최대 건수 · 「PARKED 아직」 대기의 기한(도착 뒤 이 안에 PARKED 를 못 보면 지나친 것) ·
+     * 모든 대기의 절대 만료(도착 시각 + 이 값) · 「이 앱 요청」 판정의 시작됨 뒤 창(3.6 (b) · N17). 값은 스펙 추천(N16 · N17) — 사람 확인.
+     */
+    const val AUTO_RECORD_PENDING_MAX_COUNT: Int = 5
+    const val AUTO_RECORD_PARK_WAIT_MILLIS: Long = 10 * 60_000L
+    const val AUTO_RECORD_PENDING_MAX_AGE_MILLIS: Long = 24 * 60 * 60_000L
+    const val AUTO_RECORD_APP_REQUEST_WINDOW_MILLIS: Long = 60_000L
+
     /** 「가 볼 장소」 고정 최대 개수(스펙 navigation 결정 기록 U16). */
     const val PINNED_PLACES_MAX: Int = 3
 

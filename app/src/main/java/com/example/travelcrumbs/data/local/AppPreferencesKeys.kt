@@ -37,6 +37,13 @@ object AppPreferencesKeys {
      */
     val REVIEWED_TRIP_NOS = stringPreferencesKey("reviewed_trip_nos")
 
+    /**
+     * 내비 목적지 자동 기록(#66 스펙 4.2) — 기록 대기 목록(최대 5건 · 24시간) · 자동 이름 원본(장소 번호 + 확정 때 이름). JSON 한 덩어리씩 ·
+     * 읽기 변환은 AutoRecordLocalDataSource 한 곳. DB 표가 아님(표준 테이블 규칙 밖 · N10) · 백업 안 됨(allowBackup=false).
+     */
+    val AUTO_RECORD_PENDING_JSON = stringPreferencesKey("auto_record_pending_json")
+    val AUTO_RECORD_NAMES_JSON = stringPreferencesKey("auto_record_names_json")
+
     /** #6 판 키 — 앱 업데이트 직후 한 번 옮기거나(기록 상태 · N10) 지우기만(작성 중 내용 · D27) 함. */
     object Legacy {
         val RECORDING_STATUS = stringPreferencesKey("recording_status")
