@@ -104,6 +104,44 @@ class DistractionOptimized(unittest.TestCase):
         self.assertEqual(self.run_with_activity_meta(), 0)
 
 
+class RemovedByMerge(unittest.TestCase):
+    """라이브러리가 끌어온 권한을 `tools:node="remove"` 로 지우는 선언은 요청 권한이 아님(#73)."""
+
+    def run_raw(self, lines):
+        head = HEAD.replace("<manifest ", '<manifest xmlns:tools="http://schemas.android.com/tools" ')
+        fd, path = tempfile.mkstemp(suffix=".xml")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write("\n".join([head, '  <uses-permission android:name="android.permission.INTERNET" />', *lines, TAIL]))
+        try:
+            return subprocess.run([sys.executable, SCRIPT, path], capture_output=True,
+                                  text=True, encoding="utf-8").returncode
+        finally:
+            os.unlink(path)
+
+    def test_remove_declarations_pass(self):
+        self.assertEqual(self.run_raw([
+            '  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />',
+            '  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />',
+            '  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" tools:node="removeAll" />',
+        ]), 0)
+
+    def test_same_permission_without_remove_fails(self):
+        self.assertEqual(self.run_raw([
+            '  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+        ]), 1)
+
+    def test_merge_marker_still_counts_as_request(self):
+        self.assertEqual(self.run_raw([
+            '  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="merge" />',
+        ]), 1)
+
+    def test_background_location_remove_passes(self):
+        """지우는 선언은 백그라운드 위치라도 금지 대상이 아님 — 결과 앱에 권한이 없음."""
+        self.assertEqual(self.run_raw([
+            '  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />',
+        ]), 0)
+
+
 class TemporaryAllow(unittest.TestCase):
     def test_allow_lets_an_unlisted_permission_through(self):
         """--allow 는 스펙 승인 전 손으로 확인할 때만 — 커밋 · CI 명령에는 쓰지 않음."""
