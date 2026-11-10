@@ -5,52 +5,53 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
-/** 차량 화면은 어두운 바탕 하나 — 지시서 5장 토큰을 Material 자리에 넣음(주간 · 야간 같은 값). */
-private val TcColorScheme = darkColorScheme(
-    primary = TcColors.BrandPrimary,
-    onPrimary = TcColors.TextOnPrimary,
-    primaryContainer = TcColors.BrandPrimary,
-    onPrimaryContainer = TcColors.TextOnPrimary,
-    secondary = TcColors.BrandSecondary,
-    onSecondary = TcColors.TextOnPrimary,
-    secondaryContainer = TcColors.BrandSecondary,
-    onSecondaryContainer = TcColors.TextOnPrimary,
-    tertiary = TcColors.BrandLavender,
-    onTertiary = TcColors.TextOnPrimary,
-    background = TcColors.BackgroundBase,
-    onBackground = TcColors.TextPrimary,
-    surface = TcColors.BackgroundSurface,
-    onSurface = TcColors.TextPrimary,
-    surfaceVariant = TcColors.BackgroundElevated,
-    onSurfaceVariant = TcColors.TextSecondary,
-    surfaceContainerLowest = TcColors.BackgroundBase,
-    surfaceContainerLow = TcColors.BackgroundSurface,
-    surfaceContainer = TcColors.BackgroundSurface,
-    surfaceContainerHigh = TcColors.BackgroundElevated,
-    surfaceContainerHighest = TcColors.BackgroundElevated,
-    outline = TcColors.BorderDefault,
-    outlineVariant = TcColors.BorderSubtle,
-    error = TcColors.Danger,
-    onError = TcColors.TextOnPrimary,
-    scrim = Color.Black,
+/** 색 토큰 → Material 색 역할 — 매핑은 여기 한 곳(디자인 시스템 5절 · #34). 차량 화면은 어두운 바탕만. */
+private val TravelCrumbsColorScheme = darkColorScheme(
+    primary = TravelCrumbsColors.BrandPrimary,
+    onPrimary = TravelCrumbsColors.TextOnPrimary,
+    primaryContainer = TravelCrumbsColors.BrandPrimary,
+    onPrimaryContainer = TravelCrumbsColors.TextOnPrimary,
+    secondary = TravelCrumbsColors.BrandSecondary,
+    onSecondary = TravelCrumbsColors.TextOnPrimary,
+    // 선택 상태(레일 선택 칸 · 띠) = Background/Selected + Brand/Secondary(10절)
+    secondaryContainer = TravelCrumbsColors.BackgroundSelected,
+    onSecondaryContainer = TravelCrumbsColors.BrandSecondary,
+    background = TravelCrumbsColors.BackgroundBase,
+    onBackground = TravelCrumbsColors.TextPrimary,
+    surface = TravelCrumbsColors.BackgroundSurface,
+    onSurface = TravelCrumbsColors.TextPrimary,
+    surfaceVariant = TravelCrumbsColors.BackgroundElevated,
+    onSurfaceVariant = TravelCrumbsColors.TextSecondary,
+    surfaceDim = TravelCrumbsColors.BackgroundBase,
+    surfaceBright = TravelCrumbsColors.BackgroundElevated,
+    surfaceContainerLowest = TravelCrumbsColors.BackgroundBase,
+    surfaceContainerLow = TravelCrumbsColors.BackgroundSurface,
+    surfaceContainer = TravelCrumbsColors.BackgroundSurface,
+    surfaceContainerHigh = TravelCrumbsColors.BackgroundElevated,
+    surfaceContainerHighest = TravelCrumbsColors.BackgroundElevated,
+    inverseSurface = TravelCrumbsColors.TextPrimary,
+    inverseOnSurface = TravelCrumbsColors.BackgroundBase,
+    outline = TravelCrumbsColors.BorderDefault,
+    outlineVariant = TravelCrumbsColors.BorderSubtle,
+    error = TravelCrumbsColors.Danger,
+    onError = TravelCrumbsColors.TextOnPrimary,
 )
 
-private val TcShapes = Shapes(
-    extraSmall = RoundedCornerShape(Dimens.ButtonCorner),
-    small = RoundedCornerShape(Dimens.ButtonCorner),
-    medium = RoundedCornerShape(Dimens.CardCorner),
-    large = RoundedCornerShape(Dimens.CardCorner),
-    extraLarge = RoundedCornerShape(Dimens.CardCorner),
+/** 버튼 · 카드 · 팝업 모서리 16(7절). 칩(999)은 쓰는 화면이 생길 때. */
+private val TravelCrumbsShapes = Shapes(
+    small = RoundedCornerShape(Dimens.Corner),
+    medium = RoundedCornerShape(Dimens.Corner),
+    large = RoundedCornerShape(Dimens.Corner),
+    extraLarge = RoundedCornerShape(Dimens.Corner),
 )
 
 @Composable
 fun TravelCrumbsTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = TcColorScheme,
-        typography = TcTypography,
-        shapes = TcShapes,
+        colorScheme = TravelCrumbsColorScheme,
+        typography = TravelCrumbsTypography,
+        shapes = TravelCrumbsShapes,
         content = content,
     )
 }

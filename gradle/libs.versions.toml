@@ -13,6 +13,8 @@ androidxCoreKtx = "1.17.0"
 # 기록 상태 · 임시 저장(앱 종료 · 재부팅 뒤 복원 — 스펙 app-shell D3)
 androidxDatastore = "1.1.7"
 androidxLifecycle = "2.10.0"
+# 핀(여행의 목적지 기록) 기기 원본 — 스펙 navigation 4.1 · U43(Room). 2.8.4 의 컴파일러는 kotlin-stdlib 2.2.0 · 내장 Kotlin 2.2.10 과 맞음
+androidxRoom = "2.8.4"
 
 coroutines = "1.10.2"
 kotlinxSerialization = "1.9.0"
@@ -44,6 +46,9 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
+
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "androidxRoom" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "androidxRoom" }
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }

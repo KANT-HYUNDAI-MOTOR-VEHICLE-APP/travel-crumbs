@@ -1,0 +1,622 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "16abe3053e1419738eb7ebab7edd7684",
+    "entities": [
+      {
+        "tableName": "navi_req_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`navi_req_log_no` INTEGER NOT NULL, `placeId` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `utcOffsetSeconds` INTEGER NOT NULL, `uploadState` TEXT NOT NULL, PRIMARY KEY(`navi_req_log_no`))",
+        "fields": [
+          {
+            "fieldPath": "sequence",
+            "columnName": "navi_req_log_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placeId",
+            "columnName": "placeId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtMillis",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utcOffsetSeconds",
+            "columnName": "utcOffsetSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadState",
+            "columnName": "uploadState",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "navi_req_log_no"
+          ]
+        }
+      },
+      {
+        "tableName": "user_mst",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_no` INTEGER NOT NULL, `login_id` TEXT, `nickname_nm` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL, PRIMARY KEY(`user_no`))",
+        "fields": [
+          {
+            "fieldPath": "userNo",
+            "columnName": "user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loginId",
+            "columnName": "login_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nicknameNm",
+            "columnName": "nickname_nm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "user_no"
+          ]
+        }
+      },
+      {
+        "tableName": "user_consent_hist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_consent_hist_no` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_no` INTEGER NOT NULL, `consent_type_cd` TEXT NOT NULL, `consent_yn` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "userConsentHistNo",
+            "columnName": "user_consent_hist_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userNo",
+            "columnName": "user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consentTypeCd",
+            "columnName": "consent_type_cd",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consentYn",
+            "columnName": "consent_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "user_consent_hist_no"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_user_consent_hist_user_no",
+            "unique": false,
+            "columnNames": [
+              "user_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_user_consent_hist_user_no` ON `${TABLE_NAME}` (`user_no`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_mst",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`trip_no` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_no` INTEGER NOT NULL, `trip_nm` TEXT, `trip_status_cd` TEXT NOT NULL, `visibility_cd` TEXT NOT NULL, `start_at` INTEGER NOT NULL, `end_at` INTEGER, `duration` INTEGER, `dest_place_nm` TEXT, `accumulated_millis` INTEGER NOT NULL, `segment_start_millis` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "tripNo",
+            "columnName": "trip_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userNo",
+            "columnName": "user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripNm",
+            "columnName": "trip_nm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tripStatusCd",
+            "columnName": "trip_status_cd",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visibilityCd",
+            "columnName": "visibility_cd",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startAt",
+            "columnName": "start_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endAt",
+            "columnName": "end_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "destPlaceNm",
+            "columnName": "dest_place_nm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "accumulatedMillis",
+            "columnName": "accumulated_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "segmentStartMillis",
+            "columnName": "segment_start_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "trip_no"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_mst_user_no",
+            "unique": false,
+            "columnNames": [
+              "user_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_mst_user_no` ON `${TABLE_NAME}` (`user_no`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_companion_dtl",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`trip_companion_no` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `trip_no` INTEGER NOT NULL, `companion_type_cd` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "tripCompanionNo",
+            "columnName": "trip_companion_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripNo",
+            "columnName": "trip_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "companionTypeCd",
+            "columnName": "companion_type_cd",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "trip_companion_no"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_companion_dtl_trip_no",
+            "unique": false,
+            "columnNames": [
+              "trip_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_companion_dtl_trip_no` ON `${TABLE_NAME}` (`trip_no`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_place_dtl",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`trip_place_no` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `trip_no` INTEGER NOT NULL, `place_ord` INTEGER NOT NULL, `user_place_nm` TEXT, `memo` TEXT, `draft_yn` TEXT NOT NULL, `lat` REAL, `lng` REAL, `addr` TEXT, `recorded_at` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "tripPlaceNo",
+            "columnName": "trip_place_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripNo",
+            "columnName": "trip_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placeOrd",
+            "columnName": "place_ord",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userPlaceNm",
+            "columnName": "user_place_nm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "memo",
+            "columnName": "memo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "draftYn",
+            "columnName": "draft_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lng",
+            "columnName": "lng",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "addr",
+            "columnName": "addr",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recordedAt",
+            "columnName": "recorded_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "trip_place_no"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_place_dtl_trip_no",
+            "unique": false,
+            "columnNames": [
+              "trip_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_place_dtl_trip_no` ON `${TABLE_NAME}` (`trip_no`)"
+          }
+        ]
+      },
+      {
+        "tableName": "tag_mst",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tag_no` INTEGER NOT NULL, `tag_nm` TEXT NOT NULL, `use_yn` TEXT NOT NULL, `sort_ord` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL, PRIMARY KEY(`tag_no`))",
+        "fields": [
+          {
+            "fieldPath": "tagNo",
+            "columnName": "tag_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagNm",
+            "columnName": "tag_nm",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "useYn",
+            "columnName": "use_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrd",
+            "columnName": "sort_ord",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tag_no"
+          ]
+        }
+      },
+      {
+        "tableName": "trip_place_tag_rel",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`trip_place_tag_no` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `trip_place_no` INTEGER NOT NULL, `tag_no` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `created_user_no` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `updated_user_no` INTEGER NOT NULL, `deleted_yn` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "tripPlaceTagNo",
+            "columnName": "trip_place_tag_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripPlaceNo",
+            "columnName": "trip_place_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagNo",
+            "columnName": "tag_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdUserNo",
+            "columnName": "created_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedUserNo",
+            "columnName": "updated_user_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedYn",
+            "columnName": "deleted_yn",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "trip_place_tag_no"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_place_tag_rel_trip_place_no",
+            "unique": false,
+            "columnNames": [
+              "trip_place_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_place_tag_rel_trip_place_no` ON `${TABLE_NAME}` (`trip_place_no`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '16abe3053e1419738eb7ebab7edd7684')"
+    ]
+  }
+}
