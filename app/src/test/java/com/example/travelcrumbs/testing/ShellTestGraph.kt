@@ -120,6 +120,7 @@ class ShellTestGraph(
             savedStateHandle = SavedStateHandle(),
             ratingRepository = ratings,
             timeSource = time,
+            offlineMap = FakeOfflineMapRepository(),
         )
         else -> error("테스트 그래프에 없는 ViewModel: ${modelClass.simpleName}")
     }
