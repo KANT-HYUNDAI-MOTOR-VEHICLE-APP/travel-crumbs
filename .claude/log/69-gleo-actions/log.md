@@ -37,3 +37,7 @@
 - 최종 지표: 발화 67 · 우리 함수 성공 30 · 켜짐 중앙값 2.04초(p95 2.34) · 콜드 3.05초 · 콜백 거절 0
 - 발견: 첫 음절 잘림(「경주」 → 「주」)으로 지역 잃음 · 영어 앱 이름 받아쓰기 오류 — 발음 가이드 · 유도 아이디어 I1~I8 로 정리
 - 산출물: `docs/gleo/gleo-voice-report-20261110.pdf`(7쪽) · `docs/gleo/gleo-voice-integration.md` 갱신
+
+## 2 Gleo 브리핑 간결판 — 2026-11-11 · errorn
+- `docs/gleo/gleo-voice-integration.md` · `gleo-voice-report-20261110.pdf`(2쪽)를 사람 요청대로 핵심만: 기능별 되는 말 · 안 된 말 · 이유, 「제주도 → 서울」 원인(첫 음절 잘림 + 빈 region + 에뮬레이터 고정 위치), 속도, 실험과 이유, DB 구축 참고(Gleo 가 읽고 쓰는 테이블 · 칸)
+- 확인: region=제주도 → 제주 추천 정상 · Room 테이블 · 칸 이름(trip_mst · trip_place_dtl) 대조
