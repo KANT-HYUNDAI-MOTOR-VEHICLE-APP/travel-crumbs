@@ -179,6 +179,18 @@ class AppShellScreenTest {
     }
 
     @Test
+    fun `R30 안내 전 추천 상세에도 별점 버튼 표시 · 누르면 안내 조건 표시 · 팝업 없음`() {
+        show()
+        rail(AppDestination.RECOMMENDATIONS).performClick()
+        compose.onNode(hasText("강원") and hasClickAction()).performClick()
+        compose.onNode(hasText("속초시") and hasClickAction()).performClick()
+        compose.onNodeWithText("속초 가족여행").performClick()
+        button(R.string.rating_open).assertIsDisplayed().performClick()
+        compose.onNodeWithText(text(R.string.rating_guidance_required)).assertIsDisplayed()
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+    }
+
+    @Test
     fun `R18 레일 추천 · 추천 보러 가기는 늘 B-01 부터 — 주행 뒤 정차는 보던 화면`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()

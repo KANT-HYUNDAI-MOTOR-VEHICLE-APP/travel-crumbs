@@ -302,10 +302,11 @@ class RecommendationsViewModelTest {
         toSokcho()
         vm.openTrip(101)
         runCurrent()
-        assertFalse(state.detail!!.canRate) // 안내 기록 없음 → 버튼 없음
+        assertFalse(state.detail!!.canRate) // 안내 기록 없음 → 버튼 클릭 시 자격 안내
         vm.openRating()
         runCurrent()
         assertNull(state.rating)
+        assertEquals(UiMessage.RATING_GUIDANCE_REQUIRED, state.message)
         val kidsBefore = state.tagCounts.first { it.tagNo == 1L }.cnt
 
         vm.askGuidanceFromFirst()
@@ -344,7 +345,7 @@ class RecommendationsViewModelTest {
     }
 
     @Test
-    fun `R27 안내 요청 실패면 별점 자격 없음 — B-04 버튼 없음`() = runTest(dispatcher) {
+    fun `R27 안내 요청 실패면 별점 버튼 클릭 시 자격 안내 · 팝업 없음`() = runTest(dispatcher) {
         guidance.result = GuidanceRequestResult.Failed
         start()
         guideTrip101()
@@ -354,6 +355,7 @@ class RecommendationsViewModelTest {
         vm.openRating()
         runCurrent()
         assertNull(state.rating)
+        assertEquals(UiMessage.RATING_GUIDANCE_REQUIRED, state.message)
     }
 
     @Test
