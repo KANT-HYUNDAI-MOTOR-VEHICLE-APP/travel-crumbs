@@ -32,10 +32,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecommendationMapRules
 import com.example.travelcrumbs.domain.model.KoreaMapAsset
+import com.example.travelcrumbs.domain.model.LocationResultKind
 import com.example.travelcrumbs.domain.model.MapBounds
 import com.example.travelcrumbs.domain.model.MapCoord
 import com.example.travelcrumbs.domain.model.MapFitBasis
@@ -47,6 +50,12 @@ import com.example.travelcrumbs.ui.recommendations.RecommendationMapUi
 import com.example.travelcrumbs.ui.recommendations.map.MapCamera
 import com.example.travelcrumbs.ui.recommendations.map.RecommendationMapEntryPoint
 import com.example.travelcrumbs.ui.recommendations.map.RecommendationMapHolder
+import com.example.travelcrumbs.ui.recommendations.map.RecommendationMapRuntime
+import com.example.travelcrumbs.ui.recommendations.map.MapAccess
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlin.math.cos
 import com.example.travelcrumbs.ui.theme.Dimens
 import dagger.hilt.android.EntryPointAccessors
 import org.maplibre.android.MapLibre
@@ -67,6 +76,8 @@ class RecommendationMapCallbacks(
     val onPins: (MapPinResult) -> Unit,
     val onSelectPlace: (Long) -> Unit,
     val onSelectCluster: (List<Long>) -> Unit,
+    val onLocation: (Boolean, Boolean, LocationResultKind) -> Unit = { _, _, _ -> },
+    val onDataChanged: () -> Unit = {},
 )
 
 /**
@@ -90,6 +101,12 @@ fun RecommendationMap(
     val latestCallbacks by rememberUpdatedState(callbacks)
     val latestUi by rememberUpdatedState(mapUi)
     val latestSido by rememberUpdatedState(selectedSidoNm)
+    val runtime = remember(context) {
+        runCatching { EntryPointAccessors.fromApplication(context.applicationContext, RecommendationMapEntryPoint::class.java).recommendationMapRuntime() }.getOrNull()
+    }
+    val access by (runtime?.access ?: kotlinx.coroutines.flow.flowOf(MapAccess())).collectAsStateWithLifecycle(MapAccess())
+    var ownLocation by remember { mutableStateOf<MapCoord?>(null) }
+    var ownPoint by remember { mutableStateOf<Pair<Float, Float>?>(null) }
 
     // 보관 객체 · 렌더러를 못 얻으면(Hilt 없는 실행 · 네이티브 라이브러리 없음) 지도 못 그림(N2)
     val mapView = remember(holder) { holder?.let { createMapView(context) } }
@@ -110,6 +127,7 @@ fun RecommendationMap(
         val current = map ?: return
         if (!styleReady || mapView.width == 0 || mapView.height == 0) return
         val projection = current.projection
+        ownPoint = ownLocation?.let { coord -> projection.toScreenLocation(LatLng(coord.lat, coord.lng)).let { it.x to it.y } }
         val width = mapView.width.toFloat()
         val height = mapView.height.toFloat()
         val onScreen = places.mapNotNull { place ->
@@ -119,6 +137,52 @@ fun RecommendationMap(
         val next = RecommendationMapRules.markers(onScreen, radiusPx, AppConfig.RECO_MAP_MARKER_LIMIT)
         markers = next
         if (report) latestCallbacks.onPins(RecommendationMapRules.pinResult(next, onScreen.size))
+    }
+
+    // 공개 자료 변경은 표시 중에만 구독. 핀 원본 좌표는 렌더러 쪽에서만 다시 읽음.
+    LaunchedEffect(runtime, holder, lifecycle) {
+        val source = runtime ?: return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            source.publicChanges.collectLatest {
+                places = holder.places()
+                latestCallbacks.onDataChanged()
+                recompute(report = true)
+            }
+        }
+    }
+
+    // 화면 수명·정차·동의를 함께 확인. 취소 뒤 늦은 결과는 폐기하고 내 위치 점도 즉시 지움.
+    LaunchedEffect(runtime, access, styleReady, entryKey, cameraSettled) {
+        val source = runtime ?: return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val allowed = access.consent && access.parked
+            if (!allowed || !styleReady || !cameraSettled) {
+                ownLocation = null
+                ownPoint = null
+                latestCallbacks.onLocation(access.consent, false, LocationResultKind.NONE)
+                return@repeatOnLifecycle
+            }
+            try {
+                latestCallbacks.onLocation(true, true, LocationResultKind.LOCATING)
+                val here = try { source.locate(access) } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) { null }
+                val ready = asset ?: return@repeatOnLifecycle
+                val domestic = here?.takeIf { ready.countryBounds.contains(it) }
+                ownLocation = domestic
+                if (domestic != null && !latestUi.firstFitDone) {
+                    val delta = AppConfig.RECO_MAP_FIRST_FIT_RADIUS_KM / 111.195
+                    val longitude = delta / cos(Math.toRadians(domestic.lat))
+                    map?.moveCamera(CameraUpdateFactory.newLatLngBounds(MapBounds(domestic.lng - longitude, domestic.lat - delta, domestic.lng + longitude, domestic.lat + delta).toLatLngBounds(), fitPaddingPx(mapView)))
+                    latestCallbacks.onFirstFitDone()
+                }
+                latestCallbacks.onLocation(true, true, when { here == null -> LocationResultKind.FAILED; domestic == null -> LocationResultKind.ABROAD; else -> LocationResultKind.DOMESTIC })
+                recompute(report = true)
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                ownLocation = null
+                ownPoint = null
+                latestCallbacks.onLocation(access.consent, false, LocationResultKind.NONE)
+            }
+        }
     }
 
     // 자산 · 핀 원본 — 못 읽으면 지도 못 그림(N2 · M30)
@@ -189,7 +253,7 @@ fun RecommendationMap(
                 holder.markFocusApplied(latestUi.focusSeq)
             }
             cameraSettled = true
-            latestCallbacks.onFirstFitDone()
+            if (!access.consent || saved != null) latestCallbacks.onFirstFitDone()
             recompute(report = true)
         }
     }
@@ -221,6 +285,9 @@ fun RecommendationMap(
 
     Box(modifier = modifier) {
         AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
+        ownPoint?.let { (x, y) ->
+            Surface(modifier = Modifier.offset { IntOffset(x.toInt(), y.toInt()) }.size(Dimens.MinTouchTarget / 3), shape = CircleShape, color = MaterialTheme.colorScheme.tertiary) {}
+        }
         val selected = mapUi.selectedPlaceNo
         markers.forEach { marker ->
             MapMarkerView(

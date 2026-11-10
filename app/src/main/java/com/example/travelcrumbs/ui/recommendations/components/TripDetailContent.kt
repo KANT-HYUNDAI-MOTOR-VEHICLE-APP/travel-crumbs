@@ -65,20 +65,18 @@ fun TripDetailContent(
         ) {
             RecoTitle(detail.tripNm, modifier = Modifier.weight(1f))
             RatingText(detail.ratingAvg, detail.ratingCnt)
-            if (detail.canRate) {
-                // 안내받은 로드맵만(#41) — 주요 행동은 맨 아래 「첫 장소부터 안내」 하나라 Secondary
-                SecondaryButton(
-                    onClick = onOpenRating,
-                    modifier = Modifier.heightIn(min = Dimens.ChipHeight),
-                ) {
-                    Text(
-                        text = detail.myRatingScore
-                            ?.let { stringResource(R.string.rating_mine, it) }
-                            ?: stringResource(R.string.rating_open),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                    )
-                }
+            // #58 의존: 안내 전에도 진입점을 표시하고 ViewModel에서 조건 안내.
+            SecondaryButton(
+                onClick = onOpenRating,
+                modifier = Modifier.heightIn(min = Dimens.ChipHeight),
+            ) {
+                Text(
+                    text = detail.myRatingScore
+                        ?.let { stringResource(R.string.rating_mine, it) }
+                        ?: stringResource(R.string.rating_open),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                )
             }
         }
         Row(

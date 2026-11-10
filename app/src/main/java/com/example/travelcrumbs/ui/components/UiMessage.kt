@@ -12,6 +12,7 @@ enum class UiMessage {
 
     /** 별점 B-06 — 내 별점을 남김(#41). */
     RATING_SAVED,
+    RATING_GUIDANCE_REQUIRED,
 
     /** A-02 주행 중 「이 장소 기록」 — 위치만 임시저장(#51 U4). */
     PLACE_DRAFT_SAVED,

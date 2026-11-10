@@ -48,6 +48,28 @@ class RecommendationsMapViewModelTest {
     private val state get() = vm.uiState.value
     private val map get() = state.map
 
+    @Test
+    fun `M26 삭제 뒤 옛 공개조회가 늦게 와도 카드 복원 없음`() = runTest(dispatcher) {
+        val stale = kotlinx.coroutines.CompletableDeferred<List<com.example.travelcrumbs.domain.model.RecommendedTrip>>()
+        var calls = 0
+        val delayed = object : com.example.travelcrumbs.data.recommendation.RecommendationRepository by repository {
+            override suspend fun allPublicTrips(): List<com.example.travelcrumbs.domain.model.RecommendedTrip> {
+                calls++
+                return if (calls == 1) kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { stale.await() } else emptyList()
+            }
+        }
+        vm = RecommendationsViewModel(delayed, RequestRouteGuidanceUseCase(guidance), SavedStateHandle(), ratings, FakeTimeSource(), FakeOfflineMapRepository())
+        backgroundScope.launch { vm.uiState.collect {} }
+        runCurrent()
+        vm.refreshMapData()
+        runCurrent()
+        stale.complete(RecommendationSeed.trips)
+        runCurrent()
+        vm.selectMapPlace(1001)
+        runCurrent()
+        assertNull(map.card)
+    }
+
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
 

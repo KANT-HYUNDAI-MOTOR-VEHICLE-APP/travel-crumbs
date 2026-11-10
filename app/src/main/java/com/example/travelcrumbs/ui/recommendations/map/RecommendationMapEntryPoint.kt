@@ -12,4 +12,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface RecommendationMapEntryPoint {
     fun recommendationMapHolder(): RecommendationMapHolder
+    fun recommendationMapRuntime(): RecommendationMapRuntime
 }

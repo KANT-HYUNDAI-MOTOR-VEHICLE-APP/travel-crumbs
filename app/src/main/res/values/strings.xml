@@ -185,6 +185,7 @@
     <string name="rating_later">나중에</string>
     <string name="rating_submit">★ 별점 주기</string>
     <string name="rating_saved">별점을 남겼어요</string>
+    <string name="rating_guidance_required">안내 시작 후 별점을 남길 수 있어요</string>
     <string name="rating_open">★ 별점 주기</string>
     <string name="rating_mine">내 별점 ★%1$d · 고치기</string>
 
@@ -309,11 +310,11 @@
     <string name="home_nearby_card_description">%1$d위 · %2$s · %3$s · 별점 %4$.1f · 리뷰 %5$d명 · %6$s</string>
     <!-- 근처 로드맵 위치 이용 동의(#55 · 스펙 home-nearby 2-8 · 2-9) -->
     <string name="nearby_consent_title">근처 로드맵을 보려면 현재 위치를 써도 될까요</string>
-    <string name="nearby_consent_body">이용 항목 · 차량 내비가 알려 주는 지금 위치(위도 · 경도)\n목적 · 근처 로드맵을 고르고 여기서 얼마나 먼지 보여 줌\n보유 기간 · 저장하지 않아요 · 기기 안에서 거리만 계산하고 바로 버려요\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="nearby_consent_body">이용 항목 · 차량 내비가 알려 주는 지금 위치(위도 · 경도)\n목적 · 근처 로드맵을 고르고 여기서 얼마나 먼지 보여 줌 · 추천 지도를 내 주변으로 맞춤\n보유 기간 · 저장하지 않아요 · 기기 안에서만 쓰고 바로 버려요\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
     <string name="nearby_consent_agree">동의하고 보기</string>
     <string name="nearby_consent_decline">괜찮아요</string>
     <string name="settings_nearby_location">근처 로드맵 위치 이용</string>
-    <string name="settings_nearby_location_agreed">%1$d.%2$02d.%3$02d 동의 · 근처 로드맵 거리 계산에만 사용 · 위치는 저장하지 않아요</string>
+    <string name="settings_nearby_location_agreed">%1$d.%2$02d.%3$02d 동의 · 근처 로드맵 · 추천 지도에만 사용 · 위치는 저장하지 않아요</string>
     <string name="settings_nearby_location_none">동의 안 함 · 동의하면 홈에 근처 로드맵이 보여요</string>
     <string name="settings_consent_agree">동의</string>
     <string name="action_close">닫기</string>

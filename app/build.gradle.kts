@@ -5,6 +5,8 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.security.MessageDigest
 import java.util.Properties
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 plugins {
     alias(libs.plugins.android.application)
@@ -155,24 +157,25 @@ abstract class PrepareKoreaMapAsset : DefaultTask() {
         val expected = sha256.get()
         val cached = cacheDir.get().file("$expected.pmtiles").asFile
         val local = localFile.orNull?.takeIf { it.isNotBlank() }?.let { File(it) }
-        when {
+        val source = when {
             local != null -> {
                 check(local.isFile) { "mapAssetFile 이 없음: $local" }
                 verify(local, expected)
-                cached.parentFile.mkdirs()
-                if (!cached.isFile) local.copyTo(cached, overwrite = true)
+                local
             }
-            cached.isFile && digest(cached) == expected -> logger.info("지도 자산 캐시 사용: $cached")
-            else -> download(cached, expected)
+            cached.isFile && digest(cached) == expected -> cached
+            else -> { download(cached, expected); cached }
         }
         val target = outputDir.get().dir("maps").file(fileName.get()).asFile
         target.parentFile.mkdirs()
-        cached.copyTo(target, overwrite = true)
+        verify(source, expected)
+        source.copyTo(target, overwrite = true)
+        verify(target, expected)
     }
 
     private fun download(cached: File, expected: String) {
         cached.parentFile.mkdirs()
-        val partial = File(cached.parentFile, "${cached.name}.part")
+        val partial = File.createTempFile("korea-map-", ".part", cached.parentFile)
         val client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()
         val token = token()
         val start = if (token != null) {
@@ -189,7 +192,7 @@ abstract class PrepareKoreaMapAsset : DefaultTask() {
             when (response.statusCode()) {
                 200 -> {
                     verify(partial, expected)
-                    check(partial.renameTo(cached)) { "캐시로 옮기지 못함: $cached" }
+                    Files.move(partial.toPath(), cached.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
                     return
                 }
                 in 300..399 -> {

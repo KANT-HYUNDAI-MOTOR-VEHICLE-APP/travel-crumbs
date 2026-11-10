@@ -70,6 +70,8 @@ fun RecommendationsScreen(
                 onMovedByUser = viewModel::onMapMovedByUser,
                 onPins = viewModel::onMapPins,
                 onSelectPlace = viewModel::selectMapPlace,
+                onLocation = viewModel::onMapLocation,
+                onDataChanged = viewModel::refreshMapData,
                 onSelectCluster = viewModel::selectMapCluster,
             ),
             onSelectMapCandidate = viewModel::selectMapCandidate,
