@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.components.BackButton
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.RatingDialog
+import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
@@ -35,12 +36,13 @@ import com.example.travelcrumbs.ui.theme.Dimens
 @Composable
 fun RecommendationsScreen(
     entryKey: Int,
+    entryRegion: Region? = null,
     modifier: Modifier = Modifier,
     viewModel: RecommendationsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(entryKey) { viewModel.onEntry(entryKey) }
+    LaunchedEffect(entryKey) { viewModel.onEntry(entryKey, entryRegion) }
     BackHandler(enabled = uiState.handlesBack) { viewModel.onBack() }
 
     val actions = remember(viewModel) {

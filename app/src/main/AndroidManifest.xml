@@ -56,10 +56,12 @@
               Gleo AI 가 context.startActivity() 로 부름(component = "activity").
               실제 Gleo(Pleos Connect v2.1.0 에뮬레이터, 2026-11-10 확인)는 「패키지명.함수명」으로 보냄 —
               공식 예제의 접두어 없는 꼴도 함께 받음(#25).
+              release 는 읽기 전용 SHOW_TRAVEL_INFO 만(#69 U1) · 기록 · 여행 제어는 src/debug 매니페스트.
+              OPEN_TRAVEL_CRUMBS 는 뺌(#69 · 앱 열기는 Gleo 기본 앱 실행).
             -->
             <intent-filter>
-                <action android:name="OPEN_TRAVEL_CRUMBS" />
-                <action android:name="com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS" />
+                <action android:name="SHOW_TRAVEL_INFO" />
+                <action android:name="com.example.travelcrumbs.SHOW_TRAVEL_INFO" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

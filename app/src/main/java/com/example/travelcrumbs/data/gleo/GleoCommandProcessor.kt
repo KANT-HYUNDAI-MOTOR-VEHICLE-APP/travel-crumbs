@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.gleo
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
+import com.example.travelcrumbs.domain.model.GleoAction
 import com.example.travelcrumbs.domain.model.GleoCallback
 import com.example.travelcrumbs.domain.model.GleoCommandPhase
 import com.example.travelcrumbs.domain.model.GleoCommandState
@@ -26,24 +27,34 @@ import kotlinx.coroutines.isActive
 /**
  * Intent·Activity 수명과 분리한 한 프로세스의 명령 처리기.
  * 응답 기한에 준비만 중단하고 이미 시작한 기록 작업은 실제 종료까지 기다림.
+ * 한 번에 한 Gleo 명령(#69 3.1) — 처리 중 다른 함수가 오면 즉시 BUSY 실패. 같은 RECORD 가 겹치면 #25 대로 합침(응답 없음).
+ * [writeEnabled] = 기록 · 여행 제어를 받을지(release 는 R1 확인 전까지 거짓 · U1). 정보 조회는 늘 받음.
  */
 class GleoCommandProcessor(
     private val scope: CoroutineScope,
     private val readiness: GleoRecordingReadiness,
     private val recordPlace: RecordPlaceUseCase,
     private val sendCallback: (GleoCallback) -> Unit,
-    private val recordEnabled: Boolean,
+    private val writeEnabled: Boolean,
+    private val tripControl: suspend (operation: String) -> GleoOutcome = { error("tripControl not wired") },
+    private val travelInfo: suspend (infoType: String, region: String?) -> GleoOutcome = { _, _ -> error("travelInfo not wired") },
     private val newRequestId: () -> UUID = UUID::randomUUID,
 ) {
     private val recording = AtomicBoolean(false)
+    @Volatile private var busyFunction: String? = null
     private val notices = AtomicLong(0L)
     private val _state = MutableStateFlow(GleoCommandState())
     val state: StateFlow<GleoCommandState> = _state.asStateFlow()
 
     fun handle(request: GleoIntentRequest) {
         when (request.functionName) {
-            AppConfig.GLEO_FUNCTION_OPEN -> handleOpen(request)
-            AppConfig.GLEO_FUNCTION_RECORD -> if (recordEnabled) handleRecord(request)
+            AppConfig.GLEO_FUNCTION_RECORD -> if (writeEnabled) handleRecord(request)
+            AppConfig.GLEO_FUNCTION_CONTROL -> if (writeEnabled) {
+                handleQuick(request) { action -> tripControl(action.parameters.getValue(AppConfig.GLEO_PARAM_OPERATION)) }
+            }
+            AppConfig.GLEO_FUNCTION_INFO -> handleQuick(request) { action ->
+                travelInfo(action.parameters.getValue(AppConfig.GLEO_PARAM_INFO_TYPE), action.parameters[AppConfig.GLEO_PARAM_REGION])
+            }
         }
     }
 
@@ -58,20 +69,65 @@ class GleoCommandProcessor(
         }
     }
 
-    private fun handleOpen(request: GleoIntentRequest) {
-        val valid = request.readable && GleoActionParser.parse(request.functionName, request.actionParam).isSuccess
-        respond(
-            GleoCallback(
-                request.functionName,
-                if (valid) GleoStatus.SUCCESS else GleoStatus.FAIL,
-                if (valid) AppConfig.GLEO_OPEN_SUCCESS_MESSAGE else AppConfig.GLEO_OPEN_FAIL_MESSAGE,
-            ),
-        )
+    /**
+     * 여행 제어 · 정보 조회(#69) — 준비 확인 없이 바로 저장소를 부르는 짧은 명령.
+     * 7초 안에 끝나지 않으면 그때 실패로 한 번만 응답(늦은 결과로 두 번째 콜백 없음). 화면 요청은 기한 안 결과에만 붙음.
+     */
+    private fun handleQuick(request: GleoIntentRequest, run: suspend (GleoAction) -> GleoOutcome) {
+        if (!recording.compareAndSet(false, true)) {
+            respondBusy(request.functionName)
+            return
+        }
+        busyFunction = request.functionName
+        val noticeId = notices.incrementAndGet()
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val responded = AtomicBoolean(false)
+            fun finish(outcome: GleoOutcome) {
+                if (!responded.compareAndSet(false, true)) return
+                _state.value = GleoCommandState(noticeId, outcome.phase, outcome.detail, outcome.screen)
+                respond(GleoCallback(request.functionName, outcome.status, outcome.message, outcome.data))
+            }
+            val deadline = launch(start = CoroutineStart.UNDISPATCHED) {
+                delay(AppConfig.GLEO_RESPONSE_TARGET_MILLIS)
+                finish(GleoOutcome(GleoCommandPhase.REQUEST_FAILED, GleoStatus.FAIL, AppConfig.GLEO_TIMEOUT_MESSAGE))
+            }
+            try {
+                val action = GleoActionParser.parse(request.functionName, request.actionParam).getOrNull()
+                if (!request.readable || action == null) {
+                    finish(GleoOutcome(GleoCommandPhase.INVALID_REQUEST, GleoStatus.FAIL, AppConfig.GLEO_INPUT_FAIL_MESSAGE))
+                    return@launch
+                }
+                finish(run(action))
+            } catch (cancelled: CancellationException) {
+                if (currentCoroutineContext().isActive) finish(failure(request.functionName)) else throw cancelled
+            } catch (_: Exception) {
+                finish(failure(request.functionName))
+            } finally {
+                deadline.cancel()
+                busyFunction = null
+                recording.set(false)
+            }
+        }
+    }
+
+    private fun failure(functionName: String) = GleoOutcome(
+        GleoCommandPhase.REQUEST_FAILED,
+        GleoStatus.FAIL,
+        if (functionName == AppConfig.GLEO_FUNCTION_INFO) AppConfig.GLEO_INFO_FAIL_MESSAGE else AppConfig.GLEO_CONTROL_FAIL_MESSAGE,
+    )
+
+    /** 다른 명령을 처리 중 — 상태 · 화면은 그대로 두고 이번 명령에만 실패로 답함. */
+    private fun respondBusy(functionName: String) {
+        respond(GleoCallback(functionName, GleoStatus.FAIL, AppConfig.GLEO_BUSY_MESSAGE))
     }
 
     private fun handleRecord(request: GleoIntentRequest) {
-        // 요청 ID가 없는 같은 Function의 중복을 합침. 별도 동시 명령 각각의 응답은 보장하지 못함.
-        if (!recording.compareAndSet(false, true)) return
+        // 요청 ID가 없는 같은 Function의 중복을 합침(#25). 다른 함수가 처리 중이면 BUSY 로 답함(#69).
+        if (!recording.compareAndSet(false, true)) {
+            if (busyFunction != AppConfig.GLEO_FUNCTION_RECORD) respondBusy(request.functionName)
+            return
+        }
+        busyFunction = request.functionName
         val noticeId = notices.incrementAndGet()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val responded = AtomicBoolean(false)
@@ -139,6 +195,7 @@ class GleoCommandProcessor(
                 deadline.cancel()
                 preparation.cancel()
                 // 응답 여부와 독립. 기존 UseCase가 실제 반환한 뒤에만 다음 음성 기록 허용.
+                busyFunction = null
                 recording.set(false)
             }
         }

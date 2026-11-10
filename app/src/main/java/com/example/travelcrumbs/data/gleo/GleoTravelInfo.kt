@@ -1,0 +1,127 @@
+package com.example.travelcrumbs.data.gleo
+
+import com.example.travelcrumbs.data.navi.NaviRepository
+import com.example.travelcrumbs.data.recommendation.RecommendationRepository
+import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.trip.TripRepository
+import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.GleoTravelRules
+import com.example.travelcrumbs.domain.RecommendationRules
+import com.example.travelcrumbs.domain.TimeSource
+import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
+import com.example.travelcrumbs.domain.model.GleoStatus
+import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.domain.model.RecommendedTrip
+import com.example.travelcrumbs.domain.model.Region
+import javax.inject.Inject
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
+/**
+ * SHOW_TRAVEL_INFO(#69 스펙 3.3) — 읽기만 함(저장 · 서버 전송 없음).
+ * TODAY_RECORDS = 기기 안 여행의 오늘 장소 수 + 지금 여행 상태.
+ * RECOMMENDED_ROADMAPS = 말한 지역 우선(U3), 없으면 현재 위치에서 가장 가까운 지역 · 별점순 상위 [AppConfig.GLEO_RECOMMENDATION_COUNT]개.
+ * 좌표는 거리 계산에만 쓰고 콜백 · 로그 · 화면 요청에 넣지 않음(지역 이름만).
+ */
+class GleoTravelInfo @Inject constructor(
+    private val trips: TripRepository,
+    private val recording: RecordingRepository,
+    private val recommendations: RecommendationRepository,
+    private val navi: NaviRepository,
+    private val timeSource: TimeSource,
+) {
+    suspend fun show(infoType: String, region: String?): GleoOutcome = when (infoType) {
+        INFO_TODAY_RECORDS -> todayRecords()
+        INFO_RECOMMENDED_ROADMAPS -> recommended(region)
+        else -> GleoOutcome(GleoCommandPhase.INVALID_REQUEST, GleoStatus.FAIL, AppConfig.GLEO_INPUT_FAIL_MESSAGE)
+    }
+
+    private suspend fun todayRecords(): GleoOutcome {
+        val count = GleoTravelRules.todayPlaceCount(trips.trips.first(), timeSource.nowMillis(), timeSource.zoneId())
+        val progress = recording.progress.first()
+        val current = if (progress.tripNo != null && progress.status.inProgress) progress.status.name else NO_TRIP
+        val currentCount = if (current == NO_TRIP) 0 else progress.placeCount
+        val tripSentence = when (current) {
+            NO_TRIP -> "There is no trip in progress."
+            else -> "The current trip is ${current.lowercase()} with $currentCount ${places(currentCount)}."
+        }
+        val data = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("todayPlaceCount", count)
+                    put("currentTripStatus", current)
+                    put("currentTripPlaceCount", currentCount)
+                },
+            )
+        }.toString()
+        return GleoOutcome(
+            phase = GleoCommandPhase.TODAY_RECORDS,
+            status = GleoStatus.SUCCESS,
+            message = "You recorded $count ${places(count)} today. $tripSentence",
+            data = data,
+            detail = count.toString(),
+            screen = GleoScreenRequest.OpenTrips,
+        )
+    }
+
+    private suspend fun recommended(spoken: String?): GleoOutcome {
+        val all = recommendations.sidoRegions().flatMap { recommendations.publicTrips(it.sidoNm) }.distinctBy { it.tripNo }
+        val regions: List<Region>? = if (spoken != null) {
+            GleoTravelRules.matchRegions(spoken, all).ifEmpty {
+                return GleoOutcome(
+                    phase = GleoCommandPhase.NO_RECOMMENDATION,
+                    status = GleoStatus.FAIL,
+                    message = "There are no recommended roadmaps for ${spoken.trim()} yet.",
+                    detail = spoken.trim(),
+                )
+            }
+        } else {
+            val here = withTimeoutOrNull(AppConfig.GLEO_LOCATION_WAIT_MILLIS) { navi.currentLocation() }
+            GleoTravelRules.nearestRegion(here, all)?.let(::listOf)
+        }
+        val pool = if (regions == null) all else GleoTravelRules.inAny(all, regions)
+        val top = RecommendationRules.rank(pool, RankingSort.RATING, companion = null).take(AppConfig.GLEO_RECOMMENDATION_COUNT)
+        if (top.isEmpty()) {
+            return GleoOutcome(GleoCommandPhase.NO_RECOMMENDATION, GleoStatus.FAIL, "There are no recommended roadmaps yet.")
+        }
+        val label = regions?.let { list -> list.joinToString(", ") { GleoTravelRules.label(it) } }
+        return GleoOutcome(
+            phase = GleoCommandPhase.RECOMMENDED,
+            status = GleoStatus.SUCCESS,
+            message = buildString {
+                append(if (label == null) "Top recommended roadmaps" else "Top recommended roadmaps in $label")
+                append(": ")
+                append(top.joinToString(", ") { it.tripNm })
+                append(".")
+            },
+            data = top.toData(),
+            detail = label ?: top.first().let { GleoTravelRules.label(it.region) },
+            screen = GleoScreenRequest.OpenRecommendations(regions?.singleOrNull()),
+        )
+    }
+
+    private fun List<RecommendedTrip>.toData(): String = buildJsonArray {
+        forEach { trip ->
+            add(
+                buildJsonObject {
+                    put("tripNm", trip.tripNm)
+                    put("region", GleoTravelRules.label(trip.region))
+                    put("ratingAvg", trip.ratingAvg)
+                    put("placeCount", trip.places.size)
+                },
+            )
+        }
+    }.toString()
+
+    private fun places(count: Int) = if (count == 1) "place" else "places"
+
+    companion object {
+        const val INFO_TODAY_RECORDS = "TODAY_RECORDS"
+        const val INFO_RECOMMENDED_ROADMAPS = "RECOMMENDED_ROADMAPS"
+        private const val NO_TRIP = "NONE"
+    }
+}

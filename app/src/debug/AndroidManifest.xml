@@ -6,6 +6,9 @@
                 <action android:name="RECORD_CURRENT_PLACE" />
                 <!-- 실제 Gleo 는 「패키지명.함수명」으로 보냄(main 매니페스트 주석 참고) -->
                 <action android:name="com.example.travelcrumbs.RECORD_CURRENT_PLACE" />
+                <!-- 여행 제어(#69) — 기록과 같이 R1 확인 전까지 debug 만 -->
+                <action android:name="CONTROL_CURRENT_TRIP" />
+                <action android:name="com.example.travelcrumbs.CONTROL_CURRENT_TRIP" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

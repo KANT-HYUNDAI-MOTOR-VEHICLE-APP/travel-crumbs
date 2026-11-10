@@ -88,6 +88,7 @@ class ShellTestGraph(
             savedStateHandle = drivingSavedState,
             ratingRepository = ratings,
             naviRepository = navi,
+            gleoActionRepository = gleo,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,

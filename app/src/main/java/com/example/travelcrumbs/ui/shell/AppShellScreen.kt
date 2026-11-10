@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.driving.DrivingScreen
 import com.example.travelcrumbs.ui.components.GleoNoticeLine
 import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.ui.gleo.GleoCommandViewModel
 import com.example.travelcrumbs.ui.home.HomeScreen
 import com.example.travelcrumbs.ui.navigation.AppDestination
@@ -43,9 +45,10 @@ fun AppShellScreen(
         val shell = viewModel.uiState.collectAsStateWithLifecycle().value
         ParkedDestinationContent(
             destination = destination,
-            onOpenRecommendations = viewModel::openRecommendations,
+            onOpenRecommendations = { viewModel.openRecommendations() },
             onOpenTrip = viewModel::openTrip,
             recommendationsEntry = shell.recommendationsEntry,
+            recommendationsRegion = shell.recommendationsRegion,
             tripsEntry = shell.tripsEntry,
             tripsOpenTripNo = shell.tripsOpenTripNo,
         )
@@ -53,6 +56,11 @@ fun AppShellScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val gleoState by gleoViewModel.uiState.collectAsStateWithLifecycle()
+    // Gleo 명령의 화면 요청(#69) — 명령마다 한 번 · 주행 중이면 ViewModel 이 무시.
+    val gleoCommand = gleoState.command
+    LaunchedEffect(gleoCommand.noticeId, gleoCommand.screen) {
+        gleoCommand.screen?.let { viewModel.onGleoScreenRequest(gleoCommand.noticeId, it) }
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -116,6 +124,7 @@ private fun ParkedDestinationContent(
     onOpenRecommendations: () -> Unit,
     onOpenTrip: (Long?) -> Unit,
     recommendationsEntry: Int,
+    recommendationsRegion: Region?,
     tripsEntry: Int,
     tripsOpenTripNo: Long?,
 ) {
@@ -123,7 +132,7 @@ private fun ParkedDestinationContent(
         // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
         AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations, onOpenTrip = onOpenTrip)
         AppDestination.TRIPS -> TripsScreen(entry = tripsEntry, openTripNo = tripsOpenTripNo)
-        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry)
+        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry, entryRegion = recommendationsRegion)
         AppDestination.SETTINGS -> SettingsScreen()
     }
 }

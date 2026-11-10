@@ -115,12 +115,17 @@ class RecommendationsViewModel @Inject constructor(
      * 앱 틀의 진입 값(레일 「추천」 · 「추천 보러 가기」마다 오름)이 지난번과 다르면 B-01 부터 · 고른 것 초기화.
      * 같으면(주행 → 정차 · 화면 재구성 · 프로세스 재생성) 보던 화면 그대로.
      */
-    fun onEntry(entryKey: Int) {
+    fun onEntry(entryKey: Int, region: Region? = null) {
         if (savedStateHandle.get<Int>(KEY_ENTRY) == entryKey) return
         savedStateHandle[KEY_ENTRY] = entryKey
         updateSelection { Selection.START }
         guidance.value = GuidanceProgress()
         rating.clear()
+        // Gleo 「경주 근처 추천」(#69) — 고르기(B-01)를 건너뛰고 그 지역 순위(B-02)부터. 시군구 null = 시도 전체.
+        if (region != null) {
+            selectSido(region.sidoNm)
+            selectRegion(region.sigunguNm)
+        }
     }
 
     /** B-01 시도 칩. */

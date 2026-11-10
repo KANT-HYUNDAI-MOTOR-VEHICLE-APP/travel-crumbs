@@ -2,7 +2,6 @@ package com.example.travelcrumbs.data.gleo
 
 import android.content.Intent
 import com.example.travelcrumbs.BuildConfig
-import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.GleoCommandState
 import javax.inject.Inject
@@ -31,12 +30,18 @@ class DefaultGleoActionRepository @Inject constructor(
     callbackDataSource: GleoCallbackDataSource,
     readiness: GleoRecordingReadiness,
     recordPlace: RecordPlaceUseCase,
+    tripControl: GleoTripControl,
+    travelInfo: GleoTravelInfo,
 ) : GleoActionRepository {
 
     // Activity의 재생성이 진행 중 저장을 취소하거나 다시 실행하지 않도록 프로세스 범위로 공유.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val processor = GleoCommandProcessor(
-        scope, readiness, recordPlace, callbackDataSource::send, recordEnabled = BuildConfig.DEBUG,
+        scope, readiness, recordPlace, callbackDataSource::send,
+        // 기록 · 여행 제어는 R1(다른 UID 호출 차단) 확인 전까지 debug 만 · 정보 조회는 release 도(#69 U1).
+        writeEnabled = BuildConfig.DEBUG,
+        tripControl = tripControl::control,
+        travelInfo = travelInfo::show,
     )
     private val _openedByGleoAction = MutableStateFlow(false)
 
@@ -45,9 +50,8 @@ class DefaultGleoActionRepository @Inject constructor(
 
     override fun handleActionIntent(intent: Intent?) {
         val request = GleoIntentReader.read(intent) ?: return
-        if (request.functionName == AppConfig.GLEO_FUNCTION_OPEN) {
-            _openedByGleoAction.value = GleoActionParser.parse(request.functionName, request.actionParam).isSuccess
-        }
+        // debug 확인 카드용 — 이번 실행에 Gleo 함수 호출이 한 번이라도 읽혔는지.
+        if (GleoActionParser.parse(request.functionName, request.actionParam).isSuccess) _openedByGleoAction.value = true
         processor.handle(request)
     }
 
