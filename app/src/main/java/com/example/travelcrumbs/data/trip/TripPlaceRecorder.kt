@@ -10,6 +10,7 @@ import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.DraftPlaceInput
 import com.example.travelcrumbs.domain.model.DrivingState
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.first
  * 위치 = 내비 getCurrentLocationInfo(위도 · 경도 · 주소) · 위치정보 수집 동의(LOCATION_COLLECT)가 없으면 위치 없이 장소만.
  * 주행 중이면 「이어서 쓰기」 띠에 그 장소를 남김(정차 뒤 A-03 시트) · 정차 중이면 화면이 바로 A-03 시트를 엶.
  * 진행 중 여행이 없으면 아무것도 안 하고 NOT_READY. 좌표 · 주소는 로그에 남기지 않음.
+ * [idempotencyKey] = Gleo 음성 기록이 한 번 발급한 요청 ID(#25) — 기기 안 저장이라 지금은 쓰지 않음(서버 동기화가 돌아오면 장소 POST 의 Idempotency-Key 로 전달).
  */
 class TripPlaceRecorder @Inject constructor(
     private val recording: RecordingRepository,
@@ -28,7 +30,7 @@ class TripPlaceRecorder @Inject constructor(
     private val unfinishedInputs: UnfinishedInputRepository,
 ) : RecordPlaceUseCase {
 
-    override suspend fun invoke(): ActionResult {
+    override suspend fun invoke(idempotencyKey: UUID?): ActionResult {
         val progress = recording.progress.first()
         val tripNo = progress.tripNo ?: return ActionResult.NOT_READY
         if (!progress.status.inProgress) return ActionResult.NOT_READY
