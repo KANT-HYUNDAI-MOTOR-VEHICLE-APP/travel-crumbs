@@ -21,13 +21,18 @@ import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.recommendations.TripCardItem
 import com.example.travelcrumbs.ui.theme.Dimens
 
-/** B-02 동행자 칩 — 순서 그대로(전체 · 아이와 · 부부 · 혼자). */
-private val COMPANION_FILTERS: List<Pair<CompanionType?, Int>> = listOf(
-    null to R.string.reco_filter_all,
-    CompanionType.CHILD to R.string.reco_filter_child,
-    CompanionType.SPOUSE to R.string.reco_filter_spouse,
-    CompanionType.SOLO to R.string.reco_filter_solo,
-)
+/** B-02 동행자 칩 — 「전체」 + 표준 코드값 순서(A-01 칩과 같음 · 전체 · 혼자 · 부부 · 아이와 · 부모님 · 반려동물). */
+private val COMPANION_FILTERS: List<CompanionType?> = listOf(null) + CompanionType.entries
+
+/** 칩 문구 — 부부 · 아이와는 B-02 문구(표준 명칭 미결 M02) · 부모님 · 반려동물은 A-01 과 같은 문구 그대로. */
+private fun companionFilterLabelRes(type: CompanionType?): Int = when (type) {
+    null -> R.string.reco_filter_all
+    CompanionType.SOLO -> R.string.reco_filter_solo
+    CompanionType.SPOUSE -> R.string.reco_filter_spouse
+    CompanionType.CHILD -> R.string.reco_filter_child
+    CompanionType.PARENT -> R.string.companion_parent
+    CompanionType.PET -> R.string.companion_pet
+}
 
 /** B-02 지역 로드맵 랭킹 — 제목 · 「지역 바꾸기」 · 별점순/최신순 · 동행자 칩 · 「# 태그별로 보기」 · 로드맵 카드. */
 @Composable
@@ -72,8 +77,8 @@ fun RankingContent(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
             ) {
-                COMPANION_FILTERS.forEach { (type, labelRes) ->
-                    RecoChip(stringResource(labelRes), companion == type, { onSelectCompanion(type) })
+                COMPANION_FILTERS.forEach { type ->
+                    RecoChip(stringResource(companionFilterLabelRes(type)), companion == type, { onSelectCompanion(type) })
                 }
             }
             SecondaryButton(onClick = onOpenTags, modifier = Modifier.heightIn(min = Dimens.ChipHeight)) {

@@ -130,6 +130,29 @@ class RecommendationsViewModelTest {
     }
 
     @Test
+    fun `R7 강원 전체 — 부모님 · 반려동물 칩이면 그 동행자 로드맵만 별점순`() = runTest(dispatcher) {
+        start()
+        vm.selectSido("강원")
+        runCurrent()
+        vm.selectRegion(null)
+        runCurrent()
+
+        vm.selectCompanion(CompanionType.PARENT)
+        runCurrent()
+        assertEquals(CompanionType.PARENT, state.companion)
+        assertEquals(listOf("대관령 바람 쐬기", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(CompanionType.PET)
+        runCurrent()
+        assertEquals(CompanionType.PET, state.companion)
+        assertEquals(listOf("춘천 호수 한 바퀴"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(null)
+        runCurrent()
+        assertEquals(8, state.rankedTrips.size)
+    }
+
+    @Test
     fun `R8 R9 태그별로 보기 — 많은 순 막대 · 처음엔 1위 태그 · 태그 고르면 그 로드맵만`() = runTest(dispatcher) {
         start()
         toSokcho()
