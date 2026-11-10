@@ -18,6 +18,9 @@ data class AppShellUiState(
     val tripsEntry: Int = 0,
     /** 내 여행 칸이 바로 열 여행(A-08) — null 이면 보관함(A-07). */
     val tripsOpenTripNo: Long? = null,
+    /** 추천 칸이 바로 열 로드맵(B-04 · 기록 칸 근처 로드맵 카드 · #55) — null 이면 B-01 부터. [recommendationsOpenSidoNm] = 그 로드맵 시도. */
+    val recommendationsOpenTripNo: Long? = null,
+    val recommendationsOpenSidoNm: String? = null,
 ) {
     /** 판정이 정차가 아니면(주행 · 모름) 주행 모드 — 「기록」 칸은 주행 전용 화면 · 그 밖은 주행 제한 안내. */
     val isDrivingMode: Boolean get() = drivingState != DrivingState.PARKED

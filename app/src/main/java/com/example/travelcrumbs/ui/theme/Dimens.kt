@@ -33,6 +33,9 @@ object Dimens {
     val RoadmapWideMinWidth = 1000.dp
     val RoadmapSketchHeight = 320.dp
 
+    /** 주요 버튼 높이(디자인 시스템 7절 「주요 버튼 높이 72 이상」 · 주요 터치 영역 72) — 홈 근처 로드맵 동의 카드 버튼(#55 · PR #64 리뷰). */
+    val PrimaryButtonHeight = 72.dp
+
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 
@@ -90,6 +93,13 @@ object Dimens {
     /** 추천 로드맵 카드의 순위 칸 폭 · 경로 미리보기 칸. */
     val RankColumnWidth = 64.dp
     val TripThumbSize = 104.dp
+
+    /**
+     * 홈 「내 근처 리뷰 많은 로드맵」 카드(#55 · 스펙 home-nearby E5 · N15) — 폭 고정(창 폭이 바뀌면 보이는 장수만 달라짐) ·
+     * 높이 고정 = 경로 미리보기 + 글 세 줄(카드 제목 36 + 본문 34 × 2) + 안 여백.
+     */
+    val NearbyCardWidth = 360.dp
+    val NearbyCardHeight = 420.dp
 
     /** 추천 태그 막대 높이. */
     val TagBarHeight = 64.dp
