@@ -45,6 +45,16 @@ class GleoIntentReaderTest {
     }
 
     @Test
+    fun `실제 Gleo의 패키지명 접두어 action도 같은 함수로 읽음`() {
+        val record = GleoIntentReader.read(Intent("com.example.travelcrumbs.RECORD_CURRENT_PLACE"))!!
+        assertEquals(AppConfig.GLEO_FUNCTION_RECORD, record.functionName)
+        assertTrue(record.readable)
+        val open = GleoIntentReader.read(Intent("com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS"))!!
+        assertEquals(AppConfig.GLEO_FUNCTION_OPEN, open.functionName)
+        assertNull(GleoIntentReader.read(Intent("com.other.app.RECORD_CURRENT_PLACE")))
+    }
+
+    @Test
     fun `T1 기존 OPEN은 다른 extras가 있어도 이전 무파라미터 처리를 유지`() {
         val read = GleoIntentReader.read(Intent(AppConfig.GLEO_FUNCTION_OPEN).putExtra("other", 1))!!
         assertTrue(read.readable)

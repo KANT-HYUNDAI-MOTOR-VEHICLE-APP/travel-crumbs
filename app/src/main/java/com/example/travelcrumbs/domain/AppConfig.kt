@@ -25,6 +25,12 @@ object AppConfig {
     const val GLEO_FUNCTION_OPEN: String = "OPEN_TRAVEL_CRUMBS"
     const val GLEO_FUNCTION_RECORD: String = "RECORD_CURRENT_PLACE"
 
+    /**
+     * 실제 Gleo 가 Intent action 앞에 붙이는 접두어(schema.json 의 packageName + ".").
+     * 공식 예제는 접두어 없는 함수명이라 두 꼴을 모두 받음 — 매니페스트 intent-filter 도 둘 다 선언.
+     */
+    const val GLEO_ACTION_PREFIX: String = "com.example.travelcrumbs."
+
     /** 앱이 Action을 수신한 뒤 응답을 시도하는 기한. 실제 Gleo의 전체 경과와 별도. */
     const val GLEO_RESPONSE_TARGET_MILLIS: Long = 7_000L
 
