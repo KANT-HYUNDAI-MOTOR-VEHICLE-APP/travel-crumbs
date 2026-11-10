@@ -1,4 +1,4 @@
-package com.example.travelcrumbs.ui.recommendations.components
+package com.example.travelcrumbs.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -38,10 +38,10 @@ import kotlin.math.min
 
 /**
  * B-04 경로 칸의 시연용 도로 지도 — 앱에 묶은 OpenStreetMap 자료 위에 장소 순서대로 도로 구간 · 번호 핀.
- * 지도 · 위치 · 네트워크를 쓰지 않음(계산은 도메인 RoadmapMapRules). 출처 줄 · 「시연용」 한 줄을 늘 함께 보임.
+ * 지도 · 위치 · 네트워크를 쓰지 않음(계산은 도메인 RoadmapMapRules). 출처 줄은 늘 · 「시연용」 줄은 [showSampleNote] 일 때(B-04 기본 · 홈 카드는 뺌).
  */
 @Composable
-fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier) {
+fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier, showSampleNote: Boolean = true) {
     val colors = MaterialTheme.colorScheme
     val description = stringResource(R.string.roadmap_map_description, map.areaLabel, map.pins.size)
     Surface(
@@ -79,17 +79,20 @@ fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier) {
                         .padding(horizontal = Dimens.RoadmapMapLabelPadding, vertical = Dimens.RoadmapMapLabelPadding / 4),
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.onSurface,
-                    maxLines = 1,
+                    maxLines = 2, // 좁은 카드에서도 「ODbL」까지 잘리지 않게(표시 의무)
                 )
             }
-            Text(
-                text = stringResource(R.string.roadmap_map_sample),
-                modifier = Modifier.padding(Dimens.RoadmapMapLabelPadding),
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // 「시연용 도로 경로 …」 두 줄 — 좁은 카드(홈 근처 로드맵 · 머리에 「시연용 데이터」가 있음)는 뺌 · OSM 출처 줄은 늘 그림(ODbL)
+            if (showSampleNote) {
+                Text(
+                    text = stringResource(R.string.roadmap_map_sample),
+                    modifier = Modifier.padding(Dimens.RoadmapMapLabelPadding),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

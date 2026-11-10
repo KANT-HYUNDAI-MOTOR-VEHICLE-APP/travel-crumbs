@@ -7,6 +7,10 @@ data class SettingsUiState(
     val nicknameNm: String = "",
     /** 위치정보 수집 — 동의 중이면 동의한 날 · 아니면 null. */
     val locationAgreedOn: ConsentDate? = null,
+    /** 근처 로드맵 위치 이용(LOCATION_RECO · #55) — 동의 중이면 동의한 날 · 아니면(동의 안 함 · 이력 없음) null. */
+    val nearbyLocationAgreedOn: ConsentDate? = null,
+    /** 근처 로드맵 위치 이용 동의 팝업(2-9 「동의」) — 재생성 뒤에도 유지. */
+    val nearbyConsentAsk: Boolean = false,
     /** 추천 공개 동의 중인가. */
     val recoAgreed: Boolean = false,
     /** 닉네임 수정 팝업의 입력 중 값 — null 이면 닫힘. */

@@ -35,9 +35,19 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
         savedStateHandle.getStateFlow(KEY_TRIPS_ENTRY, 0),
         savedStateHandle.getStateFlow<Long?>(KEY_TRIPS_OPEN, null),
-    ) { recommendations, trips, openTripNo -> Entries(recommendations, trips, openTripNo) }
+        savedStateHandle.getStateFlow<Long?>(KEY_RECOMMENDATIONS_OPEN_TRIP, null),
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_OPEN_SIDO, null),
+    ) { recommendations, trips, openTripNo, recoTripNo, recoSidoNm ->
+        Entries(recommendations, trips, openTripNo, recoTripNo, recoSidoNm)
+    }
 
-    private data class Entries(val recommendations: Int, val trips: Int, val openTripNo: Long?)
+    private data class Entries(
+        val recommendations: Int,
+        val trips: Int,
+        val openTripNo: Long?,
+        val recoTripNo: Long?,
+        val recoSidoNm: String?,
+    )
 
     /** 판정 — 아래 init 이 목적지를 먼저 고친 뒤 이 값을 바꿈(전환 순간 옛 목적지가 한 번 보이지 않게). null = 첫 값 전. */
     private val drivingState = MutableStateFlow<DrivingState?>(null)
@@ -58,6 +68,8 @@ class AppShellViewModel @Inject constructor(
             recommendationsEntry = entry.recommendations,
             tripsEntry = entry.trips,
             tripsOpenTripNo = entry.openTripNo,
+            recommendationsOpenTripNo = entry.recoTripNo,
+            recommendationsOpenSidoNm = entry.recoSidoNm,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -121,8 +133,22 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle[KEY_TRIPS_ENTRY] = (savedStateHandle.get<Int>(KEY_TRIPS_ENTRY) ?: 0) + 1
     }
 
-    /** 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정). 주행 → 정차 복원은 이 값을 바꾸지 않음. */
-    private fun enterRecommendations() {
+    /**
+     * 기록 칸 「내 근처 리뷰 많은 로드맵」 카드(#55 · 스펙 home-nearby 3-4) — 「추천」 칸으로 · 그 칸이 [tripNo] 로드맵 B-04 상세부터
+     * (B-01 · B-02 를 거치지 않음 · [sidoNm] = 그 로드맵 시도 · 상세 뒤로는 기록 칸).
+     */
+    fun openRecommendationTrip(tripNo: Long, sidoNm: String) {
+        savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
+        enterRecommendations(tripNo, sidoNm)
+    }
+
+    /**
+     * 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정) · 홈 카드면 그 로드맵 B-04 부터(#55).
+     * 주행 → 정차 복원은 이 값을 바꾸지 않음.
+     */
+    private fun enterRecommendations(openTripNo: Long? = null, openSidoNm: String? = null) {
+        savedStateHandle[KEY_RECOMMENDATIONS_OPEN_TRIP] = openTripNo
+        savedStateHandle[KEY_RECOMMENDATIONS_OPEN_SIDO] = openSidoNm
         savedStateHandle[KEY_RECOMMENDATIONS_ENTRY] = (savedStateHandle.get<Int>(KEY_RECOMMENDATIONS_ENTRY) ?: 0) + 1
     }
 
@@ -146,5 +172,7 @@ class AppShellViewModel @Inject constructor(
         const val KEY_RECOMMENDATIONS_ENTRY = "recommendations_entry"
         const val KEY_TRIPS_ENTRY = "trips_entry"
         const val KEY_TRIPS_OPEN = "trips_open_trip_no"
+        const val KEY_RECOMMENDATIONS_OPEN_TRIP = "recommendations_open_trip_no"
+        const val KEY_RECOMMENDATIONS_OPEN_SIDO = "recommendations_open_sido_nm"
     }
 }

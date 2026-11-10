@@ -19,12 +19,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.ConfirmDialog
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.settings.components.NearbyConsentDialog
 import com.example.travelcrumbs.ui.settings.components.NicknameDialog
 import com.example.travelcrumbs.ui.settings.components.SettingsRow
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * 설정(와이어프레임 v6 C-03 · #51 U2) — 들어오는 길은 레일 「설정」 칸 하나(D35). 위에서 아래로 닉네임 · 위치정보 수집 · 추천 공개 · 계정.
+ * 설정(와이어프레임 v6 C-03 · #51 U2) — 들어오는 길은 레일 「설정」 칸 하나(D35). 위에서 아래로 닉네임 · 위치정보 수집 · 근처 로드맵 위치 이용(#55) · 추천 공개 · 계정.
  * 주행 중엔 앱 틀이 이 화면 대신 「정차 후 볼 수 있어요」를 그림(입력 칸 없음).
  */
 @Composable
@@ -67,6 +68,18 @@ fun SettingsScreen(
                 actionLabel = if (location != null) stringResource(R.string.settings_withdraw) else null,
                 onAction = viewModel::onWithdrawLocation,
             )
+            // 근처 로드맵 위치 이용(#55 · 2-9) — 「위치정보 수집」 바로 아래 · 그 행과 독립
+            val nearby = uiState.nearbyLocationAgreedOn
+            SettingsRow(
+                title = stringResource(R.string.settings_nearby_location),
+                sub = if (nearby != null) {
+                    stringResource(R.string.settings_nearby_location_agreed, nearby.year, nearby.month, nearby.day)
+                } else {
+                    stringResource(R.string.settings_nearby_location_none)
+                },
+                actionLabel = stringResource(if (nearby != null) R.string.settings_withdraw else R.string.settings_consent_agree),
+                onAction = if (nearby != null) viewModel::onWithdrawNearbyLocation else viewModel::onAskNearbyConsent,
+            )
             SettingsRow(
                 title = stringResource(R.string.settings_reco),
                 sub = stringResource(if (uiState.recoAgreed) R.string.settings_reco_agreed else R.string.settings_reco_none),
@@ -97,6 +110,10 @@ fun SettingsScreen(
             onConfirm = viewModel::onConfirmClearAll,
             onDismiss = viewModel::onDismissClearAll,
         )
+    }
+
+    if (uiState.nearbyConsentAsk) {
+        NearbyConsentDialog(onAgree = viewModel::onAgreeNearbyConsent, onDismiss = viewModel::onDismissNearbyConsent)
     }
 
     uiState.nicknameDraft?.let { draft ->

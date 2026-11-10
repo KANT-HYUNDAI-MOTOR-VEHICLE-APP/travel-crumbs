@@ -57,6 +57,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       # compileSdk 36.1 · buildTools 36.0.0 은 러너 기본 SDK 에 없을 수 있음 — app/build.gradle.kts 와 같은 판
       - run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36.1" "build-tools;36.0.0"'
+      # 한국 지도 자산(#59) — 릴리스 map-kr-z12-* 에서 받은 파일을 해시 이름으로 캐시(app/build.gradle.kts prepareKoreaMapAsset)
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/travel-crumbs-map
+          key: korea-map-${{ hashFiles('app/build.gradle.kts') }}
+          restore-keys: korea-map-
+      # 지도 받기만 토큰과 함께 앞 단계로(private 저장소 릴리스 자산 · contents: read · 값은 로그에 안 찍힘)
+      - run: ./gradlew :app:prepareKoreaMapAsset
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # 본 단계엔 토큰 없음 — 지도는 위에서 채운 캐시(해시 확인)만 씀
       - run: ./gradlew lint testDebugUnitTest assembleRelease
       # 서명 없는 release APK — 제출용 서명은 사람이 따로
       - uses: actions/upload-artifact@v4

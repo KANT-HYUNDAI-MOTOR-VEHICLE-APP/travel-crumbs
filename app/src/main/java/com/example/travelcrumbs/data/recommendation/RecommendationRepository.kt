@@ -20,6 +20,9 @@ interface RecommendationRepository {
     /** 그 시도의 공개 로드맵 전부(정렬 · 필터 · 집계는 도메인 계산). */
     suspend fun publicTrips(sidoNm: String): List<RecommendedTrip>
 
+    /** 모든 시도의 공개 로드맵(추천 지도 #59 — 지도는 시도와 무관하게 화면 범위 기준 · 상세는 고른 시도 밖 로드맵도 엶). */
+    suspend fun allPublicTrips(): List<RecommendedTrip>
+
     /** 태그 마스터(tag_mst) — 별점 「좋았던 점」 칩(#41). */
     suspend fun tags(): List<Tag>
 }
@@ -34,6 +37,8 @@ class SeedRecommendationRepository @Inject constructor() : RecommendationReposit
 
     override suspend fun publicTrips(sidoNm: String): List<RecommendedTrip> =
         RecommendationSeed.trips.filter { it.region.sidoNm == sidoNm }
+
+    override suspend fun allPublicTrips(): List<RecommendedTrip> = RecommendationSeed.trips
 
     override suspend fun tags(): List<Tag> = RecommendationSeed.tags
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.RouteFailReason
@@ -27,7 +28,6 @@ import com.example.travelcrumbs.testing.ShellTestGraph
 import com.example.travelcrumbs.ui.home.components.GUIDE_FAILURE_TAG
 import com.example.travelcrumbs.ui.home.components.GUIDE_MAP_TAG
 import com.example.travelcrumbs.ui.home.components.GUIDE_SCREEN_TAG
-import com.example.travelcrumbs.ui.home.components.PLACE_CARD_TAG
 import com.example.travelcrumbs.ui.shell.AppShellScreen
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
@@ -40,7 +40,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** #4 「가 볼 장소」 카드 · 길안내 연결 화면(스펙 navigation 2.1 E4 · 2.3) Compose 시험 — 창 2개 영역 1682 × 1210 dp(#6 D18). */
+/**
+ * #4 길안내 연결 화면(스펙 navigation 2.3) Compose 시험 — 창 2개 영역 1682 × 1210 dp(#6 D18).
+ * 홈의 「가 볼 장소」 구역을 뺀 뒤(미리보기)엔 화면 입구가 없어 ViewModel 의 onGuide 로 직접 엶 — 연결 화면 규칙만 지킴.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w1682dp-h1210dp-land")
 class HomeGuideScreenTest {
@@ -50,7 +53,10 @@ class HomeGuideScreenTest {
 
     private fun text(id: Int) = compose.activity.getString(id)
 
+    private lateinit var graph: ShellTestGraph
+
     private fun showHome(graph: ShellTestGraph) {
+        this.graph = graph
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
@@ -62,6 +68,7 @@ class HomeGuideScreenTest {
     }
 
     private fun showShell(graph: ShellTestGraph) {
+        this.graph = graph
         compose.setContent {
             TravelCrumbsTheme {
                 CompositionLocalProvider(LocalViewModelStoreOwner provides graph.owner) {
@@ -72,9 +79,9 @@ class HomeGuideScreenTest {
         compose.waitForIdle()
     }
 
-    /** 첫 카드 「여기로 안내」 — 전용 화면이 열림. */
+    /** 첫 고정 장소 「a」로 안내 요청 — 전용 화면이 열림(화면과 같은 ViewModel). */
     private fun guideFirst() {
-        compose.onAllNodesWithText(text(R.string.places_guide))[0].performClick()
+        compose.runOnUiThread { ViewModelProvider(graph.owner)[HomeViewModel::class.java].onGuide("a") }
         compose.waitForIdle()
     }
 
@@ -89,24 +96,6 @@ class HomeGuideScreenTest {
     private fun noneTag(tag: String) = compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
 
     @Test
-    fun `T115 카드형 — 카드 3개 · 이름 · 주소 · 카드 안 여기로 안내 · 버튼 밖 터치는 아무 일 없음`() {
-        val graph = ShellTestGraph(pinned = listOf("a", "b", "c"))
-        showHome(graph)
-
-        assertEquals(3, compose.onAllNodesWithTag(PLACE_CARD_TAG).fetchSemanticsNodes().size)
-        val card = compose.onAllNodesWithTag(PLACE_CARD_TAG)[0].getBoundsInRoot()
-        val button = compose.onAllNodesWithText(text(R.string.places_guide))[0].getBoundsInRoot()
-        assertTrue("버튼은 카드 안", button.left >= card.left && button.right <= card.right && button.top >= card.top)
-        compose.onNode(hasText("a 이름") and hasAnyAncestor(hasTestTag(PLACE_CARD_TAG))).assertIsDisplayed()
-        compose.onNode(hasText("a 주소") and hasAnyAncestor(hasTestTag(PLACE_CARD_TAG))).assertIsDisplayed()
-
-        compose.onNode(hasText("a 이름") and hasAnyAncestor(hasTestTag(PLACE_CARD_TAG))).performClick()
-        compose.waitForIdle()
-        assertEquals(0, graph.navi.routeRequests.size)
-        assertTrue(noneTag(GUIDE_SCREEN_TAG))
-    }
-
-    @Test
     fun `T116 여기로 안내 — 전용 화면(지도 박스 · 목적지 · 현재 위치 · 요청 중 · 닫기) · 홈 목록 안 보임`() {
         showHome(ShellTestGraph(pinned = listOf("a", "b")))
         guideFirst()
@@ -119,8 +108,6 @@ class HomeGuideScreenTest {
         compose.onNodeWithText(text(R.string.places_guide_requesting)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.guide_close)).assertIsDisplayed().assertIsEnabled()
         assertTrue(noneTag(TOP_AREA_TAG))
-        assertTrue(none(text(R.string.places_title)))
-        assertTrue(none(text(R.string.picker_title)))
         assertTrue(noneTag(GUIDE_FAILURE_TAG))
         assertTrue(none(text(R.string.guide_dummy_notice)))
     }
@@ -181,7 +168,7 @@ class HomeGuideScreenTest {
     }
 
     @Test
-    fun `T122 T130 닫기 — 홈 목록 · E3 실패 문구만 · 폴백 버튼 없음 · 카드로 다시 열림`() {
+    fun `T122 T130 닫기 — 홈 목록 · 폴백 버튼 없음 · 다시 열림`() {
         val graph = ShellTestGraph(pinned = listOf("a"))
         showHome(graph)
         failFirst(graph)
@@ -193,8 +180,6 @@ class HomeGuideScreenTest {
 
         assertTrue(noneTag(GUIDE_SCREEN_TAG))
         compose.onNodeWithTag(TOP_AREA_TAG).assertIsDisplayed()
-        val failed = compose.activity.getString(R.string.places_route_failed, text(R.string.places_reason_too_far))
-        compose.onNodeWithText(failed).assertIsDisplayed()
         assertTrue(none(text(R.string.guide_retry)))
         assertTrue(none(text(R.string.guide_dummy_route)))
         assertTrue(none(text(R.string.guide_dummy_notice)))
@@ -204,7 +189,7 @@ class HomeGuideScreenTest {
     }
 
     @Test
-    fun `T122 시스템 뒤로 — 전용 화면이 먼저 닫히고 Activity 는 그대로 · 요청 중이면 카드 버튼 비활성`() {
+    fun `T122 시스템 뒤로 — 전용 화면이 먼저 닫히고 Activity 는 그대로`() {
         val graph = ShellTestGraph(pinned = listOf("a", "b"))
         showHome(graph)
         guideFirst()
@@ -214,8 +199,6 @@ class HomeGuideScreenTest {
 
         assertTrue(noneTag(GUIDE_SCREEN_TAG))
         assertFalse(compose.activity.isFinishing)
-        compose.onNodeWithText(text(R.string.places_guide_requesting)).assertIsNotEnabled()
-        compose.onNodeWithText(text(R.string.places_guide)).assertIsNotEnabled()
     }
 
     @Test

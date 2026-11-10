@@ -1,4 +1,11 @@
-Travel Crumbs offline demonstration map (roadmaps.json)
+Travel Crumbs map assets
+
+There are two independent map assets. Each paragraph below applies only to the
+file it names.
+
+==============================================================================
+1. Offline demonstration map (roadmaps.json)
+==============================================================================
 
 Used only to draw the sample road map on the recommended roadmap detail
 screen (B-04). The app reads this bundled file only; it does not download
@@ -33,3 +40,54 @@ Generated on 2026-11-10 with OSRM from OpenStreetMap road data
 fixed sample places of the demonstration roadmaps, in roadmap order. Route
 keys "from" and "to" are the sample place numbers. These routes are
 precomputed and contain no driver or vehicle history.
+
+==============================================================================
+2. South Korea vector map (korea-z12.pmtiles + korea_style.json) - issue #59
+==============================================================================
+
+Used to draw the nationwide map on the recommendation region screen (B-01).
+The app renders it on the device with MapLibre Native Android from the APK
+assets only: the style has no remote URL, no tiles, styles, fonts or icons are
+requested over the network, and no API key is used.
+
+Map data (roads, water, land use, buildings, boundaries):
+Copyright OpenStreetMap contributors, Open Database License (ODbL) 1.0.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+The app shows "(c) OpenStreetMap contributors" on the map at all times.
+Low-zoom layers also contain Natural Earth data (public domain,
+https://www.naturalearthdata.com).
+
+The distributed database is the PMTiles file in assets/maps/ (PMTiles v3,
+Mapbox Vector Tiles, Protomaps basemap v4 layer schema). It is not stored in
+git; it is published as a GitHub release asset and fetched and SHA-256 checked
+at build time. The release tag, file name and SHA-256 are kept in one place:
+app/build.gradle.kts (koreaMapReleaseTag, koreaMapFileName, koreaMapSha256).
+
+How it was made (script: tools/map/build_korea_pmtiles.py):
+- source: Protomaps basemap daily build 20261109
+  (https://build.protomaps.com/20261109.pmtiles, OpenStreetMap replication
+  time 2026-11-09T04:00Z, built with Planetiler 0.10.2, basemap 4.15.2)
+- tool: go-pmtiles 1.31.2 "pmtiles extract" (https://github.com/protomaps/go-pmtiles)
+- maximum zoom: 12 (the app allows overzoom up to 15)
+- area: an approximate multipolygon drawn by hand in the script around the
+  Republic of Korea mainland, coastal islands, Jeju, Ulleungdo, Dokdo and the
+  northwest islands, excluding North Korea, China and Tsushima. Tiles are cut
+  at tile level, so tiles on the edge can include a little neighbouring land.
+  The polygon was checked against Natural Earth 10m admin-0 countries
+  (public domain, v5.1.2): all KOR boundary points are inside, all JPN points
+  outside.
+
+Style (korea_style.json): written for this app (dark road colours of the B-04
+map). Protomaps basemap layer names only; Protomaps style code is BSD-3 and
+the map design is CC0 (https://github.com/protomaps/basemaps). No labels,
+fonts or icons are used.
+
+Region frames (korea_bounds.json): rough west/south/east/north boxes per
+province used to move the map when a province chip is tapped, the whole-country
+first view and the pan limit. Based on Natural Earth 10m admin-1 province
+extents (public domain, v5.1.2), adjusted by hand (distant islands are left
+out of the frames; they are still on the map).
+
+Renderer: MapLibre Native Android 13.7.1 (OpenGL ES), BSD 2-Clause, with the
+bundled third-party notices in assets/licenses/maplibre-native-android-BSD-2.md.
