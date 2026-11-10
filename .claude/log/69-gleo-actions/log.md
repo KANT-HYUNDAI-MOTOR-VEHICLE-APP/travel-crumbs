@@ -50,3 +50,6 @@
 - 원격 46 브랜치 · 이력 조사: route_reco_dtl · route_reco_place_dtl 구현 없음 · trip_status_hist 는 서버에만 · 지역 계산은 develop RoadmapRules.regionOfTrip 재사용 가능(S4 권장안)
 - 표준 문서 두 벌 발견: docs/data/standard.md v0.35(앱 · 센서) ↔ 루트 데이터표준정의서_v0.4.md(서버) — place_ord 차이(S1). 데이터 담당 정리 요청 초안 `_workspace/gleo-actions/msg-data-owner.md`
 - navi-autorecord/main(#66)과 4파일 충돌(TripPlaceRecorder 등) — 머지 순서 조율 필요
+
+## 2 DB 참고 단순화 — 2026-11-11 · errorn
+- 사람 요청: 최종 DB 선택은 데이터 담당이 나중에 함 → 차이 분석(S1~S5) · 표준 두 벌 · 브랜치 겹침은 문서에서 빼고, 데이터 표준정의서 v0.4 기준으로 Gleo 기능이 쓰는 테이블 · 칸만 간단히
