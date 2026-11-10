@@ -11,9 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.driving.DrivingScreen
+import com.example.travelcrumbs.ui.components.GleoNoticeLine
+import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.ui.gleo.GleoCommandViewModel
 import com.example.travelcrumbs.ui.home.HomeScreen
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.places.PlacesScreen
@@ -33,14 +37,17 @@ import com.example.travelcrumbs.ui.trips.TripsScreen
 fun AppShellScreen(
     modifier: Modifier = Modifier,
     viewModel: AppShellViewModel = viewModel(),
+    gleoViewModel: GleoCommandViewModel = viewModel(),
     destinationContent: @Composable (AppDestination) -> Unit = { DestinationContent(it) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val gleoState by gleoViewModel.uiState.collectAsStateWithLifecycle()
 
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
+      Box(modifier = Modifier.fillMaxSize()) {
         if (uiState.showDrivingScreen) {
             DrivingScreen()
         } else {
@@ -68,6 +75,15 @@ fun AppShellScreen(
                 }
             }
         }
+        if (gleoState.command.phase != GleoCommandPhase.IDLE) {
+            GleoNoticeLine(
+                state = gleoState.command,
+                parked = !uiState.showDrivingScreen,
+                onShown = gleoViewModel::onNoticeShown,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+      }
     }
 }
 

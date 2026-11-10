@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -22,6 +25,8 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.domain.model.GleoCommandState
 import com.example.travelcrumbs.testing.FAKE_INPUT_TAG
 import com.example.travelcrumbs.testing.FakeInputContent
 import com.example.travelcrumbs.testing.ShellTestGraph
@@ -230,6 +235,22 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         compose.onAllNodes(hasText(text(R.string.draft_banner_text))).assertCountEquals(0)
+    }
+
+    @Test
+    fun `Gleo T24 정차의 여행 복원 진행 표시를 주행과 UNKNOWN에서 정적인 한 줄로 바꿈`() {
+        graph.gleo.commandState.value = GleoCommandState(1L, GleoCommandPhase.LOADING_TRIP)
+        show()
+        val progress = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)
+
+        compose.onNodeWithText(text(R.string.gleo_loading_trip_parked)).assertIsDisplayed()
+        compose.onNode(progress).assertIsDisplayed()
+        for (state in listOf(DrivingState.DRIVING, DrivingState.UNKNOWN)) {
+            drive(state)
+            compose.onNodeWithText(text(R.string.gleo_loading_trip)).assertIsDisplayed()
+            compose.onAllNodes(progress).assertCountEquals(0)
+            compose.onAllNodes(hasText(text(R.string.gleo_loading_trip_parked))).assertCountEquals(0)
+        }
     }
 
     @Test

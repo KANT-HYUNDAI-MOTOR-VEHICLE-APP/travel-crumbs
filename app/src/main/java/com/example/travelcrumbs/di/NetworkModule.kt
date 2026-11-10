@@ -2,6 +2,8 @@ package com.example.travelcrumbs.di
 
 import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.data.remote.AppApi
+import com.example.travelcrumbs.data.remote.GleoPlaceWriteInterceptor
+import com.example.travelcrumbs.data.remote.PLACE_IDEMPOTENCY_KEY_HEADER
 import com.example.travelcrumbs.domain.AppConfig
 import dagger.Module
 import dagger.Provides
@@ -33,11 +35,18 @@ object NetworkModule {
     fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(AppConfig.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .addInterceptor(GleoPlaceWriteInterceptor())
         .apply {
             if (BuildConfig.DEBUG) {
-                addInterceptor(
-                    HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC },
-                )
+                val logger = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
+                addInterceptor { chain ->
+                    val request = chain.request()
+                    if (request.header(PLACE_IDEMPOTENCY_KEY_HEADER) == null) {
+                        logger.intercept(chain)
+                    } else {
+                        chain.proceed(request)
+                    }
+                }
             }
         }
         .build()

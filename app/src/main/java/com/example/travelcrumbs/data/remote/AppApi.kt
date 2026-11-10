@@ -1,11 +1,15 @@
 package com.example.travelcrumbs.data.remote
 
+import java.util.UUID
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+
+internal const val PLACE_IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
 
 /** 로컬 서버(server/) API — 경로 · 메서드는 서버 라우터와 1:1. */
 interface AppApi {
@@ -46,6 +50,7 @@ interface AppApi {
     suspend fun createPlace(
         @Path("trip_uuid") tripUuid: String,
         @Body body: TripPlaceCreateRequest,
+        @Header(PLACE_IDEMPOTENCY_KEY_HEADER) idempotencyKey: UUID?,
     ): TripPlaceResponse
 
     /** 기록한 장소 목록 — draftYn = "Y" 면 입력 안 한 임시 기록만(A-06). 서버 `GET /trips/{trip_uuid}/places`. */

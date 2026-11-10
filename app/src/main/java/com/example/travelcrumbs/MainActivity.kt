@@ -38,8 +38,8 @@ class MainActivity : ComponentActivity() {
                 AppShellScreen()
             }
         }
-        // Gleo 는 7초 뒤 Action 을 취소하므로 화면을 띄우자마자 바로 답함.
-        gleoActionRepository.handleActionIntent(intent)
+        // 구성 변경·프로세스 복원 때 저장된 Intent를 업무 명령으로 다시 실행하지 않음.
+        if (savedInstanceState == null) gleoActionRepository.handleActionIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -49,8 +49,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        routeRecorder.stop()
-        sdkSession.stop()
+        // 화면 재생성 동안 진행 중인 장소 기록이 쓰는 SDK를 끊지 않음.
+        if (!isChangingConfigurations) {
+            routeRecorder.stop()
+            sdkSession.stop()
+        }
         super.onDestroy()
     }
 }

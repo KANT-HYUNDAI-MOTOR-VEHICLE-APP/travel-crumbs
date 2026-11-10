@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
+import com.example.travelcrumbs.ui.gleo.GleoCommandViewModel
 import com.example.travelcrumbs.ui.placeinput.PlaceInputViewModel
 import com.example.travelcrumbs.ui.shell.AppShellViewModel
 import com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel
@@ -23,6 +24,7 @@ import com.example.travelcrumbs.ui.tripsetup.TripSetupViewModel
 class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
+    val gleo = FakeGleoActionRepository()
     val recording = recordingRepositoryOf(time)
     val drafts = draftRepositoryOf(time)
     val savedState = SavedStateHandle()
@@ -41,6 +43,7 @@ class ShellTestGraph(initialDriving: DrivingState = DrivingState.PARKED) {
 
     private fun create(modelClass: Class<*>): ViewModel = when (modelClass) {
         AppShellViewModel::class.java -> AppShellViewModel(driving, drafts, savedState)
+        GleoCommandViewModel::class.java -> GleoCommandViewModel(gleo)
         DrivingViewModel::class.java -> DrivingViewModel(
             recording,
             FakeRecordPlaceUseCase(),

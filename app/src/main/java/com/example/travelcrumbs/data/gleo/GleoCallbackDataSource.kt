@@ -20,7 +20,7 @@ class GleoCallbackDataSource @Inject constructor(
             putExtra(EXTRA_RESPONSE, payload)
         }
         runCatching { context.sendBroadcast(intent) }
-            .onSuccess { Log.i(TAG, "callback 보냄: $payload") }
+            .onSuccess { Log.i(TAG, "callback 전송 시도 완료") }
             .onFailure { Log.w(TAG, "callback 못 보냄: ${it.javaClass.simpleName}") }
     }
 
