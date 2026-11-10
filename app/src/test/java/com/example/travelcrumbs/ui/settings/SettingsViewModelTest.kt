@@ -49,7 +49,7 @@ class SettingsViewModelTest {
             override fun nowMillis() = time.now
             override fun zoneId(): ZoneId = ZoneId.of("Asia/Seoul")
         }
-        val vm = SettingsViewModel(users, trips, zoned, SavedStateHandle())
+        val vm = SettingsViewModel(users, trips, zoned, SavedStateHandle(), com.example.travelcrumbs.testing.TripOnlyCleanup(trips))
         backgroundScope.launch { vm.uiState.collect {} }
         runCurrent()
         return vm

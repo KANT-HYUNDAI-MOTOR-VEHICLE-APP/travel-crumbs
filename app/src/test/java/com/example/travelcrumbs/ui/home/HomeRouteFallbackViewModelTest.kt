@@ -107,6 +107,7 @@ class HomeRouteFallbackViewModelTest {
             tripRepository = FakeTripRepository(),
             tagRepository = FakeTagRepository(),
             unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
+            endTrip = { null },
         )
     }
 

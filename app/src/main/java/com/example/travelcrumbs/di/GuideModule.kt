@@ -3,6 +3,7 @@ package com.example.travelcrumbs.di
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.pin.PinRepository
 import com.example.travelcrumbs.domain.GuideRequestTracker
+import com.example.travelcrumbs.domain.TimeSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,10 +24,15 @@ object GuideModule {
 
     @Provides
     @Singleton
-    fun provideGuideRequestTracker(navi: NaviRepository, pins: PinRepository): GuideRequestTracker =
+    fun provideGuideRequestTracker(
+        navi: NaviRepository,
+        pins: PinRepository,
+        timeSource: TimeSource,
+    ): GuideRequestTracker =
         GuideRequestTracker(
             navi = navi,
             recorder = pins,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+            timeSource = timeSource,
         )
 }
