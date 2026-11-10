@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
+import com.example.travelcrumbs.ui.components.BackButton
 import com.example.travelcrumbs.ui.components.ConfirmDialog
 import com.example.travelcrumbs.ui.components.DangerButton
 import com.example.travelcrumbs.ui.components.NoticeLine
@@ -42,12 +43,13 @@ import com.example.travelcrumbs.ui.trips.components.RecoConsentDialog
 import com.example.travelcrumbs.ui.trips.components.RenameTripDialog
 
 /**
- * A-08 내 로드맵 상세(와이어프레임 v6 · #51 U6) — 「내 여행」 칸 안(A-07 카드로 엶 · 뒤로는 목록).
+ * A-08 내 로드맵 상세(와이어프레임 v6 · #51 U6) — 「내 여행」 칸 안(A-07 카드로 엶 · 머리글 「뒤로」 · 시스템 뒤로 = [onBack] → 목록).
  * 제목 · 「이름 수정」 · 날짜 · 장소 수 · 동행자 · 기록 시간 · 받은 별점 · 공개 토글 · 간소화 경로 · 장소(누르면 A-03 시트로 고침).
  */
 @Composable
 fun TripDetailScreen(
     tripNo: Long,
+    onBack: () -> Unit,
     onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TripDetailViewModel = viewModel(),
@@ -64,6 +66,7 @@ fun TripDetailScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+            BackButton(onBack = onBack)
             Text(
                 text = tripNameText(summary?.tripNm),
                 style = MaterialTheme.typography.headlineMedium,

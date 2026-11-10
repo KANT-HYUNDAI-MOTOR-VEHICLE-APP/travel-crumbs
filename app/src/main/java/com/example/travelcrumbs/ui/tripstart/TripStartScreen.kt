@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.ui.components.AppCard
+import com.example.travelcrumbs.ui.components.BackButton
 import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.UiMessage
 import com.example.travelcrumbs.ui.components.companionLabelRes
@@ -35,7 +38,7 @@ import com.example.travelcrumbs.ui.theme.Dimens
 /**
  * A-01 여행 시작(와이어프레임 v6 · #51 U3) — 기록 칸 안에서 C-02 「여행 시작」으로 엶 · 정차 전용(주행이 되면 앱 틀이 주행 화면으로).
  * 위에서 아래로 제목 · 여행 이름 · 동행자 칩 · 목적지(선택) · 위치 동의(처음 한 번) · 내비 안내 한 줄 · 「기록 시작」.
- * 시작이 끝나면 [onDone](안내 한 줄과 함께) · 시스템 뒤로는 [onCancel].
+ * 시작이 끝나면 [onDone](안내 한 줄과 함께) · 시스템 뒤로 · 머리글 「뒤로」는 같은 [onCancel](입력 버림 · 확인 없음).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -65,13 +68,19 @@ fun TripStartScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = stringResource(R.string.trip_start_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BackButton(onBack = onCancel)
+                Text(
+                    text = stringResource(R.string.trip_start_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+            }
             TripStartLabel(R.string.trip_start_name_label)
             OutlinedTextField(
                 value = uiState.tripNm,

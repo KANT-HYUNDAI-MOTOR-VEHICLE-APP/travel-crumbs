@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.AppCard
+import com.example.travelcrumbs.ui.components.BackButton
 import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.RoadmapPlaceCard
 import com.example.travelcrumbs.ui.components.RouteSketchBox
@@ -43,19 +44,23 @@ import com.example.travelcrumbs.ui.theme.Dimens
 @Composable
 fun ReviewContent(
     state: RoadmapReviewUiState,
+    onBack: () -> Unit,
     onEditPlace: (Long) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-        Text(
-            text = stringResource(R.string.review_title, tripNameText(state.tripNm)),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+            BackButton(onBack = onBack)
+            Text(
+                text = stringResource(R.string.review_title, tripNameText(state.tripNm)),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Text(
             text = durationText(state.durationMinutes) + stringResource(R.string.reco_meta_separator) +
                 stringResource(R.string.trip_place_cnt_short, state.placeCnt),
@@ -101,6 +106,7 @@ private fun PlaceList(state: RoadmapReviewUiState, onEditPlace: (Long) -> Unit, 
 @Composable
 fun PublishContent(
     state: RoadmapReviewUiState,
+    onBack: () -> Unit,
     onChoosePublic: (Boolean) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -110,13 +116,16 @@ fun PublishContent(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = stringResource(R.string.publish_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+                BackButton(onBack = onBack)
+                Text(
+                    text = stringResource(R.string.publish_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+            }
             ChoiceRow(
                 title = stringResource(R.string.publish_private),
                 sub = stringResource(R.string.publish_private_sub),

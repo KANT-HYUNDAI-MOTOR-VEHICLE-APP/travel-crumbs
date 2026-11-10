@@ -13,7 +13,7 @@ import com.example.travelcrumbs.ui.roadmap.components.ReviewContent
 
 /**
  * A-05 로드맵 검토 · A-06 저장 · 공개(와이어프레임 v6 · #51 U5) — 기록 칸 안 내용 영역(레일 그대로) · 정차 전용.
- * 저장이 끝나면 [onDone](내 여행 보관함으로). 시스템 뒤로: A-06 → A-05 → 「나중에」(검토 끝).
+ * 저장이 끝나면 [onDone](내 여행 보관함으로). 시스템 뒤로 · 머리글 「뒤로」(같은 onBack): A-06 → A-05 → 「나중에」(검토 끝).
  */
 @Composable
 fun RoadmapReviewScreen(
@@ -36,12 +36,14 @@ fun RoadmapReviewScreen(
     when (uiState.step) {
         RoadmapStep.REVIEW -> ReviewContent(
             state = uiState,
+            onBack = viewModel::onBack,
             onEditPlace = viewModel::onEditPlace,
             onSave = viewModel::onSaveRoadmap,
             modifier = modifier,
         )
         RoadmapStep.PUBLISH -> PublishContent(
             state = uiState,
+            onBack = viewModel::onBack,
             onChoosePublic = viewModel::onChoosePublic,
             onSave = viewModel::onPublish,
             modifier = modifier,

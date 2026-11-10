@@ -31,7 +31,7 @@ import com.example.travelcrumbs.ui.trips.components.RecoConsentDialog
 /**
  * 「내 여행」 칸(와이어프레임 v6 A-07 보관함 · #51 U6) — 끝난 여행 카드 · 공개 토글 · 카드 → A-08 상세(이 칸 안).
  * [entry] · [openTripNo] — 앱 틀이 레일 「내 여행」 · 여행 카드(C-02 · A-06 저장 뒤)마다 올리는 값 · 열 여행.
- * 시스템 뒤로: A-08 → 목록 · 목록에선 앱 틀이 받음(「기록」으로).
+ * 시스템 뒤로 · A-08 머리글 「뒤로」(같은 onCloseTrip): A-08 → 목록 · 목록에선 앱 틀이 받음(「기록」으로 · 목록엔 「뒤로」 버튼 없음).
  */
 @Composable
 fun TripsScreen(
@@ -47,7 +47,7 @@ fun TripsScreen(
     val selected = uiState.selectedTripNo
     if (selected != null) {
         BackHandler(onBack = viewModel::onCloseTrip)
-        TripDetailScreen(tripNo = selected, onDeleted = viewModel::onCloseTrip, modifier = modifier)
+        TripDetailScreen(tripNo = selected, onBack = viewModel::onCloseTrip, onDeleted = viewModel::onCloseTrip, modifier = modifier)
         return
     }
 

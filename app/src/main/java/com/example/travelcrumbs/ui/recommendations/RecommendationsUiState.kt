@@ -60,6 +60,9 @@ data class RecommendationsUiState(
     /** 시스템 뒤로를 이 칸이 받는지 — 팝업이 떠 있거나 B-01 이 아닐 때. 아니면 앱 틀이 받음(「기록」으로). */
     val handlesBack: Boolean get() = confirm != null || rating != null || page != RecommendationPage.REGION
 
+    /** 머리글 「뒤로」 버튼 — B-02 · B-03 · B-04(하위 화면)만. B-01 은 레일 첫 화면이라 없음(시스템 뒤로는 앱 틀이 받음). */
+    val showsBackButton: Boolean get() = page != RecommendationPage.REGION
+
     /** 선택 태그의 이름(B-03 목록 제목). */
     val selectedTagNm: String? get() = tagCounts.firstOrNull { it.tagNo == selectedTagNo }?.tagNm
 
