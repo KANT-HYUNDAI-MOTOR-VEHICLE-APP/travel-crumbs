@@ -60,6 +60,36 @@ class ArchitectureTest {
     }
 
     @Test
+    fun `규칙 4 T78 ui 와 domain 은 Retrofit · AppApi · Dao · fake 를 직접 참조하지 않음`() {
+        val forbidden = listOf(
+            "retrofit2.",
+            "okhttp3.",
+            "androidx.room.",
+            "com.example.travelcrumbs.data.remote.",
+            "com.example.travelcrumbs.data.local.",
+        )
+        Konsist.scopeFromProduction().files
+            .filter { file ->
+                file.packagee?.name.orEmpty().let {
+                    it.startsWith("com.example.travelcrumbs.ui") || it.startsWith("com.example.travelcrumbs.domain")
+                }
+            }
+            .assertFalse { file ->
+                file.hasImport { import ->
+                    forbidden.any { import.name.startsWith(it) } || import.name.contains(".testing.")
+                }
+            }
+    }
+
+    @Test
+    fun `규칙 8 T69 data remote 의 DTO 에 좌표 · userId 칸 없음`() {
+        val forbidden = Regex("""(lat|lng|lon|latitude|longitude|userId|user_id)""", RegexOption.IGNORE_CASE)
+        files.withPackage("..travelcrumbs.data.remote..")
+            .flatMap { it.classes() }
+            .assertFalse { cls -> cls.properties().any { forbidden.matches(it.name) } }
+    }
+
+    @Test
     fun `규칙 7 ai pleos import 는 data 의 SDK 경계 패키지에만`() {
         files.assertTrue { file ->
             !file.hasImport { import -> import.name.startsWith("ai.pleos.") } ||

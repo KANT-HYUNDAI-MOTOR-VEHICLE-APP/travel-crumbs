@@ -2,94 +2,56 @@
 <resources>
     <string name="app_name">Travel Crumbs</string>
 
-    <!-- 레일 목적지(스펙 app-shell 2-1 · 디자인 시스템 지시서 10장) — 화면 제목도 같은 문자열 -->
-    <string name="nav_home">여행 기록</string>
-    <string name="nav_trips">여행 목록</string>
-    <string name="nav_places">찍힌 장소</string>
+    <!-- 목적지(스펙 app-shell-v5 2-1 · D33) — 레일 글자 · 화면 제목 공통 -->
+    <string name="nav_records">기록</string>
+    <string name="nav_trips">내 여행</string>
+    <string name="nav_recommendations">추천</string>
     <string name="nav_settings">설정</string>
 
-    <!-- 「이어서 쓰기」 띠 -->
-    <string name="draft_banner_text">작성 중이던 내용이 있어요</string>
-    <string name="draft_banner_action">이어서 쓰기</string>
+    <!-- 「이어서 쓰기」 띠 — 작성 중 내용(D27) -->
+    <string name="unfinished_input_banner_text">작성 중이던 내용이 있어요</string>
+    <string name="unfinished_input_banner_action">이어서 쓰기</string>
 
-    <!-- 홈 인사말(A-03) — 닉네임은 user_mst.nickname_nm -->
-    <string name="home_greeting">안녕하세요, %1$s님</string>
-    <string name="home_user_unavailable">사용자 정보를 불러오지 못했어요 · 로컬 서버 실행 확인</string>
-
-    <!-- 새 여행 시작(A-03) · 위치정보 동의(A-03-1) -->
-    <string name="home_start_trip">새 여행 시작</string>
-    <string name="home_active_trip">%1$s · 기록된 장소 %2$d</string>
-    <string name="consent_location_title">위치정보 수집 동의</string>
-    <string name="consent_location_body">여행 경로를 기록하려면 위치정보 수집 동의가 필요해요. 설정에서 언제든 철회할 수 있어요.</string>
-    <string name="consent_agree">동의하고 시작</string>
-    <string name="consent_decline">동의 안 함</string>
-    <string name="server_unavailable">로컬 서버에 연결하지 못했어요</string>
-    <string name="trip_already_recording">이미 기록 중인 여행이 있어요</string>
-    <string name="trip_started">여행 기록을 시작했어요</string>
-
-    <!-- 여행 시작 설정(A-04) -->
-    <string name="trip_setup_title">새 여행</string>
-    <string name="trip_setup_name_label">여행명</string>
-    <string name="trip_setup_name_edit">수정</string>
-    <string name="trip_setup_name_help">여행명은 날짜로 자동 생성되며 시작 전 수정할 수 있습니다.</string>
-    <string name="trip_setup_companion_label">동행자</string>
-    <string name="trip_setup_cancel">취소</string>
-    <string name="trip_setup_start">여행 시작</string>
-    <string name="retry">다시 시도</string>
-    <string name="home_end_trip">여행 종료</string>
-    <string name="end_trip_body">현재 여행 기록을 종료할까요?</string>
-    <string name="end_trip_continue">계속 기록</string>
-    <string name="end_trip_confirm">종료</string>
-
-    <!-- 여행 상세(A-08) -->
-    <string name="trip_detail_edit_title">제목 수정</string>
-    <string name="trip_detail_summary">총 %1$.1fkm · %2$d시간 %3$d분 · 장소 %4$d개</string>
-    <string name="trip_detail_no_place">기록한 장소가 없어요</string>
-    <string name="trip_detail_draft_place">입력 안 한 장소</string>
-    <string name="trip_detail_positive">좋았어요</string>
-    <string name="trip_detail_negative">별로예요</string>
-    <string name="trip_detail_close">닫기</string>
-    <string name="trips_title">내 여행</string>
-    <string name="trips_empty">아직 여행이 없어요</string>
-    <string name="trips_summary">%1$s · %2$.1fkm · 장소 %3$d개</string>
-    <string name="trips_paused">%1$s · 일시정지 · 장소 %2$d개</string>
-    <string name="trips_recording">%1$s · 기록 중 · 장소 %2$d개</string>
-    <string name="home_place_input">장소 경험 입력 · 남은 기록 %1$d</string>
-
-    <!-- 경로 그림(지도 자리 · 디자인 시스템 지시서 17장) · 최근 여행(23장) -->
-    <string name="home_route_empty">여행을 시작하면 지나온 길이 여기에 그려져요</string>
-    <string name="home_route_active">지금 여행</string>
-    <string name="home_route_recent">최근 여행 · %1$s</string>
-    <string name="home_recent_title">최근 여행</string>
-    <string name="trip_detail_route_empty">기록한 경로가 없어요</string>
-
-    <!-- 장소 경험 입력(A-06) -->
-    <string name="place_input_title">장소 경험 입력 · 남은 기록 %1$d</string>
-    <string name="place_input_name_label">장소명</string>
-    <string name="place_input_name_hint">내가 부르는 이름</string>
-    <string name="place_input_type_label">장소 유형</string>
-    <string name="place_input_polarity_label">어땠나요</string>
-    <string name="place_input_tag_label">경험 태그</string>
-    <string name="place_input_memo_label">짧은 메모</string>
-    <string name="place_input_later">나중에 입력</string>
-    <string name="place_input_save">저장</string>
-    <string name="place_input_leave_body">위치 기록을 미완성 상태로 남길까요?</string>
-    <string name="place_input_continue">계속 입력</string>
-    <string name="place_input_keep_draft">기록 남기기</string>
-
-    <!-- 기록 상태 · 경과(홈 · 주행 화면 공통) -->
-    <string name="recording_status_recording">기록 중</string>
+    <!-- 여행 상태(표준 v0.4 TRIP_STATUS 코드명 · N8 · N25) · 경과(홈 · 주행 화면 공통). 일시정지는 #6 이름 그대로(N16) -->
+    <string name="trip_status_recording">기록 중</string>
     <string name="recording_status_paused">일시정지</string>
+    <string name="trip_status_completed">완료</string>
+    <string name="trip_status_interrupted">중단</string>
+    <string name="trip_status_canceled">취소</string>
     <string name="elapsed_minutes">경과 %1$d분</string>
     <string name="elapsed_hours_minutes">경과 %1$d시간 %2$d분</string>
 
+    <!-- 주행 화면(스펙 app-shell-v5 2-5) -->
+    <string name="trip_name_default">새 여행</string>
+    <string name="trip_place_count">기록된 장소 %1$d</string>
+    <!-- 주행 화면 넓은 칸 「내비 안내」 카드(#51 U0) -->
+    <string name="driving_navi_card_title">내비 안내</string>
+    <string name="driving_navi_guiding">「%1$s」로 안내 중</string>
+    <string name="driving_navi_idle">내비에서 길안내를 켜 보세요</string>
+    <string name="action_open_navi">내비 보기</string>
+    <string name="navi_split_hint">⋮ 를 끌면 내비와 기록 화면을 나란히 볼 수 있어요</string>
+
     <!-- 버튼 -->
     <string name="action_record_place">이 장소 기록</string>
-    <string name="action_voice_input">음성 입력</string>
+    <string name="action_voice">음성</string>
     <string name="action_pause_recording">기록 일시정지</string>
     <string name="action_resume_recording">기록 재개</string>
+    <string name="action_end_trip">여행 종료</string>
+    <string name="action_start_trip">여행 시작</string>
+    <string name="action_open_recommendations">추천 보러 가기</string>
 
-    <!-- 「준비 중」 — 안내 한 줄 · 여행 · 설정 화면 안내 공통 -->
+    <!-- 기록 칸 최근 여행 자리(스펙 app-shell-v5 2-2 · N26) -->
+    <string name="recent_trip_empty">최근 여행이 없어요</string>
+
+    <!-- 여행 종료 확인 팝업(와이어프레임 A-08 · 스펙 app-shell-v5 2-6) -->
+    <string name="end_trip_confirm_body">현재 여행 기록을 종료할까요?</string>
+    <string name="end_trip_confirm_continue">계속 기록</string>
+    <string name="end_trip_confirm_end">종료</string>
+
+    <!-- 주행 제한 안내(스펙 app-shell-v5 2-8) -->
+    <string name="driving_restricted">정차 후 볼 수 있어요</string>
+
+    <!-- 「준비 중」 — 안내 한 줄 · 준비 중 화면 안내 공통 -->
     <string name="not_ready">준비 중</string>
 
     <!-- debug 빌드 SDK 확인 카드(스펙 D9) -->
@@ -115,6 +77,97 @@
     <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
     <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
 
+    <!-- debug 카드 「안내 건수」 한 줄(스펙 navigation 4.6 · U41 · debug 전용 · 사용자 문구 아님) -->
+    <string name="home_stats_label">안내 건수 · 서버 조회</string>
+    <string name="stats_item">%1$s %2$d</string>
+    <string name="stats_none">아직 없음</string>
+    <string name="stats_failed">안내 건수를 불러오지 못했어요</string>
+
+    <!-- 길안내 요청 결과 문구(스펙 navigation 2.1 · U9) — 「가 볼 장소」 구역은 홈에서 뺐고 길안내 연결 화면이 씀 -->
+    <string name="places_navi_not_connected">내비 서비스에 연결되지 않았어요</string>
+    <string name="places_guide_requesting">안내 요청 중…</string>
+    <string name="places_route_failed">안내를 시작하지 못했어요 · %1$s</string>
+    <string name="places_reason_too_close">너무 가까운 곳이에요</string>
+    <string name="places_reason_too_far">너무 먼 곳이에요</string>
+    <string name="places_reason_low_battery">배터리가 부족해요</string>
+    <string name="places_reason_route_not_found">경로를 찾지 못했어요</string>
+    <string name="places_reason_timeout">내비가 응답하지 않아요</string>
+    <string name="places_reason_request_failed">요청을 보내지 못했어요</string>
+
+    <!-- 길안내 연결 화면(스펙 navigation 2.3 G1 ~ G6 · 와이어프레임 A-14 · 결정 기록 U57) — 시연 부품 문구는 src/debug 의 strings_demo.xml(U55 · U70) -->
+    <string name="guide_route_started">NaviHelper 전달 완료 · 차량 내비게이션 시작</string>
+    <string name="guide_destination">목적지</string>
+    <string name="guide_origin">현재 위치</string>
+    <string name="guide_retry">다시 시도</string>
+    <string name="guide_close">닫기</string>
+
+    <!-- 추천(#37 · 와이어프레임 v6 B-01 ~ B-05) — 이름 · 태그명 · 주소는 데이터 값이라 여기 없음 -->
+    <string name="reco_demo_data">시연용 데이터</string>
+    <string name="reco_selected">✓ %1$s</string>
+    <string name="reco_region_title">어느 지역으로 갈까요?</string>
+    <string name="reco_sido_label">시도</string>
+    <string name="reco_sigungu_label">%1$s · 시군구</string>
+    <string name="reco_pick_sido">시도를 고르면 시군구가 보여요</string>
+    <string name="reco_region_empty">아직 공개된 로드맵이 없어요</string>
+    <string name="reco_region_all">전체</string>
+    <string name="reco_trip_cnt">로드맵 %1$d</string>
+    <string name="reco_region_name">%1$s %2$s</string>
+    <string name="reco_change_region">지역 바꾸기</string>
+    <string name="reco_sort_rating">별점순</string>
+    <string name="reco_sort_latest">최신순</string>
+    <string name="reco_filter_all">전체</string>
+    <string name="reco_filter_child">아이와</string>
+    <string name="reco_filter_spouse">부부</string>
+    <string name="reco_filter_solo">혼자</string>
+    <string name="reco_open_tags"># 태그별로 보기</string>
+    <string name="reco_rating">★ %1$.1f · %2$d명</string>
+    <string name="reco_place_cnt">장소 %1$d곳</string>
+    <string name="reco_card_sub">장소 %1$d곳 · %2$s</string>
+    <string name="reco_ranking_empty">조건에 맞는 로드맵이 없어요</string>
+    <string name="reco_tags_title">%1$s · 이런 점이 좋았어요</string>
+    <string name="reco_tags_sub">공개 로드맵 %1$d개 · 장소에 붙은 태그 기준</string>
+    <string name="reco_tagged_title">「%1$s」 로드맵 · %2$d개</string>
+    <string name="reco_tags_empty">아직 붙은 태그가 없어요</string>
+    <string name="reco_guide_here">여기로 안내</string>
+    <string name="reco_guide_from_first">★ 첫 장소부터 안내</string>
+    <string name="reco_meta_separator">" · "</string>
+
+    <!-- 동행자 유형(표준 v0.4 COMPANION_TYPE 코드명) -->
+    <string name="companion_solo">혼자</string>
+    <string name="companion_spouse">배우자</string>
+    <string name="companion_child">아이</string>
+    <string name="companion_parent">부모님</string>
+    <string name="companion_pet">반려동물</string>
+
+    <!-- 안내 확인 팝업(B-05) · 결과 한 줄 -->
+    <string name="guidance_confirm_title">%1$s까지 안내할까요?</string>
+    <string name="guidance_confirm_body_first">%1$s · %2$s의 「%3$s」 첫 장소</string>
+    <string name="guidance_confirm_body_nth">%1$s · %2$s의 「%3$s」 %4$d번째 장소</string>
+    <string name="guidance_cancel">취소</string>
+    <string name="guidance_start">안내 시작</string>
+    <string name="guidance_requested">차량 내비에 길안내를 요청했어요</string>
+    <string name="guidance_failed">길안내를 시작할 수 없어요</string>
+    <!-- 별점(#41 · 와이어프레임 v6 B-06) -->
+    <string name="rating_title">따라간 코스 어땠나요?</string>
+    <string name="rating_trip_line">· %1$s · %2$d월 %3$d일 안내</string>
+    <string name="rating_star">★</string>
+    <string name="rating_star_description">별 %1$d개</string>
+    <string name="rating_pick_stars">별을 골라 주세요</string>
+    <string name="rating_score_text">%1$s · %2$d점</string>
+    <string name="rating_word_1">별로예요</string>
+    <string name="rating_word_2">아쉬워요</string>
+    <string name="rating_word_3">괜찮아요</string>
+    <string name="rating_word_4">좋아요</string>
+    <string name="rating_word_5">최고예요</string>
+    <string name="rating_tags_label">좋았던 점 · 선택</string>
+    <string name="rating_tag_selected">✓ %1$s</string>
+    <string name="rating_anonymous_hint">별점은 닉네임 없이 평균과 참여 수로만 보여요</string>
+    <string name="rating_later">나중에</string>
+    <string name="rating_submit">★ 별점 주기</string>
+    <string name="rating_saved">별점을 남겼어요</string>
+    <string name="rating_open">★ 별점 주기</string>
+    <string name="rating_mine">내 별점 ★%1$d · 고치기</string>
+
     <!-- Gleo 명령 결과 — 상세 입력·재시도 유도 없이 한 줄만 표시 -->
     <string name="gleo_preparing">기록할 준비를 확인하고 있어요</string>
     <string name="gleo_loading_trip">여행 정보를 불러오는 중이에요</string>
@@ -129,4 +182,110 @@
 
     <string name="yes">예</string>
     <string name="no">아니요</string>
+
+    <!-- #51 v6 공통 한 줄 안내 -->
+    <string name="notice_place_draft_saved">위치를 저장했어요 · 태그는 정차 후에</string>
+    <string name="notice_place_saved">장소를 저장했어요</string>
+    <string name="notice_location_unavailable">위치를 못 읽었어요 · 장소는 저장했어요</string>
+    <string name="notice_navi_start_failed">내비를 열지 못했어요 · 기록은 시작했어요</string>
+    <string name="notice_roadmap_saved">로드맵을 저장했어요</string>
+    <string name="notice_nickname_saved">닉네임을 바꿨어요</string>
+    <string name="notice_location_withdrawn">위치정보 수집 동의를 철회했어요</string>
+    <string name="notice_reco_withdrawn">추천 공개를 철회했어요 · 공개 로드맵은 모두 비공개</string>
+    <string name="action_save">저장</string>
+    <string name="action_cancel">취소</string>
+    <string name="action_back">뒤로</string>
+    <string name="trip_date">%1$d.%2$02d.%3$02d</string>
+    <string name="trip_place_cnt_short">장소 %1$d곳</string>
+    <string name="trip_public_badge">공개 중</string>
+    <string name="trip_private_badge">비공개</string>
+    <string name="trip_status_none">여행 전</string>
+
+    <!-- C-02 기록 첫 화면(#51 U2) -->
+    <string name="home_greeting">안녕하세요, %1$s님</string>
+    <string name="home_greeting_sub">오늘은 어디로 떠나요?</string>
+    <string name="home_start_trip_sub">목적지가 있어요 · 가는 길을 기록할게요</string>
+    <string name="home_open_reco_sub">목적지가 없어요 · 지역 코스를 추천받을게요</string>
+    <string name="home_recent_title">최근 여행</string>
+
+    <!-- C-03 설정(#51 U2) -->
+    <string name="settings_nickname">닉네임</string>
+    <string name="settings_nickname_sub">%1$s · 공개 로드맵에 보이는 이름</string>
+    <string name="settings_edit">수정</string>
+    <string name="settings_location">위치정보 수집</string>
+    <string name="settings_location_agreed">%1$d.%2$02d.%3$02d 동의 · 여행 기록에 사용 · 철회하면 저장된 위치 · 주소를 지워요</string>
+    <string name="settings_location_none">동의 안 함 · 여행을 시작할 때 물어요</string>
+    <string name="settings_reco">추천 공개</string>
+    <string name="settings_reco_agreed">공개한 로드맵을 추천에 보여 줌</string>
+    <string name="settings_reco_none">동의 안 함 · 로드맵을 공개할 때 물어요</string>
+    <string name="settings_withdraw">철회</string>
+    <string name="settings_account">계정</string>
+    <string name="settings_account_sub">이 기기에만 저장돼요 · 로그인은 준비 중이에요</string>
+    <string name="nickname_dialog_title">닉네임 수정</string>
+
+    <!-- A-01 여행 시작(#51 U3) -->
+    <string name="trip_start_title">새 여행</string>
+    <string name="trip_start_name_label">여행 이름</string>
+    <string name="trip_name_default_date">%1$d월 %2$d일 여행</string>
+    <string name="trip_start_companion_label">동행자</string>
+    <string name="trip_start_dest_label">목적지 · 선택</string>
+    <string name="trip_start_dest_none">목적지 없음</string>
+    <string name="trip_start_consent_title">위치정보 수집 동의</string>
+    <string name="trip_start_consent_body">수집 항목 · 기록한 장소의 위치 좌표 · 주소\n목적 · 여행 경로와 로드맵 기록\n보유 기간 · 직접 지우거나 앱을 지울 때까지 · 기기 안에만 저장\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="trip_start_navi_hint">내비가 열려요 · ⋮ 를 끌면 기록 화면과 나란히 볼 수 있어요</string>
+    <string name="action_start_recording">기록 시작</string>
+    <string name="action_consent_and_start">동의하고 기록 시작</string>
+
+    <!-- A-03 장소 기록 · 태그 시트(#51 U4) -->
+    <string name="tag_sheet_title">이 장소를 기록했어요</string>
+    <string name="tag_sheet_title_edit">장소 고치기</string>
+    <string name="tag_sheet_recorded_at">기록 %1$02d:%2$02d</string>
+    <string name="tag_sheet_how">어땠나요?</string>
+    <string name="tag_sheet_name_label">장소 이름</string>
+    <string name="tag_sheet_memo_label">메모 · 선택</string>
+    <string name="tag_sheet_hint">태그와 메모는 여행을 저장하기 전까지 언제든 바꿀 수 있어요</string>
+    <string name="tag_sheet_skip">건너뛰기 · 나중에</string>
+
+    <!-- A-05 로드맵 검토 · A-06 저장 · 공개(#51 U5) -->
+    <string name="review_title">%1$s · 로드맵</string>
+    <string name="review_save">로드맵 저장</string>
+    <string name="roadmap_add_tag">+ 태그 달기</string>
+    <string name="roadmap_draft_badge">미완성</string>
+    <string name="roadmap_place_default">장소 %1$d</string>
+    <string name="roadmap_no_location">위치 기록이 없어요</string>
+    <string name="duration_hours_minutes">%1$d시간 %2$d분</string>
+    <string name="duration_minutes">%1$d분</string>
+    <string name="publish_title">로드맵을 저장할게요</string>
+    <string name="publish_private">비공개</string>
+    <string name="publish_private_sub">나만 볼 수 있어요</string>
+    <string name="publish_public">공개</string>
+    <string name="publish_public_sub">추천에 닉네임 「%1$s」로 보여요</string>
+    <string name="publish_preview_title">추천에 이렇게 보여요</string>
+    <string name="publish_privacy_hint">정확한 위치 기록과 시각은 공개되지 않아요</string>
+    <string name="publish_consent_title">추천 공개 동의</string>
+    <string name="publish_consent_body">공개 항목 · 닉네임 · 지역 · 대표 태그 · 장소 이름(정확한 위치 기록 · 시각은 빼요)\n목적 · 다른 사람에게 추천 로드맵으로 보여 줌\n보유 기간 · 공개를 끄거나 철회할 때까지\n제3자 제공 · 없음 · 설정에서 언제든 철회할 수 있어요</string>
+    <string name="action_consent_and_save">동의하고 저장</string>
+    <string name="region_unknown">지역 모름</string>
+
+    <!-- A-07 내 여행 보관함 · A-08 상세(#51 U6) -->
+    <string name="trips_sub">다녀온 곳 · 여행마다 공개 / 비공개</string>
+    <string name="trips_empty">아직 끝낸 여행이 없어요 · 「기록」에서 여행을 시작해 보세요</string>
+    <string name="trips_public_toggle">%1$s 공개</string>
+    <string name="action_consent_and_publish">동의하고 공개</string>
+    <string name="trip_rename_title">여행 이름 수정</string>
+    <string name="trip_rename_action">이름 수정</string>
+    <string name="trip_detail_rating">★ %1$.1f · %2$d명</string>
+    <string name="trip_detail_rating_none">받은 별점 없음</string>
+
+    <!-- 삭제 수단(#51 리뷰 P2) -->
+    <string name="trip_delete_action">여행 삭제</string>
+    <string name="trip_delete_title">이 여행을 삭제할까요?</string>
+    <string name="trip_delete_body">장소 · 태그 · 메모가 함께 사라지고 추천에서도 빠져요</string>
+    <string name="settings_data">내 기록</string>
+    <string name="settings_data_sub">여행 · 장소 · 태그 · 별점 기록을 이 기기에서 모두 지워요 · 동의 이력은 남아요</string>
+    <string name="settings_data_clear">모두 지우기</string>
+    <string name="settings_data_clear_title">내 기록을 모두 지울까요?</string>
+    <string name="settings_data_clear_body">진행 중인 기록도 끝나요 · 지운 기록은 되돌릴 수 없어요</string>
+    <string name="action_delete">지우기</string>
+    <string name="notice_data_cleared">내 기록을 모두 지웠어요</string>
 </resources>

@@ -1,16 +1,18 @@
 package com.example.travelcrumbs.ui.tripdetail
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,174 +20,150 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.domain.model.TimelinePlace
-import com.example.travelcrumbs.ui.components.CrumbRoute
+import com.example.travelcrumbs.ui.components.BackButton
+import com.example.travelcrumbs.ui.components.ConfirmDialog
+import com.example.travelcrumbs.ui.components.DangerButton
 import com.example.travelcrumbs.ui.components.NoticeLine
-import com.example.travelcrumbs.ui.components.PlaceCard
-import com.example.travelcrumbs.ui.components.TcButton
-import com.example.travelcrumbs.ui.components.TcButtonKind
+import com.example.travelcrumbs.ui.components.PlaceTagSheet
+import com.example.travelcrumbs.ui.components.RoadmapPlaceCard
+import com.example.travelcrumbs.ui.components.RouteSketchBox
+import com.example.travelcrumbs.ui.components.SecondaryButton
+import com.example.travelcrumbs.ui.components.durationText
+import com.example.travelcrumbs.ui.components.tripMetaText
+import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.theme.Dimens
-import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.example.travelcrumbs.ui.trips.components.RecoConsentDialog
+import com.example.travelcrumbs.ui.trips.components.RenameTripDialog
 
 /**
- * 여행 상세(A-08 · 정차) — 여행명 · 「제목 수정」 · 요약(총 거리 · 소요시간 · 장소 수) · 장소 타임라인.
- * 지도 대신 점 · 선 경로 그림(지도는 나중에) · 공유는 시나리오 1 밖(결정 로그 D10). 「닫기」는 [onClose].
+ * A-08 내 로드맵 상세(와이어프레임 v6 · #51 U6) — 「내 여행」 칸 안(A-07 카드로 엶 · 머리글 「뒤로」 · 시스템 뒤로 = [onBack] → 목록).
+ * 제목 · 「이름 수정」 · 날짜 · 장소 수 · 동행자 · 기록 시간 · 받은 별점 · 공개 토글 · 간소화 경로 · 장소(누르면 A-03 시트로 고침).
  */
 @Composable
 fun TripDetailScreen(
-    tripUuid: String,
-    onClose: () -> Unit,
+    tripNo: Long,
+    onBack: () -> Unit,
+    onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TripDetailViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(tripUuid) { viewModel.load(tripUuid) }
+    LaunchedEffect(tripNo) { viewModel.load(tripNo) }
+    LaunchedEffect(uiState.deleted) {
+        if (uiState.deleted) {
+            viewModel.onDeletedHandled()
+            onDeleted()
+        }
+    }
+    val summary = uiState.summary
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
-        ) {
-            val detail = uiState.detail
-            if (uiState.loadFailed) {
-                TcButton(text = stringResource(R.string.retry), onClick = viewModel::onRetry)
-            } else if (detail != null) {
-                // 여행명 — trip_mst.trip_nm · 수정하면 data_change_hist 1행
-                if (uiState.editingTitle) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall),
+    Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+            BackButton(onBack = onBack)
+            Text(
+                text = tripNameText(summary?.tripNm),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryButton(onClick = viewModel::onEditName, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+                Text(text = stringResource(R.string.trip_rename_action), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+            DangerButton(onClick = viewModel::onAskDelete, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
+                Text(text = stringResource(R.string.trip_delete_action), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+        }
+        if (summary != null) {
+            Text(
+                text = tripMetaText(summary) + stringResource(R.string.reco_meta_separator) + durationText(uiState.durationMinutes),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val toggleLabel = stringResource(R.string.trips_public_toggle, summary.tripNm.orEmpty())
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (uiState.ratingCnt > 0) {
+                        stringResource(R.string.trip_detail_rating, uiState.ratingAvg, uiState.ratingCnt)
+                    } else {
+                        stringResource(R.string.trip_detail_rating_none)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = stringResource(if (summary.public) R.string.trip_public_badge else R.string.trip_private_badge),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+                Switch(
+                    checked = summary.public,
+                    onCheckedChange = viewModel::onTogglePublic,
+                    modifier = Modifier.semantics { contentDescription = toggleLabel },
+                )
+            }
+        }
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (maxWidth >= Dimens.RoadmapWideMinWidth) {
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+                    RouteSketchBox(pins = uiState.sketch, modifier = Modifier.weight(Dimens.DetailRouteWeight).fillMaxHeight())
+                    Column(
+                        modifier = Modifier.weight(1f - Dimens.DetailRouteWeight).fillMaxHeight().verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                     ) {
-                        OutlinedTextField(
-                            value = uiState.titleInput,
-                            onValueChange = viewModel::onTitleChange,
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TcButton(
-                            text = stringResource(R.string.trip_setup_cancel),
-                            onClick = viewModel::onCancelTitle,
-                            kind = TcButtonKind.TEXT,
-                        )
-                        TcButton(
-                            text = stringResource(R.string.place_input_save),
-                            onClick = viewModel::onSaveTitle,
-                            kind = TcButtonKind.PRIMARY,
-                            enabled = uiState.titleInput.isNotBlank(),
-                            loading = uiState.busy,
-                        )
-                    }
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
-                    ) {
-                        Text(
-                            text = detail.tripName,
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TcButton(
-                            text = stringResource(R.string.trip_detail_edit_title),
-                            onClick = viewModel::onEditTitle,
-                            iconRes = R.drawable.ic_edit,
-                            loading = uiState.busy,
-                        )
+                        uiState.places.forEach { place -> RoadmapPlaceCard(item = place, onEdit = { viewModel.onEditPlace(place.tripPlaceNo) }) }
                     }
                 }
-
-                // 요약 — trip_mst.dist · duration · place_cnt (종료 때 계산)
-                Text(
-                    text = stringResource(
-                        R.string.trip_detail_summary,
-                        (detail.distanceMeters ?: 0) / 1000.0,
-                        (detail.durationSeconds ?: 0) / 3600,
-                        (detail.durationSeconds ?: 0) % 3600 / 60,
-                        detail.placeCount,
-                    ),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                // 왼쪽 경로 그림 · 오른쪽 장소 타임라인(지시서 8장 비율)
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 ) {
-                    CrumbRoute(
-                        route = uiState.route,
-                        emptyText = stringResource(R.string.trip_detail_route_empty),
-                        modifier = Modifier
-                            .weight(Dimens.MapWeight)
-                            .fillMaxHeight(),
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(Dimens.InfoWeight)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall),
-                    ) {
-                        // 장소 타임라인 — trip_place_dtl(기록 순서) · 장소 경험 카드(지시서 16장)
-                        if (detail.places.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.trip_detail_no_place),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        detail.places.forEach { place -> TimelineCard(place) }
-                    }
+                    RouteSketchBox(pins = uiState.sketch, modifier = Modifier.fillMaxWidth().height(Dimens.RoadmapSketchHeight))
+                    uiState.places.forEach { place -> RoadmapPlaceCard(item = place, onEdit = { viewModel.onEditPlace(place.tripPlaceNo) }) }
                 }
             }
         }
-        Row(modifier = Modifier.padding(horizontal = Dimens.ScreenPadding)) {
-            TcButton(
-                text = stringResource(R.string.trip_detail_close),
-                onClick = onClose,
-                iconRes = R.drawable.ic_close,
-            )
-        }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }
-}
 
-@Composable
-private fun TimelineCard(place: TimelinePlace) {
-    val time = runCatching {
-        OffsetDateTime.parse(place.recordedAt).atZoneSameInstant(ZoneId.systemDefault()).format(TIME)
-    }.getOrDefault("")
-    val details = listOfNotNull(
-        place.placeTypeName,
-        when (place.reviewPolarityCode) {
-            "POSITIVE" -> stringResource(R.string.trip_detail_positive)
-            "NEGATIVE" -> stringResource(R.string.trip_detail_negative)
-            else -> null
-        },
-    ).joinToString(" · ")
-    PlaceCard(
-        time = time,
-        name = place.userPlaceName ?: stringResource(R.string.trip_detail_draft_place),
-        details = details,
-        tags = place.tagNames,
-        memo = place.memo,
-        isDraft = place.isDraft,
-    )
+    uiState.renameDraft?.let { draft ->
+        RenameTripDialog(value = draft, onValueChange = viewModel::onRenameChange, onDismiss = viewModel::onDismissRename, onSave = viewModel::onSaveRename)
+    }
+    if (uiState.deleteAsk) {
+        ConfirmDialog(
+            titleRes = R.string.trip_delete_title,
+            bodyRes = R.string.trip_delete_body,
+            confirmRes = R.string.action_delete,
+            onConfirm = viewModel::onConfirmDelete,
+            onDismiss = viewModel::onDismissDelete,
+        )
+    }
+    if (uiState.consentAsk) {
+        RecoConsentDialog(onAgree = viewModel::onConsentAndPublish, onDismiss = viewModel::onDismissConsent)
+    }
+    uiState.tagSheet?.let { sheet ->
+        PlaceTagSheet(
+            item = sheet,
+            onNameChange = viewModel::onSheetNameChange,
+            onMemoChange = viewModel::onSheetMemoChange,
+            onToggleTag = viewModel::onSheetToggleTag,
+            onSkip = viewModel::onSheetSkip,
+            onSave = viewModel::onSheetSave,
+        )
+    }
 }
-
-private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

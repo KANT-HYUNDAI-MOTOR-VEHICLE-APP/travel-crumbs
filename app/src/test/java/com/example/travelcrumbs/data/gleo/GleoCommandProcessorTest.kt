@@ -1,19 +1,24 @@
 package com.example.travelcrumbs.data.gleo
 
-import com.example.travelcrumbs.data.trip.TripRestoreStatus
+import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.GleoCallback
 import com.example.travelcrumbs.domain.model.GleoCommandPhase
 import com.example.travelcrumbs.domain.model.GleoStatus
-import com.example.travelcrumbs.testing.FakeConsentRepository
+import com.example.travelcrumbs.domain.model.ConsentType
+import com.example.travelcrumbs.domain.model.RecordingProgress
+import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.testing.FakeCurrentUserRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
-import com.example.travelcrumbs.testing.FakeTripRepository
+import com.example.travelcrumbs.testing.FakeRecordingStatusRepository
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -157,17 +162,20 @@ class GleoCommandProcessorTest {
     @Test
     fun `T11 초기 여행 복원 중 로딩을 보여주고 준비된 뒤 한 번 저장`() = runTest {
         val f = Fixture(this)
-        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
-        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        // develop: 기기 안 여행을 처음 읽는 동안(아직 값 없음)을 복원 중으로 봄.
+        val recording = FakeRecordingStatusRepository(null)
+        val users = FakeCurrentUserRepository().apply { recordConsent(ConsentType.LOCATION_COLLECT, true) }
+        f.ready = DefaultGleoRecordingReadiness(recording, users, FakeNaviRepository())::check
         f.handle()
         f.processor.clearNotice(f.processor.state.value.noticeId)
+        advanceTimeBy(500)
         runCurrent()
 
         assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
         assertEquals(0, f.recordCalls)
         assertTrue(f.callbacks.isEmpty())
 
-        trips.startTrip("복원된 여행", emptyList()).getOrThrow()
+        recording.set(RecordingProgress(status = TripStatus.RECORDING, elapsedMinutes = 0, tripNo = 1L))
         runCurrent()
         assertEquals(1, f.recordCalls)
         assertEquals(GleoCommandPhase.SAVED, f.processor.state.value.phase)
@@ -175,22 +183,18 @@ class GleoCommandProcessorTest {
     }
 
     @Test
-    fun `T11 일반 조회 실패에는 로딩을 유지하고 시작 복원 뒤 여행이 없으면 실패 안내`() = runTest {
+    fun `T11 시작 복원 뒤 진행 중 여행이 없으면 저장 없이 미준비 안내`() = runTest {
         val f = Fixture(this)
-        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
-        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        val recording = FakeRecordingStatusRepository(null)
+        val users = FakeCurrentUserRepository().apply { recordConsent(ConsentType.LOCATION_COLLECT, true) }
+        f.ready = DefaultGleoRecordingReadiness(recording, users, FakeNaviRepository())::check
         f.handle()
-        runCurrent()
-        assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
-
-        trips.failWith = IllegalStateException("일반 조회 실패")
-        assertTrue(trips.currentTrip().isFailure)
+        advanceTimeBy(500)
         runCurrent()
         assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
         assertTrue(f.callbacks.isEmpty())
 
-        trips.failWith = null
-        trips.restoreCurrentTrip()
+        recording.set(RecordingProgress.NONE)
         runCurrent()
         assertEquals(0, f.recordCalls)
         assertEquals(GleoCommandPhase.NOT_READY, f.processor.state.value.phase)
@@ -198,17 +202,23 @@ class GleoCommandProcessorTest {
     }
 
     @Test
-    fun `T11 시작 복원 조회 실패는 미확인으로 종료하고 장소 저장을 시작하지 않음`() = runTest {
+    fun `T11 시작 복원 읽기 실패는 미확인으로 종료하고 장소 저장을 시작하지 않음`() = runTest {
         val f = Fixture(this)
-        val trips = FakeTripRepository().apply { startupRestoreStatus.value = TripRestoreStatus.PENDING }
-        f.ready = DefaultGleoRecordingReadiness(trips, FakeNaviRepository(), FakeConsentRepository(true))::check
+        val broken = object : RecordingRepository by FakeRecordingStatusRepository(null) {
+            override val progress: Flow<RecordingProgress> = flow {
+                delay(1_000L)
+                throw IllegalStateException("기기 안 여행 읽기 실패")
+            }
+        }
+        val users = FakeCurrentUserRepository().apply { recordConsent(ConsentType.LOCATION_COLLECT, true) }
+        f.ready = DefaultGleoRecordingReadiness(broken, users, FakeNaviRepository())::check
         f.handle()
+        advanceTimeBy(500)
+        runCurrent()
         assertEquals(GleoCommandPhase.LOADING_TRIP, f.processor.state.value.phase)
 
-        trips.failWith = IllegalStateException("복원 조회 실패")
-        trips.restoreCurrentTrip()
+        advanceTimeBy(1_000)
         runCurrent()
-
         assertTrue(f.issuedIds.isEmpty())
         assertEquals(0, f.recordCalls)
         assertEquals(GleoCommandPhase.UNCONFIRMED, f.processor.state.value.phase)

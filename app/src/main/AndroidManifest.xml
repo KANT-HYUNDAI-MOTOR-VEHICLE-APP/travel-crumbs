@@ -10,8 +10,17 @@
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
     <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
-    <!-- 서버 API 호출(#4 부터 · 팀 서버 사용 결정 2026-11-05) — 이 이슈(#6)는 네트워크 호출 없음 -->
+    <!-- 길안내 요청(requestRoute) — data/navi/NaviInfoDataSource · 스펙 navigation 4.3 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- 서버 API 호출 — 핀의 안내 시작 기록 보내기 · debug 카드 안내 건수(스펙 navigation 4.3 · 4.6) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 연결되면 다시 보내기 — JobScheduler 연결 조건(targetSdk 34 요구) · data/pin(스펙 navigation 4.3 · U30) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 「내비 보기」 — 차량 내비 앱의 실행 Intent 를 찾음(패키지 공개 범위 · targetSdk 30+) · data/navi/NaviAppDataSource(#51 U0) -->
+    <queries>
+        <package android:name="${naviPackage}" />
+    </queries>
 
     <application
         android:name=".TravelCrumbsApplication"
@@ -23,14 +32,18 @@
         android:theme="@style/Theme.TravelCrumbs">
 
         <!--
-          landscape 고정(스펙 app-shell P3 · Pleos 앱 구조 가이드 — landscape 지정 시 창 2개 영역 사용).
+          창 방향 고정 없음 · 크기 바꿀 수 있음(#51 U0) — Pleos 디자인 가이드 Display Layout 「앱 영역은 앱 1~2개 · 모든 앱은 가로 · 세로 배치 모두에 맞게」.
+          에뮬레이터 실측(2026-11-10): 가로 고정이면 나눈 칸(약 817 × 1210 dp)에서 「창 크기를 넓게」만 뜸 · 고정을 빼면 내비(왼쪽) + 이 앱(오른쪽)이 나란히.
+          앱이 나눔을 강제할 수 없음(창 제어 권한은 signature|privileged) — 사람이 가운데 ⋮ 를 끌어 나눔.
           주행 중에도 이 화면을 쓰므로 DO(distractionOptimized) 선언 — 주행 중 제한은 코드가(주행 전용 화면 · 스펙 P1).
+          singleTop(#51 버그): 기본 standard 면 뿌리와 다른 인텐트(Gleo OPEN_TRAVEL_CRUMBS · am start 뒤 런처)마다 인스턴스가 쌓여
+          인스턴스마다 앱 틀 목적지가 따로 → 위가 끝나면 아래의 옛 목적지(추천)가 드러남. 같은 작업 맨 위면 onNewIntent 로 받음.
         -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:screenOrientation="landscape">
+            android:launchMode="singleTop"
+            android:resizeableActivity="true">
             <meta-data
                 android:name="distractionOptimized"
                 android:value="true" />
@@ -50,6 +63,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- 대기 핀 다시 보내기(스펙 navigation 4.6) — 시스템(JobScheduler)만 묶을 수 있음 · 밖에 열지 않음 -->
+        <service
+            android:name=".data.pin.PinUploadJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>

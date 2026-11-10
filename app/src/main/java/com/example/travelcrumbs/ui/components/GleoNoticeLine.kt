@@ -52,10 +52,10 @@ fun GleoNoticeLine(
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth().height(Dimens.NoticeLineHeight),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacingSmall, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (showProgress) CircularProgressIndicator(modifier = Modifier.size(Dimens.IconSize))
+            if (showProgress) CircularProgressIndicator(modifier = Modifier.size(Dimens.RailIconSize))
             Text(
                 text = stringResource(text),
                 style = MaterialTheme.typography.titleLarge,

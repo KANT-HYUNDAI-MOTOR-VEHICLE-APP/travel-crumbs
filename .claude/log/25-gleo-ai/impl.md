@@ -107,3 +107,16 @@
 - 측정 보정: 이전 결함 측정의 409·503은 프록시 모드 이름 불일치로 주입 없이 「성공」 기록됨 → 올바른 모드로 재측정. 「여행 없음」 직후 웜 측정 3건이 이전 앱 상태를 이어받아 서버까지 가지 않음 → 각각 콜드로 재측정.
 - 센서: Gradle lint(오류 0 / 경고 32) · 단위 134(rerun) · assembleRelease 녹색, release 스키마·매니페스트 OPEN만, manifest · secrets · hygiene · frontmatter · routes · SQL comments · alembic heads · guard · trace 녹색, 서버 통합(격리 PG) OK.
 - 막힘: 서버 CI 도구·OpenAPI exporter가 기준에 없음(D4, 사람 몫, 별도 하네스 이슈 제안). 실제 Gleo 발화 왕복, R1 다른 UID 차단, DB 필드 데이터 검토는 실기·사람 확인 대기.
+
+## 7 develop 병합(gleo-ai/sync) — 2026-11-10 · errorn
+
+- 산출물: `gleo-ai/sync`(gleo-ai/main `9f8c88e` + 실제 Gleo action 접두어 수정 `133ee2f` + origin/develop `1827737` 병합) → develop PR.
+- 배경: PR #65(data-crud/main → develop)가 충돌을 develop 우선으로 풀며 앱의 서버 연동(서버판 TripRepository · AppApi 엔드포인트 13개 · TripRecordPlaceUseCase)을 접음. #25 음성 기록은 그 서버 경로에 붙어 있었음.
+- 충돌 17개 해소 원칙(#65 와 같음 · develop 우선):
+  - develop 이 지운 서버 연동 파일 6개(TripRecordPlaceUseCase · TripPauseSync · RouteRecorder · 시험 3) 삭제, AppApi · NetworkModule · TripRepository 는 develop 판. 앱의 Idempotency-Key 헤더와 GleoPlaceWriteInterceptor 는 쓸 곳이 없어 제거(서버 쪽 요청 ID 중복 방지 `server/` · 리비전 `4a93d2b71f64` 는 충돌 없이 유지).
+  - Gleo 고유 부분 유지: 명령 처리 · 7초 기한 · 실패/미확인 안내 · 진행 UI · release 차단 · 접두어 수정. 매니페스트는 develop 의 singleTop · 크기 조절 유지.
+  - 저장 경로 재연결: Gleo → develop 의 「이 장소 기록」(`TripPlaceRecorder` · Room). 요청 ID 는 받기만 하고 서버 동기화가 돌아오면 전달.
+  - 준비 확인 재작성: 여행 = `RecordingRepository.progress` · 동의 = `CurrentUserRepository.consents` · 내비 = `NaviRepository.ready`. 처음 읽기가 0.3초를 넘으면 「불러오는 중」 표시.
+- 센서: lint 오류 0 · 단위 429 통과 · debug/release 빌드 · manifest · secrets · hygiene · frontmatter · routes · SQL comments · alembic heads · data standard(위반 0) · guard/trace 녹색.
+- 에뮬레이터: 병합 APK 에서 Gleo 형식 Intent → 동의 없음 「동의 필요」, 동의 후 기록된 장소 0 → 1.
+- 막힘: 없음. 실제 음성 재확인은 병합본으로 한 번 더(사람 발화).

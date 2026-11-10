@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  시연용 더미 경로 문구 — debug 빌드에만(스펙 navigation 2.3 G1-D · G3 · G5 · 결정 기록 U55 · U57 · U70).
+  release APK 에 더미 경로 문구가 남지 않게 debug 소스 세트에 둠(심사 A1). 쓰는 곳은 같은 소스 세트의 DemoGuideParts.kt 뿐.
+-->
+<resources>
+    <string name="guide_dummy_route">더미 경로</string>
+    <string name="guide_dummy_notice">시연용 더미 경로예요 · 실제 길안내가 아니에요</string>
+    <string name="guide_fallback_label">연동 실패 시 더미 경로 표시</string>
+</resources>

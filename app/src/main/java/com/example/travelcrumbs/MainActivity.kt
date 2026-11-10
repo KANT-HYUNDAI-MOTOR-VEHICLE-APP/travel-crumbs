@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.travelcrumbs.data.PleosSdkSession
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
-import com.example.travelcrumbs.data.trip.RouteRecorder
 import com.example.travelcrumbs.ui.shell.AppShellScreen
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,14 +24,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var gleoActionRepository: GleoActionRepository
 
-    /** 경로 기록(A-05) — 내비가 붙은 뒤 시작, 화면이 닫힐 때 남은 점을 보내고 멈춤. */
-    @Inject
-    lateinit var routeRecorder: RouteRecorder
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sdkSession.start()
-        routeRecorder.start()
         setContent {
             TravelCrumbsTheme {
                 AppShellScreen()
@@ -49,11 +43,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        // 화면 재생성 동안 진행 중인 장소 기록이 쓰는 SDK를 끊지 않음.
-        if (!isChangingConfigurations) {
-            routeRecorder.stop()
-            sdkSession.stop()
-        }
+        // 화면 재생성(창 크기 변경 등) 동안 진행 중인 Gleo 장소 기록이 쓰는 SDK를 끊지 않음(#25).
+        if (!isChangingConfigurations) sdkSession.stop()
         super.onDestroy()
     }
 }

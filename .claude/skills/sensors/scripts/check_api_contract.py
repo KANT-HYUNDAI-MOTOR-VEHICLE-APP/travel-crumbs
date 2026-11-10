@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""API 계약 대조 — 앱 Retrofit 인터페이스의 경로 · 메서드가 openapi.json 에 있나 · DTO 에 좌표 칸 · 요청에 userId 칸."""
+"""API 계약 대조 — 앱 Retrofit 인터페이스의 경로 · 메서드가 openapi.json 에 있나 · 요청에 userId 칸.
+
+좌표 칸 검사는 ADR 0015(서버 PostgreSQL 이 데이터 원본)로 없앰 — 좌표는 서버에 있음.
+동의 · 보관 기간 · 삭제는 계산으로 못 재므로 pleos-reviewer 5절이 봄.
+"""
 import argparse
 import json
 import os
@@ -12,7 +16,6 @@ sys.stderr.reconfigure(encoding="utf-8")
 
 RETROFIT = re.compile(r"@(GET|POST|PUT|PATCH|DELETE|HEAD)\s*\(\s*\"([^\"]+)\"\s*\)")
 HTTP_ANN = re.compile(r"@HTTP\s*\(\s*method\s*=\s*\"(\w+)\"\s*,\s*path\s*=\s*\"([^\"]+)\"")
-COORD = re.compile(r"\b(lat|lng|lon|latitude|longitude)\s*:", re.IGNORECASE)
 USER_ID = re.compile(r"\buser_?id\b", re.IGNORECASE)
 
 
@@ -53,8 +56,6 @@ def main() -> int:
                 for p in props:
                     if USER_ID.search(p):
                         bad.append(f"{a.openapi}:0 · 계약 · {method.upper()} {path} 요청 칸 {p} — user_id 는 토큰에서만")
-                    if COORD.search(p + ":"):
-                        bad.append(f"{a.openapi}:0 · 최소 수집 · {method.upper()} {path} 요청 칸 {p} — 좌표는 서버로 보내지 않음")
     # 앱 쪽
     calls = 0
     for d, _, fs in os.walk(a.kotlin_dir):
@@ -73,8 +74,6 @@ def main() -> int:
                         key = (m.group(1).upper(), norm(m.group(2)))
                         if key not in contract:
                             bad.append(f"{p}:{i} · 계약 · {key[0]} {m.group(2)} 가 openapi.json 에 없음")
-                if "/remote/" in p.replace("\\", "/") and COORD.search(line) and "val " in line:
-                    bad.append(f"{p}:{i} · 최소 수집 · DTO 에 좌표 칸 — 서버로 보내지 않음")
     for b in bad:
         print(b)
     print(f"check_api_contract: 계약 {len(contract)}개 · 앱 호출 {calls}개 · 위반 {len(bad)}")
