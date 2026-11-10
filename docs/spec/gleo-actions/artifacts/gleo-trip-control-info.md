@@ -12,7 +12,7 @@ Gleo로 부를 수 있는 함수를 3개로 다시 짠다. 음성 인식·의도
 |---|---|---|---|
 | `RECORD_CURRENT_PLACE` | 없음 | 지금 여행에 현재 위치를 임시 장소로 기록(#25 그대로) | 「이 장소 기록」 |
 | `CONTROL_CURRENT_TRIP` | `operation`: `PAUSE` · `RESUME` · `END` (필수) | 일시정지 · 재개는 바로, 종료는 **확인 팝업만 띄움** | 「기록 일시정지」 · 「기록 재개」 · 「여행 종료」 |
-| `SHOW_TRAVEL_INFO` | `infoType`: `TODAY_RECORDS` · `RECOMMENDED_ROADMAPS` (필수) | 오늘 기록 요약 · 근처 추천 로드맵 상위 3개를 말로 알려 줌. 정차면 해당 화면도 엶 | 「내 여행」 · 「추천」 |
+| `SHOW_TRAVEL_INFO` | `infoType`: `TODAY_RECORDS` · `RECOMMENDED_ROADMAPS` (필수) · `region`: 지역 이름(선택) | 오늘 기록 요약 · 추천 로드맵 상위 3개를 말로 알려 줌. 말한 지역이 있으면 그 지역(「경주 근처」 → 경주), 없으면 현재 위치에서 가장 가까운 지역. 정차면 해당 화면도 엶 | 「내 여행」 · 「추천」 |
 
 `OPEN_TRAVEL_CRUMBS`는 뺀다. Gleo는 설치 앱 목록으로 앱을 직접 실행한다(Gleo 로그 `[AppLibrary] buildLaunchApps(Travel Crumbs)`). 「장소 기록한 거 보여줘」처럼 화면을 보자는 말은 `SHOW_TRAVEL_INFO(TODAY_RECORDS)`가 받는다.
 
@@ -73,11 +73,14 @@ Gleo로 부를 수 있는 함수를 3개로 다시 짠다. 음성 인식·의도
 ### 3.3 SHOW_TRAVEL_INFO
 
 - **TODAY_RECORDS:** `TripRepository.trips`에서 오늘(기기 시간대 자정 이후) 기록한 장소 수 합계 + 지금 여행 상태·장소 수. data = `[{"todayPlaceCount":n,"currentTripStatus":"RECORDING|PAUSED|NONE","currentTripPlaceCount":m}]`. message 예: 「You recorded 3 places today. The current trip is recording with 2 places.」
-- **RECOMMENDED_ROADMAPS:**
-  1. `NaviRepository.currentLocation()`(SDK 기한 10초 중 앱 예산 안 3초)로 현재 좌표.
-  2. 시드의 모든 로드맵 첫 장소와의 거리로 **가장 가까운 시군구**를 고름. 위치를 못 읽으면 전체에서 고름.
+- **RECOMMENDED_ROADMAPS:** 지역을 고르는 순서(U3 결정).
+  1. **말한 지역(`region`)이 있으면 그 지역.** 예: 「경주 근처 추천 코스」 → `region="경주"` → 경북 경주시 로드맵.
+     - 맞추는 법: 공백과 「특별시 · 광역시 · 특별자치도 · 도 · 시 · 군 · 구」 꼬리를 떼고 시드의 시군구 이름과 먼저, 없으면 시도 이름(「서울」 · 「제주」)과 비교. 시도로 맞으면 그 시도 전체.
+     - 여러 시군구가 맞으면(예: 「중구」) 함께 말한 시도가 있으면 그쪽, 없으면 맞은 곳을 모두 합쳐 순위.
+     - 맞는 지역이 시드에 없으면 `fail` · 「There are no recommended roadmaps for <region> yet.」(지어내거나 다른 지역으로 바꾸지 않음).
+  2. **말한 지역이 없으면 현재 위치에서 가장 가까운 시군구.** `NaviRepository.currentLocation()`(앱 예산 안 3초) → 시드 로드맵 첫 장소와의 거리로 가장 가까운 시군구. 위치를 못 읽으면 전체에서.
   3. 그 지역 로드맵을 기존 `RecommendationRules.rank`(별점순)로 상위 3개.
-  4. data = `[{"tripNm":"…","region":"강원 속초시","ratingAvg":4.6,"placeCount":4}, …]`, message 예: 「Top roadmaps near Seoul Gangnam-gu: A, B and C.」
+  4. data = `[{"tripNm":"…","region":"경북 경주시","ratingAvg":4.6,"placeCount":4}, …]`, message 예: 「Top roadmaps in Gyeongju-si: A, B and C.」
   5. 좌표는 콜백·로그에 넣지 않음(지역 이름만).
 - 시드는 「시연용 데이터」 — 콜백 message에는 넣지 않고, 화면은 기존 「시연용 데이터」 표시를 그대로 씀.
 
@@ -108,8 +111,11 @@ debug(`app/src/debug/assets/schema.json`) — 3개. release(`app/src/main/assets
 { "name": "SHOW_TRAVEL_INFO",
   "description": "Tells the user today's Travel Crumbs trip records or recommended travel roadmaps near the vehicle.",
   "parameters": { "type": "object",
-    "properties": { "infoType": { "type": "string", "enum": ["TODAY_RECORDS","RECOMMENDED_ROADMAPS"],
-      "description": "Which Travel Crumbs information to tell the user." } },
+    "properties": {
+      "infoType": { "type": "string", "enum": ["TODAY_RECORDS","RECOMMENDED_ROADMAPS"],
+        "description": "Which Travel Crumbs information to tell the user." },
+      "region": { "type": "string",
+        "description": "Korean city, county, district or province name the user asked about for recommended roadmaps; omit when the user did not name a place." } },
     "required": ["infoType"] }, "component": "activity" }
 ```
 
@@ -117,7 +123,7 @@ debug(`app/src/debug/assets/schema.json`) — 3개. release(`app/src/main/assets
 
 - intent-filter: 함수마다 접두어 있는 꼴(`com.example.travelcrumbs.<함수>`)과 없는 꼴. RECORD · CONTROL은 debug 매니페스트에만, INFO는 main.
 - `AppConfig`: `GLEO_FUNCTION_*` 3개 · 메시지 상수(영어 문장) · OPEN 상수 삭제.
-- `GleoActionParser`: `ACTION_PARAM` JSON 객체에서 enum 문자열만 받음. 알 수 없는 키는 무시하지 않고 거절(#25 T5와 같은 엄격함).
+- `GleoActionParser`: `ACTION_PARAM` JSON 객체에서 함수별로 정한 키만 받음(`operation` · `infoType` enum, `region` 문자열 50자 이내). 알 수 없는 키는 무시하지 않고 거절(#25 T5와 같은 엄격함).
 
 ### 4.3 저장 · 수집
 
@@ -136,23 +142,26 @@ debug(`app/src/debug/assets/schema.json`) — 3개. release(`app/src/main/assets
 | T7 | 진행 중 여행 없음 | PAUSE · RESUME · END | fail 「no trip in progress」 |
 | T8 | TODAY_RECORDS | 오늘 2여행에 장소 1·2 | todayPlaceCount 3 |
 | T9 | TODAY_RECORDS 자정 경계 | 어제 23:59 장소 | 오늘 수에 안 셈 |
-| T10 | RECOMMENDED 위치 있음 | 서울 강남 근처 좌표 | 「서울 강남구」 상위 3개(별점순) |
+| T10 | RECOMMENDED 지역 말함 | `region="경주"` · `"경주시"` · `"경북 경주"` | 경북 경주시 로드맵 상위 3개(별점순) · 현재 위치 안 씀 |
+| T10a | RECOMMENDED 시도만 | `region="제주"` | 제주 전체(제주시 · 서귀포시) 상위 3개 |
+| T10b | RECOMMENDED 시드에 없는 지역 | `region="대구"` | fail 「no recommended roadmaps for 대구」 · 화면 이동 없음 |
+| T10c | RECOMMENDED 지역 안 말함 · 위치 있음 | 서울 강남 근처 좌표 | 「서울 강남구」 상위 3개 |
 | T11 | RECOMMENDED 위치 실패 | 내비 null | 전체 상위 3개 · success |
 | T12 | 주행 중 INFO | DRIVING | 화면 이동 없음 · 한 줄 |
 | T13 | 정차 중 INFO | PARKED | 내 여행 · 추천 칸 이동 |
 | T14 | 동시 명령 | RECORD 처리 중 CONTROL | 두 번째 즉시 fail |
 | T15 | release | 빌드 산출물 | 스키마·매니페스트에 U1 결정 함수만 |
-| T16 | 실제 음성 | 「기록 잠깐 멈춰 줘」 · 「다시 기록해 줘」 · 「여행 끝낼게」 · 「오늘 몇 군데 기록했어?」 · 「근처 추천 코스 알려 줘」 | 각각 해당 함수 · 7초 안 수락 |
+| T16 | 실제 음성 | 「기록 잠깐 멈춰 줘」 · 「다시 기록해 줘」 · 「여행 끝낼게」 · 「오늘 몇 군데 기록했어?」 · 「근처 추천 코스 알려 줘」 · 「경주 근처 추천 코스 알려 줘」 | 각각 해당 함수(마지막은 `region` 경주) · 7초 안 수락 |
 | T17 | OPEN 제거 | 「여행 부스러기 열어 줘」 | Gleo 기본 앱 실행으로 열림(우리 함수 호출 없음) |
 
-## 6. 미확정(사람 결정)
+## 6. 사람 결정(2026-11-10 · 스펙 PR #70)
 
-| # | 질문 | 제안 |
+| # | 질문 | 결정 |
 |---|---|---|
-| U1 | release에서 `SHOW_TRAVEL_INFO`만 허용할까, 셋 다 막을까 | 읽기 전용이라 허용 |
-| U2 | 음성 END를 확인 팝업 없이 바로 끝낼까 | 팝업만(되돌리기 어려움 · 별점 팝업이 이어짐) |
-| U3 | 「근처」 기준을 시군구 1곳으로 할까, 반경 n km로 할까 | 가장 가까운 시군구 1곳(시드가 시군구 단위) |
-| U4 | 실기에서 「여행 부스러기 열어 줘」가 OPEN 없이도 열리는지 확인 못 하면 OPEN을 되살릴까 | T17 실패 시 INFO 대신 OPEN을 3번째로 되돌림 |
+| U1 | release 에서 `SHOW_TRAVEL_INFO`만 허용할까 | 허용. RECORD · CONTROL 은 R1 확인 전까지 debug 만 |
+| U2 | 음성 END 를 확인 팝업 없이 바로 끝낼까 | 팝업만 |
+| U3 | 「근처」 기준 | 말한 지역이 있으면 그 지역(「경주 근처」 → 경주시), 없으면 현재 위치에서 가장 가까운 시군구 1곳 |
+| U4 | OPEN 없이 「여행 부스러기 열어 줘」가 열리는지 | OPEN 을 빼고 진행 · T17 실기 확인. 안 열리면 그때 다시 결정 |
 
 ## 7. 완료 조건
 
