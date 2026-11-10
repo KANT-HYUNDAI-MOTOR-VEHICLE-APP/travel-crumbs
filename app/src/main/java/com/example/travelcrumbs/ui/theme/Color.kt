@@ -28,3 +28,14 @@ object TravelCrumbsColors {
 
     val Danger = Color(0xFFD96C68)
 }
+
+/** 도로 지도 전용 바탕과 지형 · 도로 색. 글자 · 번호 핀 · 안내 경로는 테마 colorScheme. */
+internal object RoadmapMapColors {
+    val Background = Color(0xFF17262A)
+    val Water = Color(0xFF1B3948)
+    val Park = Color(0xFF24483D)
+    val Shore = Color(0xFF537D88)
+    val LocalRoad = Color(0xFF465553)
+    val Street = Color(0xFF71817B)
+    val MajorRoad = Color(0xFF9C9F85)
+}

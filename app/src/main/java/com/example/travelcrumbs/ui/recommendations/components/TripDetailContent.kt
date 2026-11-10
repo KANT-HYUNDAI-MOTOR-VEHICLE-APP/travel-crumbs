@@ -102,12 +102,16 @@ fun TripDetailContent(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            RouteSketch(
-                points = detail.sketch,
-                modifier = Modifier
-                    .weight(Dimens.DetailRouteWeight)
-                    .fillMaxHeight(),
-            )
+            val routeModifier = Modifier
+                .weight(Dimens.DetailRouteWeight)
+                .fillMaxHeight()
+            // 앱에 묶은 도로 지도가 이 로드맵을 덮으면 지도 · 아니면 기존 경로 그림(점선)
+            val routeMap = detail.routeMap
+            if (routeMap != null) {
+                RoadmapMap(map = routeMap, modifier = routeModifier)
+            } else {
+                RouteSketch(points = detail.sketch, modifier = routeModifier)
+            }
             Column(
                 modifier = Modifier
                     .weight(1f - Dimens.DetailRouteWeight)

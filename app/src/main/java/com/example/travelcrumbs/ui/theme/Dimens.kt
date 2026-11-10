@@ -99,6 +99,17 @@ object Dimens {
     val SketchLineWidth = 4.dp
     const val DetailRouteWeight = 0.42f
 
+    /** 추천 상세 도로 지도 — 지역 이름 · 출처 여백, 번호 핀 테두리, 지형 · 도로별 선 두께. */
+    val RoadmapMapLabelPadding = 8.dp
+    val RoadmapMapEdgePadding = 16.dp
+    val RoadmapMapLabelInset = 44.dp
+    val RoadmapMapPinOutline = 2.dp
+    val RoadmapMapRiverWidth = 6.dp
+    val RoadmapMapShoreWidth = 1.2.dp
+    val RoadmapMapLocalRoadWidth = 0.8.dp
+    val RoadmapMapStreetWidth = 1.3.dp
+    val RoadmapMapMajorRoadWidth = 1.8.dp
+
     /** 추천 상세 장소 칸의 「여기로 안내」 버튼 최소 폭. */
     val GuideHereButtonMinWidth = 200.dp
 
