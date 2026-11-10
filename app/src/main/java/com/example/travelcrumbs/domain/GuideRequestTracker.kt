@@ -55,7 +55,7 @@ class GuideRequestTracker(
     private val navi: NaviGuidance,
     private val recorder: GuidanceStartRecorder,
     private val scope: CoroutineScope,
-    private val timeSource: TimeSource = TimeSource { System.currentTimeMillis() },
+    private val timeSource: TimeSource,
 ) {
     private val _state = MutableStateFlow<GuideRequestState>(GuideRequestState.Idle)
 

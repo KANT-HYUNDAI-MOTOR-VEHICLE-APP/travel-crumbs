@@ -34,7 +34,10 @@ object AppConfig {
      */
     const val TIMED_OUT_REQUEST_MEMORY_MILLIS: Long = 5 * 60_000L
 
-    /** 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소를 같다고 보는 거리(미터 · R1). */
+    /**
+     * 두 좌표를 「같은 곳」으로 보는 거리(미터 · withinMatchRadius 한 곳에서만 씀) — 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소 대조(R1) ·
+     * 「이 앱 요청」 판정 · 자동 기록(#66)의 지나침 · 확정 중복(현재 여행 장소 · 앞선 확정) · 수동 기록 직전 대기 정리.
+     */
     const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
 
     /**

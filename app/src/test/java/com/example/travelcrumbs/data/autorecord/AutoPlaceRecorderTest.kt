@@ -16,6 +16,7 @@ import com.example.travelcrumbs.domain.model.RouteRequestResult
 import com.example.travelcrumbs.domain.model.TripRecord
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.domain.model.Visibility
+import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.testing.FakeAutoRecordLocalDataSource
 import com.example.travelcrumbs.testing.FakeCurrentUserRepository
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
@@ -29,7 +30,9 @@ import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -697,6 +700,90 @@ class AutoPlaceRecorderTest {
         arrive(f, A.name)
         drive(f, DrivingState.PARKED)
         f.recordingLocal.update { it?.copy(tripNo = TRIP + 1) }
+        drive(f, DrivingState.DRIVING)
+        assertTrue(f.store.pendingList.isEmpty())
+        assertTrue(f.places.isEmpty())
+    }
+
+    @Test
+    fun `리뷰 심사 1 조회(1·5초 + SDK) 중에 철회 · 여행 종료가 바로 끝남 · 늦은 조회 결과는 버림`() = runTest {
+        val f = ready()
+        val gate = CompletableDeferred<Unit>()
+        f.navi.destinationGate = gate
+        f.navi.destination = A
+        f.store.pendingList = listOf(pending(C, arrivedAt = START))
+        f.navi.naviEvents.emit(NaviEvent.RouteStarted)
+        advanceTimeBy(AppConfig.NAVI_QUERY_SETTLE_DELAY_MILLIS + 1)
+        runCurrent()
+        assertEquals("조회 중", 1, f.navi.destinationQueries)
+
+        val withdrawn = launch { f.recorder.withdrawLocation() }
+        runCurrent()
+        assertTrue("철회가 조회를 기다리지 않음", withdrawn.isCompleted)
+        assertTrue(f.store.pendingList.isEmpty())
+
+        f.users.recordConsent(ConsentType.LOCATION_COLLECT, agreed = true)
+        val ended = launch { AutoRecordEndTrip(f.recorder, f.recording)() }
+        runCurrent()
+        assertTrue("종료가 조회를 기다리지 않음", ended.isCompleted)
+
+        gate.complete(Unit)
+        runCurrent()
+        f.recordingLocal.update { CurrentTrip.start(f.time.now).copy(tripNo = TRIP) }
+        arrive(f, A.name)
+        assertTrue("철회 전에 시작한 조회 결과는 직접 안내가 되지 않음", f.store.pendingList.isEmpty())
+    }
+
+    @Test
+    fun `리뷰 심사 1 차례 대기 중 주행 판정 3번 — 다른 구독자는 막힘 없이 셋 다 받음 · 기록기도 뒤에 차례로 처리`() = runTest {
+        val shared = MutableSharedFlow<DrivingState>(replay = 1)
+        val sharedDriving = object : DrivingSignalRepository {
+            override val drivingState = shared
+        }
+        val f = Fixture(this)
+        f.users.recordConsent(ConsentType.LOCATION_COLLECT, agreed = true)
+        val recorder = AutoPlaceRecorder(f.navi, sharedDriving, f.recording, f.users, f.trips, f.inputs, f.guide, f.store, f.time, backgroundScope)
+        f.store.pendingList = listOf(pending(A, arrivedAt = START, parked = false))
+        recorder.attach()
+        runCurrent()
+        val other = mutableListOf<DrivingState>()
+        backgroundScope.launch { shared.collect { other += it } }
+        runCurrent()
+
+        val hold = CompletableDeferred<Unit>()
+        launch { recorder.withEndTrip { hold.await() } } // 차례를 오래 잡음
+        runCurrent()
+        val emitter = launch {
+            shared.emit(DrivingState.PARKED)
+            shared.emit(DrivingState.DRIVING)
+            shared.emit(DrivingState.PARKED)
+        }
+        runCurrent()
+        assertTrue("내보내는 쪽이 기록기 처리를 기다리지 않음", emitter.isCompleted)
+        assertEquals(listOf(DrivingState.PARKED, DrivingState.DRIVING, DrivingState.PARKED), other)
+        hold.complete(Unit)
+        runCurrent()
+    }
+
+    @Test
+    fun `리뷰 심사 2 철회 때 장소 정리가 실패해도 대기 · 원본은 지워짐`() = runTest {
+        val f = ready()
+        f.store.pendingList = listOf(pending(A))
+        f.store.nameList = listOf(AutoPlaceName(1L, "경복궁"))
+        f.trips.clearLocationsError = IllegalStateException("db")
+        val result = runCatching { f.recorder.withdrawLocation() }
+        assertTrue(result.isFailure)
+        assertTrue(f.store.pendingList.isEmpty())
+        assertTrue(f.store.nameList.isEmpty())
+    }
+
+    @Test
+    fun `리뷰 심사 2 동의 없음 상태의 재출발 — 대기 폐기 · 장소 0`() = runTest {
+        val f = ready()
+        start(f, A)
+        arrive(f, A.name)
+        drive(f, DrivingState.PARKED)
+        f.users.recordConsent(ConsentType.LOCATION_COLLECT, agreed = false)
         drive(f, DrivingState.DRIVING)
         assertTrue(f.store.pendingList.isEmpty())
         assertTrue(f.places.isEmpty())

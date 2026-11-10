@@ -89,6 +89,5 @@ object AutoRecordRules {
             route.isHeadingTo(lastStarted)
     }
 
-    private fun near(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Boolean =
-        distanceMeters(lat1, lng1, lat2, lng2) <= AppConfig.ROUTE_MATCH_RADIUS_METERS
+    private fun near(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Boolean = withinMatchRadius(lat1, lng1, lat2, lng2)
 }

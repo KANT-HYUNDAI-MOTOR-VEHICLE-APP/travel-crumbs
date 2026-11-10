@@ -52,7 +52,7 @@ class ShellTestGraph(
     val users = FakeCurrentUserRepository(time = time)
     val trips = FakeTripRepository(time = time)
     val tags = FakeTagRepository()
-    val guide = guideTrackerOf(navi, pins)
+    val guide = guideTrackerOf(navi, pins, time)
     val autoStore = FakeAutoRecordLocalDataSource()
     val autoRecorder = autoRecorderOf(navi, driving, recording, users, trips, inputs, guide, autoStore, time)
     val endTrip = com.example.travelcrumbs.data.autorecord.AutoRecordEndTrip(autoRecorder, recording)

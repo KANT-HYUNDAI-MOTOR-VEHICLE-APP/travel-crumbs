@@ -157,5 +157,9 @@ class FakeGleoActionRepository(
  * 시험용 길안내 요청 입구 — 앱 수명 범위를 흉내 낸 자기 scope(메인 · 시험에선 setMain 의 시험 디스패처).
  * 새로 만들면 프로세스 재생성 흉내(요청 상태 대기 · T108).
  */
-fun guideTrackerOf(navi: FakeNaviRepository, recorder: GuidanceStartRecorder): GuideRequestTracker =
-    GuideRequestTracker(navi, recorder, CoroutineScope(SupervisorJob() + Dispatchers.Main))
+fun guideTrackerOf(
+    navi: FakeNaviRepository,
+    recorder: GuidanceStartRecorder,
+    time: com.example.travelcrumbs.domain.TimeSource = FakeTimeSource(),
+): GuideRequestTracker =
+    GuideRequestTracker(navi, recorder, CoroutineScope(SupervisorJob() + Dispatchers.Main), time)

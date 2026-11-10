@@ -25,7 +25,9 @@ import com.example.travelcrumbs.domain.model.TripStatus
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -39,6 +41,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * - 직접 시작한 안내의 목적지를 시작 알림 때 조회해 메모리에 기억 → 이름이 같은 도착 알림 → 기기 안 기록 대기 →
  *   도착 뒤 PARKED 를 거친 첫 DRIVING 때 `trip_place_dtl` 1행으로 확정(3.3 · 3.4). 판정은 [AutoRecordRules](순수 계산).
  * - 사건(알림 · 주행 판정 변화 · 수동 기록 · 여행 종료 · 철회 · 삭제)은 [mutex] 로 한 번에 하나씩 끝까지(3.8 「차례 처리」).
+ *   단 시작 알림의 기다림(1.5초) · 목적지 조회(SDK · 최대 10초)는 [mutex] 밖에서 — 종료 · 철회 · 주행 판정이 그동안 막히지 않음.
+ *   내비 알림은 한 구독에서 차례로 받으므로 시작 처리가 끝나기 전에 온 도착은 그 뒤에 처리(T46). 조회 사이 철회 · 모두 지우기 · 새 시작이
+ *   끼면 [guideGeneration] 이 바뀌어 늦은 조회 결과는 버림.
  * - 로그엔 사건 종류 · 처리 결과 코드 · 건수만 — 이름 · 주소 · 좌표 · 도착 시각 · 장소 번호 없음(4.3 · T34).
  */
 class AutoPlaceRecorder(
@@ -59,6 +64,9 @@ class AutoPlaceRecorder(
     /** 진행 중 직접 안내(메모리 · 3.1) — 프로세스가 끝나면 사라짐(N15). [mutex] 안에서만 읽고 씀. */
     private var directGuide: NaviDestination? = null
 
+    /** 진행 중 직접 안내 세대 — 시작 알림 · 철회 · 모두 지우기마다 늘어남. 조회가 끝났을 때 세대가 다르면 그 결과는 버림. [mutex] 안에서만. */
+    private var guideGeneration = 0L
+
     private var session: Job? = null
     private var appStartDone = false
 
@@ -74,8 +82,21 @@ class AutoPlaceRecorder(
                     }
                 }
             }
-            launch { navi.events.collect { event -> mutex.withLock { guarded("navi_event") { onNaviEvent(event) } } } }
-            launch { driving.drivingState.collect { state -> mutex.withLock { guarded("driving") { onDriving(state) } } } }
+            launch {
+                navi.events.collect { event ->
+                    if (event == NaviEvent.RouteStarted) {
+                        onRouteStarted()
+                    } else {
+                        mutex.withLock { guarded("navi_event") { onNaviEvent(event) } }
+                    }
+                }
+            }
+            // 처리가 늦어도(차례 대기) 공유 주행 판정 흐름 · 다른 구독자를 막지 않게 받은 값은 따로 쌓아 둠(값은 드묾 · 버리지 않음)
+            launch {
+                driving.drivingStateChanges
+                    .buffer(Channel.UNLIMITED)
+                    .collect { state -> mutex.withLock { guarded("driving") { onDriving(state) } } }
+            }
         }
     }
 
@@ -125,11 +146,20 @@ class AutoPlaceRecorder(
 
     override suspend fun withdrawLocation() {
         mutex.withLock {
+            guideGeneration++
             directGuide = null
-            val names = store.names().associate { it.tripPlaceNo to it.name }
-            trips.clearLocations(names)
+            // 대기 · 원본 삭제가 늘 먼저 — 장소 표 정리가 실패해도 기기 안 도착 좌표 · 주소가 남지 않게(심사 개인정보)
+            val names = try {
+                store.names().associate { it.tripPlaceNo to it.name }
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                Log.w(TAG, "철회 · 원본 읽기 실패: ${error.javaClass.simpleName}")
+                emptyMap()
+            }
             store.clearAll()
             Log.i(TAG, "위치 동의 철회 · 대기 · 원본 삭제")
+            trips.clearLocations(names)
         }
     }
 
@@ -144,6 +174,7 @@ class AutoPlaceRecorder(
 
     override suspend fun deleteAll() {
         mutex.withLock {
+            guideGeneration++
             directGuide = null
             trips.deleteAll()
             store.clearAll()
@@ -161,7 +192,7 @@ class AutoPlaceRecorder(
 
     private suspend fun onNaviEvent(event: NaviEvent) {
         when (event) {
-            NaviEvent.RouteStarted -> onRouteStarted()
+            NaviEvent.RouteStarted -> Unit // [onRouteStarted] 가 따로(조회를 차례 밖에서)
             is NaviEvent.DestinationArrived -> onArrived(event.name)
             NaviEvent.RouteCancelled -> {
                 directGuide = null
@@ -170,17 +201,52 @@ class AutoPlaceRecorder(
         }
     }
 
-    /** 시작 알림(3.3) — 조건이 맞을 때만 목적지 조회 · 이 앱 요청이면 기억하지 않음. */
+    /**
+     * 시작 알림(3.3) — 조건이 맞을 때만 목적지 조회 · 이 앱 요청이면 기억하지 않음.
+     * 조건 확인 · 결과 반영은 차례([mutex]) 안 · 기다림 · 조회는 밖(종료 · 철회 · 주행 판정이 막히지 않게).
+     */
     private suspend fun onRouteStarted() {
-        val ctx = context()
-        if (ctx == null || ctx.status != TripStatus.RECORDING || !ctx.agreed || !navi.ready.value) {
-            directGuide = null
-            Log.i(TAG, "시작 · 건너뜀 NOT_RECORDING_OR_NO_CONSENT")
-            return
-        }
+        val generation = mutex.withLock {
+            var started: Long? = null
+            guarded("route_start") {
+                val generation = ++guideGeneration
+                directGuide = null
+                if (startable(context())) {
+                    started = generation
+                } else {
+                    Log.i(TAG, "시작 · 건너뜀 NOT_RECORDING_OR_NO_CONSENT")
+                }
+            }
+            started
+        } ?: return
         // 얼림이 풀린 직후 쌓인 콜백이 먼저 지나가게 — 그 사이 조회는 옛 상태를 받을 수 있음(기존 규칙 F9)
         delay(AppConfig.NAVI_QUERY_SETTLE_DELAY_MILLIS)
-        val destination = navi.guidedDestination()
+        val destination = try {
+            navi.guidedDestination()
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (error: Exception) {
+            Log.w(TAG, "시작 · 조회 실패: ${error.javaClass.simpleName}")
+            null
+        }
+        mutex.withLock { guarded("route_start") { applyStart(generation, destination) } }
+    }
+
+    private fun startable(ctx: Context?): Boolean =
+        ctx != null && ctx.status == TripStatus.RECORDING && ctx.agreed && navi.ready.value
+
+    /** 조회 결과 반영 — 그 사이 세대가 바뀌었거나(철회 · 모두 지우기) 기록 · 동의가 끝났으면 버림. */
+    private suspend fun applyStart(generation: Long, destination: NaviDestination?) {
+        if (generation != guideGeneration) {
+            Log.i(TAG, "시작 · 결과 버림 STALE")
+            return
+        }
+        val ctx = context()
+        if (ctx == null || ctx.status != TripStatus.RECORDING || !ctx.agreed) {
+            directGuide = null
+            Log.i(TAG, "시작 · 결과 버림 NOT_RECORDING_OR_NO_CONSENT")
+            return
+        }
         if (destination == null || !AutoRecordRules.usable(destination)) {
             directGuide = null
             Log.i(TAG, "시작 · 건너뜀 DESTINATION_UNKNOWN")
@@ -251,11 +317,16 @@ class AutoPlaceRecorder(
     private suspend fun onRestart(list: List<PendingArrival>): List<PendingArrival> {
         if (list.none { it.parkedSeen }) return list
         val ctx = context() ?: return list // 못 읽음 — 다음 기회로
+        if (!ctx.agreed) {
+            // 동의 없음(철회 · 거부) — 위치 정보인 대기를 남기지 않음(철회 처리가 이미 지웠어도 한 번 더)
+            Log.i(TAG, "재출발 · 동의 없음 대기 폐기 ${list.size}건")
+            return emptyList()
+        }
         val tripNo = ctx.tripNo
         // 지금 진행 중 여행이 아닌 여행의 대기(끝남 · 다른 여행 시작 · 여행 없음) = 폐기(3.4)
         val alive = list.filter { tripNo != null && it.tripNo == tripNo && ctx.status.inProgress }
         if (alive.size != list.size) Log.i(TAG, "재출발 · 다른 여행 대기 폐기 ${list.size - alive.size}건")
-        if (tripNo == null || ctx.status != TripStatus.RECORDING || !ctx.agreed) return alive
+        if (tripNo == null || ctx.status != TripStatus.RECORDING) return alive
         val ready = alive.filter { it.parkedSeen }
         confirm(ready, tripNo, fillUnfinished = true)
         return alive - ready.toSet()

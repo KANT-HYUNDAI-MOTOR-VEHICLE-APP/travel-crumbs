@@ -149,8 +149,12 @@ class FakeTripRepository(
     /** 철회 때 받은 자동 이름 원본(#66 3.9). */
     var lastAutoNames: Map<Long, String>? = null
 
+    /** 철회 처리가 던질 예외(#66 리뷰 심사 2) — null 이면 정상. */
+    var clearLocationsError: Throwable? = null
+
     override suspend fun clearLocations(autoNames: Map<Long, String>) {
         lastAutoNames = autoNames
+        clearLocationsError?.let { throw it }
         state.value = state.value.map { trip ->
             trip.copy(
                 places = trip.places.map {
