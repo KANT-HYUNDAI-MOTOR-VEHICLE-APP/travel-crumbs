@@ -1,0 +1,49 @@
+{
+  "version": 8,
+  "name": "travel-crumbs recommendation map (dark roads)",
+  "sources": {
+    "korea": {
+      "type": "vector",
+      "url": "pmtiles://asset://maps/korea-z12.pmtiles"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#1B3948" } },
+    { "id": "earth", "type": "fill", "source": "korea", "source-layer": "earth", "paint": { "fill-color": "#17262A" } },
+    {
+      "id": "landuse-green", "type": "fill", "source": "korea", "source-layer": "landuse",
+      "filter": ["in", ["get", "kind"], ["literal", ["park", "forest", "wood", "nature_reserve", "national_park", "protected_area", "grass", "meadow"]]],
+      "paint": { "fill-color": "#24483D", "fill-opacity": 0.7 }
+    },
+    { "id": "water", "type": "fill", "source": "korea", "source-layer": "water", "paint": { "fill-color": "#1B3948" } },
+    {
+      "id": "water-shore", "type": "line", "source": "korea", "source-layer": "water",
+      "filter": ["==", ["geometry-type"], "Polygon"],
+      "paint": { "line-color": "#537D88", "line-width": 0.6 }
+    },
+    { "id": "buildings", "type": "fill", "source": "korea", "source-layer": "buildings", "minzoom": 13, "paint": { "fill-color": "#22343A" } },
+    {
+      "id": "roads-minor", "type": "line", "source": "korea", "source-layer": "roads",
+      "filter": ["in", ["get", "kind"], ["literal", ["minor_road", "path", "other"]]],
+      "layout": { "line-cap": "round", "line-join": "round" },
+      "paint": { "line-color": "#465553", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 14, 1.6] }
+    },
+    {
+      "id": "roads-major", "type": "line", "source": "korea", "source-layer": "roads",
+      "filter": ["==", ["get", "kind"], "major_road"],
+      "layout": { "line-cap": "round", "line-join": "round" },
+      "paint": { "line-color": "#71817B", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.5, 14, 3] }
+    },
+    {
+      "id": "roads-highway", "type": "line", "source": "korea", "source-layer": "roads",
+      "filter": ["==", ["get", "kind"], "highway"],
+      "layout": { "line-cap": "round", "line-join": "round" },
+      "paint": { "line-color": "#9C9F85", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 14, 4] }
+    },
+    {
+      "id": "boundaries", "type": "line", "source": "korea", "source-layer": "boundaries",
+      "filter": ["<=", ["get", "kind_detail"], 4],
+      "paint": { "line-color": "#537D88", "line-dasharray": [2, 2], "line-width": 0.8 }
+    }
+  ]
+}

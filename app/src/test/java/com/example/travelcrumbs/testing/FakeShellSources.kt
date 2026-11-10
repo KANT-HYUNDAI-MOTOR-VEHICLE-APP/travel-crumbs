@@ -88,3 +88,7 @@ fun unfinishedInputRepositoryOf(
     timeSource: TimeSource,
     local: UnfinishedInputLocalDataSource = FakeUnfinishedInputLocalDataSource(),
 ): UnfinishedInputRepository = DefaultUnfinishedInputRepository(local, timeSource)
+
+/** 진행 중 여행이 없는 기록 저장소(v6 첫 화면 · #55 홈 근처 로드맵 시험) — 화면 시험이 자료원 대역을 직접 들지 않게. */
+fun idleRecordingRepositoryOf(timeSource: TimeSource): RecordingRepository =
+    recordingRepositoryOf(timeSource, FakeRecordingLocalDataSource())

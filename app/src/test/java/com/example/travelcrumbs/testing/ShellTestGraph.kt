@@ -108,6 +108,7 @@ class ShellTestGraph(
             tripRepository = trips,
             tagRepository = tags,
             unfinishedInputRepository = inputs,
+            offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
         )
         TripStartViewModel::class.java -> TripStartViewModel(recording, users, catalog, guide, navi, time, SavedStateHandle())
         com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel::class.java ->

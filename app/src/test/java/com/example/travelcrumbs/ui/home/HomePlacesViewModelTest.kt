@@ -96,6 +96,7 @@ class HomePlacesViewModelTest {
             tripRepository = FakeTripRepository(),
             tagRepository = FakeTagRepository(),
             unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
+            offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
         )
         val state: HomeUiState get() = vm.uiState.value
     }

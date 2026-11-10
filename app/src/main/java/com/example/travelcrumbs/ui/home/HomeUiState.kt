@@ -1,10 +1,13 @@
 package com.example.travelcrumbs.ui.home
 
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.NearbySectionState
 import com.example.travelcrumbs.domain.model.NaviRequestStatus
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RouteFailReason
+import com.example.travelcrumbs.domain.model.RouteMap
 import com.example.travelcrumbs.domain.model.SdkStatus
+import com.example.travelcrumbs.domain.model.SketchPoint
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
 import com.example.travelcrumbs.ui.components.RatingDialogItem
@@ -67,6 +70,11 @@ data class HomeUiState(
     val tagSheet: PlaceTagSheetItem? = null,
     /** A-05 로드맵 검토를 기다리는 여행(끝난 최근 여행 · 별점 팝업이 없을 때만 · #51 U5) — 있으면 기록 칸이 검토 화면. */
     val reviewTripNo: Long? = null,
+    /**
+     * 「내 근처 리뷰 많은 로드맵」 구역(#55 · 스펙 home-nearby 3-1) — 처음 값 = 자격 없음. 좌표 칸 없음 ·
+     * 프로세스 재생성 때 복원하지 않음(동의 상태는 동의 이력에서 다시 읽음).
+     */
+    val nearby: NearbyRoadmapsSection = NearbyRoadmapsSection(),
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /
@@ -124,6 +132,35 @@ sealed interface RouteRequestState {
         override val status: NaviRequestStatus get() = NaviRequestStatus.FAILED
     }
 }
+
+/**
+ * 구역 하나(스펙 home-nearby 3-1) — [state] 는 논리 상태 8개 중 하나(화면 표현은 [NearbySectionState.visible] · 2-6) ·
+ * [cards] 는 근처 있음 · 전국 대체에서만 비어 있지 않음 · [radiusKm] 은 설명 문구에 넣을 반경(설정값) ·
+ * [demoData] 는 추천 저장소가 시연용 자료를 쓰는 동안 참(E3). 동의 카드 문구는 문자열 자원(칸 없음).
+ */
+data class NearbyRoadmapsSection(
+    val state: NearbySectionState = NearbySectionState.INELIGIBLE,
+    val cards: List<NearbyRoadmapCardItem> = emptyList(),
+    val radiusKm: Int = 0,
+    val demoData: Boolean = false,
+)
+
+/**
+ * 카드 한 장(C1 ~ C7) — 거리는 미터 정수 · 미리보기는 도로 지도 평면 값([routeMap] · 묶음이 덮을 때) 또는 경로 그림 상대 점([sketch]).
+ * 둘 다 실제 좌표가 아님(스펙 3-1). 이름은 추천 모델 그대로(trip_no · trip_nm · 별점 평균 · 참여 수 · 시도 · 시군구).
+ */
+data class NearbyRoadmapCardItem(
+    val tripNo: Long,
+    val rank: Int,
+    val tripNm: String,
+    val sidoNm: String,
+    val sigunguNm: String?,
+    val ratingAvg: Double,
+    val ratingCnt: Int,
+    val distM: Int,
+    val routeMap: RouteMap?,
+    val sketch: List<SketchPoint>,
+)
 
 /** debug 카드 한 줄 — 장소 이름(후보에 없으면 id) · 안내 시작 건수. */
 data class PlaceStatItem(
