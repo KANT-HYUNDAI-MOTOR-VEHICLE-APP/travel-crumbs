@@ -99,7 +99,7 @@ class DrivingViewModel @Inject constructor(
         savedStateHandle[KEY_END_CONFIRM] = true
     }
 
-    /** 「계속 기록」 · 시스템 뒤로 · 팝업 바깥 누름(레일 칸 포함) — 팝업만 닫음 · PAUSED 면 PAUSED 그대로(N24). */
+    /** 「계속 기록」 · 시스템 뒤로 — 팝업만 닫음(바깥 · 레일 칸 누름은 팝업 틀이 삼킴) · PAUSED 면 PAUSED 그대로(N24). */
     fun onContinueRecording() {
         savedStateHandle[KEY_END_CONFIRM] = false
     }

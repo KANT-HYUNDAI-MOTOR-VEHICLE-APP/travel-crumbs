@@ -9,7 +9,7 @@ import com.example.travelcrumbs.ui.recommendations.GuidanceConfirmItem
 
 /**
  * B-05 안내 확인 팝업 — 「○○까지 안내할까요?」 · 주소 · 누구의 어느 로드맵 몇 번째 장소 / 「취소」(Secondary) · 「안내 시작」(Primary).
- * 바깥 누름 · 시스템 뒤로 = 취소. 창 애니메이션 끔(팝업 틀 [AppDialog]). 요청 중엔 「안내 시작」을 다시 받지 않음.
+ * 시스템 뒤로 = 취소 · 바깥 누름은 아무 일 없음. 창 애니메이션 끔(팝업 틀 [AppDialog]). 요청 중엔 「안내 시작」을 다시 받지 않음.
  */
 @Composable
 fun GuidanceConfirmDialog(

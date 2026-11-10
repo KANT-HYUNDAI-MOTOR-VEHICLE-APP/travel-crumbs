@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.components
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.ui.unit.width
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
@@ -12,7 +13,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.width
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsNode
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
 import org.junit.Assert.assertEquals
@@ -83,5 +87,45 @@ class AppDialogTest {
         compose.waitForIdle()
 
         compose.onNode(hasText("저장") and hasClickAction()).assertIsNotEnabled()
+    }
+
+    @Test
+    fun dlg3_scrim_covers_whole_screen_and_tap_does_not_dismiss() {
+        var dismissed = 0
+        var confirmed = 0
+        compose.setContent {
+            TravelCrumbsTheme {
+                AppDialog(
+                    title = "제목",
+                    dismissLabel = "취소",
+                    confirmLabel = "확인",
+                    onDismiss = { dismissed++ },
+                    onConfirm = { confirmed++ },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        val scrim = compose.onNodeWithTag(APP_DIALOG_SCRIM_TAG)
+        // 덮개 크기 = 팝업 창 루트 크기 = 화면 전체.
+        val scrimNode = scrim.fetchSemanticsNode()
+        var root: SemanticsNode = scrimNode
+        while (root.parent != null) root = root.parent!!
+        assertEquals(root.size, scrimNode.size)
+        val metrics = compose.activity.resources.displayMetrics
+        assertEquals(metrics.widthPixels, scrimNode.size.width)
+        assertEquals(metrics.heightPixels, scrimNode.size.height)
+
+        // 덮개 네 귀퉁이 근처 · 팝업 양옆을 눌러도 닫히지 않음.
+        scrim.performTouchInput {
+            click(Offset(1f, 1f))
+            click(Offset(width - 1f, height - 1f))
+            click(Offset(1f, centerY))
+            click(Offset(width - 1f, centerY))
+        }
+        compose.waitForIdle()
+        assertEquals(0, dismissed)
+        assertEquals(0, confirmed)
+        compose.onNodeWithTag(APP_DIALOG_TAG).assertIsDisplayed()
     }
 }

@@ -64,7 +64,7 @@ class RatingPopupHolder(
         setDraft(base(shown ?: return).toggleTag(tagNo))
     }
 
-    /** 「나중에」 · 바깥 · 뒤로 — 닫고 그 로드맵의 자동 팝업도 끝난 것으로(로드맵마다 한 번). */
+    /** 「나중에」 · 뒤로 — 닫고 그 로드맵의 자동 팝업도 끝난 것으로(로드맵마다 한 번). */
     fun dismiss(shown: RatingDialogItem?) {
         shown ?: return
         setDraft(null)
