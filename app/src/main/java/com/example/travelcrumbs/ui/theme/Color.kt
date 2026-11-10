@@ -27,4 +27,7 @@ object TravelCrumbsColors {
     val BorderSubtle = Color(0xFF35424D)
 
     val Danger = Color(0xFFD96C68)
+
+    /** Background/Dim — 팝업 뒤 화면을 덮는 검은색의 불투명도 60%(창 dimAmount · AppDialog). */
+    const val BackgroundDimAlpha = 0.6f
 }
