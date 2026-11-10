@@ -16,7 +16,9 @@ import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.OfflineMapPack
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.RatingRecords
+import com.example.travelcrumbs.domain.model.RecommendedPlace
 import com.example.travelcrumbs.domain.model.RecommendedTrip
+import com.example.travelcrumbs.domain.model.RouteMap
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.domain.model.SidoRegion
 import com.example.travelcrumbs.domain.model.Tag
@@ -77,6 +79,7 @@ class RecommendationsViewModel @Inject constructor(
     }
     /** 상세 도로 지도 묶음(앱 에셋) — 못 읽었거나 읽기 전이면 null → 기존 경로 그림. */
     private val mapPack = MutableStateFlow<OfflineMapPack?>(null)
+    private var cachedRouteMap: CachedRouteMap? = null
 
     val uiState: StateFlow<RecommendationsUiState> = combine(
         selection,
@@ -317,9 +320,18 @@ class RecommendationsViewModel @Inject constructor(
             sketch = RecommendationRules.sketch(ordered),
             canRate = RecommendationRules.canRate(records, tripNo),
             myRatingScore = records.ratingOf(tripNo)?.ratingScore,
-            routeMap = pack?.let { RoadmapMapRules.routeMap(it, ordered) },
+            routeMap = pack?.let { projectedRouteMap(it, ordered) },
         )
     }
+
+    /** 별점 · 팝업 등 상세 화면 상태가 달라져도 같은 지도 묶음과 장소 목록이면 평면 좌표를 다시 계산하지 않음. */
+    private fun projectedRouteMap(pack: OfflineMapPack, places: List<RecommendedPlace>): RouteMap? {
+        val cached = cachedRouteMap
+        if (cached != null && cached.pack === pack && cached.places == places) return cached.map
+        return RoadmapMapRules.routeMap(pack, places).also { cachedRouteMap = CachedRouteMap(pack, places, it) }
+    }
+
+    private data class CachedRouteMap(val pack: OfflineMapPack, val places: List<RecommendedPlace>, val map: RouteMap?)
 
     private fun updateSelection(change: (Selection) -> Selection) {
         val next = change(selection.value)

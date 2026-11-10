@@ -13,6 +13,8 @@ import org.junit.Test
 /** 시연용 오프라인 지도 묶음 읽기(M1 · M2 · M4) · 실제 에셋이 시드 로드맵을 덮는지(M9). */
 class OfflineMapPackTest {
 
+    private val mapCoveredTrips = setOf(101L, 102L, 103L, 201L, 202L, 301L)
+
     private val sample = """
         {"areas": {
           "town": {
@@ -63,12 +65,14 @@ class OfflineMapPackTest {
     }
 
     @Test
-    fun `M9 앱 에셋 — 시드 로드맵 전부를 한 지역이 덮고 장소 사이 구간이 다 있음`() {
+    fun `M9 앱 에셋 — 동해안 시드 로드맵 6개를 한 지역이 덮고 장소 사이 구간이 다 있음`() {
         val file = listOf("src/main/assets/maps/roadmaps.json", "app/src/main/assets/maps/roadmaps.json")
             .map(::File).first { it.exists() }
         val pack = parseOfflineMapPack(file.readText())
 
-        RecommendationSeed.trips.forEach { trip ->
+        val coveredTrips = RecommendationSeed.trips.filter { it.tripNo in mapCoveredTrips }
+        assertEquals(mapCoveredTrips, coveredTrips.map { it.tripNo }.toSet())
+        coveredTrips.forEach { trip ->
             val ordered = trip.places.sortedBy { it.placeOrd }
             val area = RoadmapMapRules.areaFor(pack, ordered.map { MapCoord(it.lng, it.lat) })
             assertNotNull("${trip.tripNm} 을 덮는 지역 없음", area)

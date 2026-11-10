@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -29,12 +28,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.MapLayer
 import com.example.travelcrumbs.domain.model.MapXY
 import com.example.travelcrumbs.domain.model.RouteMap
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.theme.RoadmapMapColors
 import kotlin.math.min
 
 /**
@@ -64,9 +63,9 @@ fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier) {
                     text = map.areaLabel,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(MAP_LABEL_PADDING)
+                        .padding(Dimens.RoadmapMapLabelPadding)
                         .background(colors.background, MaterialTheme.shapes.small)
-                        .padding(horizontal = MAP_LABEL_PADDING, vertical = MAP_LABEL_PADDING / 2),
+                        .padding(horizontal = Dimens.RoadmapMapLabelPadding, vertical = Dimens.RoadmapMapLabelPadding / 2),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurface,
                     maxLines = 1,
@@ -77,7 +76,7 @@ fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .background(colors.background)
-                        .padding(horizontal = MAP_LABEL_PADDING, vertical = MAP_LABEL_PADDING / 4),
+                        .padding(horizontal = Dimens.RoadmapMapLabelPadding, vertical = Dimens.RoadmapMapLabelPadding / 4),
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.onSurface,
                     maxLines = 1,
@@ -85,7 +84,7 @@ fun RoadmapMap(map: RouteMap, modifier: Modifier = Modifier) {
             }
             Text(
                 text = stringResource(R.string.roadmap_map_sample),
-                modifier = Modifier.padding(MAP_LABEL_PADDING),
+                modifier = Modifier.padding(Dimens.RoadmapMapLabelPadding),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 maxLines = 2,
@@ -109,10 +108,10 @@ private fun RoadDrawing(map: RouteMap, modifier: Modifier) {
             val view = MapView(
                 map = map,
                 canvas = size,
-                side = pinRadius + MAP_EDGE_PADDING.toPx(),
+                side = pinRadius + Dimens.RoadmapMapEdgePadding.toPx(),
                 // 위 · 아래는 지역 이름 · 출처 줄이 핀을 가리지 않게 더 비움
-                top = pinRadius + MAP_LABEL_INSET.toPx(),
-                bottom = pinRadius + MAP_LABEL_INSET.toPx(),
+                top = pinRadius + Dimens.RoadmapMapLabelInset.toPx(),
+                bottom = pinRadius + Dimens.RoadmapMapLabelInset.toPx(),
             )
             val layers = map.layers.mapValues { (_, lines) -> view.path(lines) }
             val roadLegs = view.path(map.legs.filter { it.onRoad }.map { it.points })
@@ -128,24 +127,24 @@ private fun RoadDrawing(map: RouteMap, modifier: Modifier) {
             )
             val labels = pins.indices.map { textMeasurer.measure((it + 1).toString(), pinStyle) }
             onDrawBehind {
-                drawRect(MapPalette.base)
+                drawRect(RoadmapMapColors.Background)
                 MapLayer.entries.forEach { layer ->
                     val path = layers[layer] ?: return@forEach
                     when (layer) {
-                        MapLayer.WATER -> drawPath(path, MapPalette.water)
-                        MapLayer.PARK -> drawPath(path, MapPalette.park)
-                        MapLayer.RIVER -> drawPath(path, MapPalette.water, style = Stroke(RIVER_WIDTH.toPx(), cap = StrokeCap.Round))
-                        MapLayer.SHORE -> drawPath(path, MapPalette.shore, style = Stroke(SHORE_WIDTH.toPx()))
-                        MapLayer.LOCAL -> drawPath(path, MapPalette.localRoad, style = Stroke(LOCAL_WIDTH.toPx()))
-                        MapLayer.STREET -> drawPath(path, MapPalette.street, style = Stroke(STREET_WIDTH.toPx()))
-                        MapLayer.MAJOR -> drawPath(path, MapPalette.majorRoad, style = Stroke(MAJOR_WIDTH.toPx()))
+                        MapLayer.WATER -> drawPath(path, RoadmapMapColors.Water)
+                        MapLayer.PARK -> drawPath(path, RoadmapMapColors.Park)
+                        MapLayer.RIVER -> drawPath(path, RoadmapMapColors.Water, style = Stroke(Dimens.RoadmapMapRiverWidth.toPx(), cap = StrokeCap.Round))
+                        MapLayer.SHORE -> drawPath(path, RoadmapMapColors.Shore, style = Stroke(Dimens.RoadmapMapShoreWidth.toPx()))
+                        MapLayer.LOCAL -> drawPath(path, RoadmapMapColors.LocalRoad, style = Stroke(Dimens.RoadmapMapLocalRoadWidth.toPx()))
+                        MapLayer.STREET -> drawPath(path, RoadmapMapColors.Street, style = Stroke(Dimens.RoadmapMapStreetWidth.toPx()))
+                        MapLayer.MAJOR -> drawPath(path, RoadmapMapColors.MajorRoad, style = Stroke(Dimens.RoadmapMapMajorRoadWidth.toPx()))
                     }
                 }
                 drawPath(roadLegs, outline, style = outlineStroke)
                 drawPath(roadLegs, route, style = routeStroke)
                 drawPath(straightLegs, route, style = dashed)
                 pins.forEachIndexed { index, center ->
-                    drawCircle(outline, pinRadius + PIN_OUTLINE.toPx(), center)
+                    drawCircle(outline, pinRadius + Dimens.RoadmapMapPinOutline.toPx(), center)
                     drawCircle(route, pinRadius, center)
                     val label = labels[index]
                     drawText(
@@ -181,24 +180,3 @@ private class MapView(map: RouteMap, canvas: Size, side: Float, top: Float, bott
         }
     }
 }
-
-/** 어두운 차량 화면용 지도 색 — 이 그림에만 씀(글자 · 핀 · 경로 색은 테마 colorScheme). */
-private object MapPalette {
-    val base = Color(0xFF17262A)
-    val water = Color(0xFF1B3948)
-    val park = Color(0xFF24483D)
-    val shore = Color(0xFF537D88)
-    val localRoad = Color(0xFF465553)
-    val street = Color(0xFF71817B)
-    val majorRoad = Color(0xFF9C9F85)
-}
-
-private val MAP_LABEL_PADDING = 8.dp
-private val MAP_EDGE_PADDING = 16.dp
-private val MAP_LABEL_INSET = 44.dp
-private val PIN_OUTLINE = 2.dp
-private val RIVER_WIDTH = 6.dp
-private val SHORE_WIDTH = 1.2.dp
-private val LOCAL_WIDTH = 0.8.dp
-private val STREET_WIDTH = 1.3.dp
-private val MAJOR_WIDTH = 1.8.dp

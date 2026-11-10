@@ -31,17 +31,20 @@ interface OfflineMapRepository {
 }
 
 @Singleton
-class AssetOfflineMapRepository @Inject constructor(
-    @ApplicationContext context: Context,
+class AssetOfflineMapRepository internal constructor(
+    private val readAsset: () -> String,
 ) : OfflineMapRepository {
-    private val assets = context.applicationContext.assets
+    @Inject
+    constructor(@ApplicationContext context: Context) : this({
+        context.assets.open(FILE_NAME).bufferedReader().use { it.readText() }
+    })
     private val lock = Mutex()
     private var cached: OfflineMapPack? = null
 
     override suspend fun mapPack(): OfflineMapPack = lock.withLock {
         cached ?: withContext(Dispatchers.IO) {
-            runCatching { assets.open(FILE_NAME).bufferedReader().use { it.readText() } }
-                .map(::parseOfflineMapPack)
+            runCatching(readAsset)
+                .mapCatching(::parseOfflineMapPack)
                 .onFailure { Log.w(TAG, "지도 묶음을 읽지 못함: ${it.javaClass.simpleName}") }
                 .getOrDefault(OfflineMapPack(emptyList()))
         }.also { cached = it }

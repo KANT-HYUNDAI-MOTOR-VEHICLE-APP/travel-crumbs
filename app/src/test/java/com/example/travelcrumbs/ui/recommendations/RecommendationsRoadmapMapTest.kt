@@ -25,6 +25,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 
@@ -90,6 +91,12 @@ class RecommendationsRoadmapMapTest {
         assertEquals(3, map.legs.size)
         assertEquals(4, detail.sketch.size)
         assertEquals(1, maps.loads)
+
+        vm.askGuidance(detail.places.first().placeNo)
+        runCurrent()
+
+        assertNotNull(vm.uiState.value.confirm)
+        assertSame(map, vm.uiState.value.detail?.routeMap)
     }
 
     @Test
