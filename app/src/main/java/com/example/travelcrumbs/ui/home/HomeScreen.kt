@@ -9,27 +9,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.BuildConfig
-import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.PlaceTagSheet
 import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.home.components.GuideConnectionContent
 import com.example.travelcrumbs.ui.home.components.GuideScreenActions
-import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
 import com.example.travelcrumbs.ui.home.components.NearbyRoadmapsArea
-import com.example.travelcrumbs.ui.home.components.PlaceActions
 import com.example.travelcrumbs.ui.home.components.NoTripTop
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
 import com.example.travelcrumbs.ui.home.components.TripInProgressTop
@@ -42,7 +36,7 @@ import com.example.travelcrumbs.ui.tripstart.TripStartScreen
  * 기록 칸 정차 화면(스펙 app-shell-v5 2-2 · D34) — 위에서 아래로 1 맨 위 영역 → 2 기능 구역 자리 → 3 debug SDK 확인 카드(#6 D17).
  * 맨 위 영역은 진행 중 여행 여부로 둘 중 하나(와이어프레임 v6 C-02 · #51 U2) —
  * 아님: 인사 · 「여행 시작」 · 「추천 보러 가기」 나란히 · 최근 여행 1개 / 진행 중: 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 · 「여행 종료」(A-04).
- * #4 「가 볼 장소」 · 「장소 고르기」는 debug 빌드의 개발용 구역에만([showDevTools]).
+ * #4 「가 볼 장소」 · 「장소 고르기」 구역은 홈에서 뺌(미리보기 · 사람 요청) — 목적지 고르기는 A-01.
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「설정」(D35) · 「기록 일시정지」 · 「음성」 · 「여행 종료」는 두지 않음(#6 D10 · N12).
  * 추천 안내 뒤 진행한 여행을 끝냈으면 별점 팝업(#41 B-06)을 로드맵마다 한 번 띄움(중간 정차 · 안내만 받음엔 없음).
  * 「추천 보러 가기」 누름 = 앱 틀의 목적지를 「추천」으로 바꾸는 사용자 행동([onOpenRecommendations] · 이벤트 Flow 없음).
@@ -50,7 +44,7 @@ import com.example.travelcrumbs.ui.tripstart.TripStartScreen
  * 길안내 연결 화면(#4 navigation 2.3)이 열려 있으면 위 셋 대신 그 화면을 그림(U64 (a) · U66).
  *
  * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
- * [featureSections] 가 null 이면 실제 기능 구역(HomeFeatureSections · #4 「가 볼 장소」 · 「장소 고르기」).
+ * [featureSections] 가 null 이면 기능 구역 자리에 아무것도 그리지 않음.
  */
 @Composable
 fun HomeScreen(
@@ -60,7 +54,6 @@ fun HomeScreen(
     onOpenRoadmap: (tripNo: Long, sidoNm: String) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = viewModel(),
     showSdkCard: Boolean = BuildConfig.DEBUG,
-    showDevTools: Boolean = BuildConfig.DEBUG,
     featureSections: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,7 +127,8 @@ fun HomeScreen(
                 }
             }
 
-            // 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 2-2) — 맨 위 영역 바로 아래 · 진행 중 여행 · 주행엔 없음(숨김 상태면 아무것도 안 그림)
+            // 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 2-2 · N11) — 맨 위 영역(최근 여행 포함) 바로 아래 = 옛 「가 볼 장소」 자리 ·
+            // 진행 중 여행 · 주행엔 없음(숨김 상태면 아무것도 안 그림)
             NearbyRoadmapsArea(
                 section = uiState.nearby,
                 onOpen = onOpenRoadmap,
@@ -142,25 +136,7 @@ fun HomeScreen(
                 onDecline = viewModel::onDeclineNearby,
             )
 
-            if (featureSections != null) {
-                featureSections()
-            } else if (showDevTools) {
-                // #4 「가 볼 장소」 · 「장소 고르기」 — v6 첫 화면에선 빠지고(목적지 고르기는 A-01) debug 빌드의 개발용 구역에만(#51 U2 · 보고서 남은 결정)
-                Text(
-                    text = stringResource(R.string.home_dev_area_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-                val placeActions = remember(viewModel) {
-                    PlaceActions(
-                        onGuide = viewModel::onGuide,
-                        onPin = viewModel::onPin,
-                        onUnpin = viewModel::onUnpin,
-                    )
-                }
-                HomeFeatureSections(state = uiState, placeActions = placeActions)
-            }
+            featureSections?.invoke(this)
 
             if (showSdkCard) {
                 SdkCheckCard(
