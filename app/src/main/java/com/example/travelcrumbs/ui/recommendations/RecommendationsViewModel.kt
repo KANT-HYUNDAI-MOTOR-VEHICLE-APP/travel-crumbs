@@ -197,7 +197,7 @@ class RecommendationsViewModel @Inject constructor(
 
     fun toggleRatingTag(tagNo: Long) = rating.toggleTag(uiState.value.rating, tagNo)
 
-    /** B-06 「나중에」 · 바깥 · 뒤로 — 닫기 · 그 로드맵의 자동 팝업도 끝난 것으로. */
+    /** B-06 「나중에」 · 뒤로 — 닫기 · 그 로드맵의 자동 팝업도 끝난 것으로. */
     fun dismissRating() = rating.dismiss(uiState.value.rating)
 
     /** B-06 「별점 주기」 — 저장되면 닫고 한 줄 안내 · 평균 · 참여 수 · 태그 수는 저장소 기록이 바뀌며 바로 다시 계산됨. */

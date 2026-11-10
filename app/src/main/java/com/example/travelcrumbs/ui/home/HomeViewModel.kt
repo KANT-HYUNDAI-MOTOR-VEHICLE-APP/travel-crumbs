@@ -248,7 +248,7 @@ class HomeViewModel @Inject constructor(
     /** 별점 팝업 — 좋았던 점 칩 켜고 끄기. */
     fun toggleRatingTag(tagNo: Long) = rating.toggleTag(uiState.value.ratingPrompt, tagNo)
 
-    /** 별점 팝업 「나중에」 · 바깥 · 뒤로 — 그 로드맵은 다시 자동으로 안 뜸(B-04 「별점 주기」로는 줄 수 있음). */
+    /** 별점 팝업 「나중에」 · 뒤로 — 그 로드맵은 다시 자동으로 안 뜸(B-04 「별점 주기」로는 줄 수 있음). */
     fun dismissRatingPrompt() = rating.dismiss(uiState.value.ratingPrompt)
 
     /** 별점 팝업 「별점 주기」 — 저장되면 팝업이 사라지고 한 줄 안내. */
@@ -300,7 +300,7 @@ class HomeViewModel @Inject constructor(
         savedStateHandle[KEY_END_CONFIRM] = true
     }
 
-    /** A-04 「계속 기록」 · 바깥 · 뒤로 — 팝업만 닫음. */
+    /** A-04 「계속 기록」 · 뒤로 — 팝업만 닫음. */
     fun onContinueRecording() {
         savedStateHandle[KEY_END_CONFIRM] = false
     }

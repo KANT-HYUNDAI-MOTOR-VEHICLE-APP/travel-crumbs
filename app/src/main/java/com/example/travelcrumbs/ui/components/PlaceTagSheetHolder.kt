@@ -60,7 +60,7 @@ class PlaceTagSheetHolder(
 
     fun toggleTag(tagNo: Long) = edit { it.copy(tagNos = if (tagNo in it.tagNos) it.tagNos - tagNo else it.tagNos + tagNo) }
 
-    /** 「건너뛰기 · 나중에」 · 바깥 · 뒤로 — 닫기만. */
+    /** 「건너뛰기 · 나중에」 · 뒤로 — 닫기만(바깥 누름은 팝업 틀이 삼킴). */
     fun skip() = setDraft(null)
 
     /** 「저장」 — 저장하고 닫음 · 결과 한 줄. */
