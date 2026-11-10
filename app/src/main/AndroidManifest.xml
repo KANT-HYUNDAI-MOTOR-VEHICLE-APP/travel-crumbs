@@ -36,10 +36,13 @@
           에뮬레이터 실측(2026-11-10): 가로 고정이면 나눈 칸(약 817 × 1210 dp)에서 「창 크기를 넓게」만 뜸 · 고정을 빼면 내비(왼쪽) + 이 앱(오른쪽)이 나란히.
           앱이 나눔을 강제할 수 없음(창 제어 권한은 signature|privileged) — 사람이 가운데 ⋮ 를 끌어 나눔.
           주행 중에도 이 화면을 쓰므로 DO(distractionOptimized) 선언 — 주행 중 제한은 코드가(주행 전용 화면 · 스펙 P1).
+          singleTop(#51 버그): 기본 standard 면 뿌리와 다른 인텐트(Gleo OPEN_TRAVEL_CRUMBS · am start 뒤 런처)마다 인스턴스가 쌓여
+          인스턴스마다 앱 틀 목적지가 따로 → 위가 끝나면 아래의 옛 목적지(추천)가 드러남. 같은 작업 맨 위면 onNewIntent 로 받음.
         -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:resizeableActivity="true">
             <meta-data
                 android:name="distractionOptimized"
