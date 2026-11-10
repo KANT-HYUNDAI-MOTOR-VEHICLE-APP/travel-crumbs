@@ -215,9 +215,9 @@ private fun OrderBadge(order: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** 경로 그림 — 장소 순서대로 점선 · 번호 핀. 실제 지도 아님(좌표의 상대 위치만 · 지도 SDK 는 범위 밖). */
+/** 경로 그림 — 장소 순서대로 점선 · 번호 핀. 실제 지도 아님(좌표의 상대 위치만 · 지도 SDK 는 범위 밖). 홈 근처 로드맵 카드(#55)도 씀. */
 @Composable
-private fun RouteSketch(points: List<SketchPoint>, modifier: Modifier = Modifier) {
+fun RouteSketch(points: List<SketchPoint>, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Surface(
         modifier = modifier,

@@ -91,6 +91,13 @@ object Dimens {
     val RankColumnWidth = 64.dp
     val TripThumbSize = 104.dp
 
+    /**
+     * 홈 「내 근처 리뷰 많은 로드맵」 카드(#55 · 스펙 home-nearby E5 · N15) — 폭 고정(창 폭이 바뀌면 보이는 장수만 달라짐) ·
+     * 높이 고정 = 경로 미리보기 + 글 세 줄(카드 제목 36 + 본문 34 × 2) + 안 여백.
+     */
+    val NearbyCardWidth = 360.dp
+    val NearbyCardHeight = 420.dp
+
     /** 추천 태그 막대 높이. */
     val TagBarHeight = 64.dp
 

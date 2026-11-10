@@ -28,6 +28,7 @@ import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.home.components.GuideConnectionContent
 import com.example.travelcrumbs.ui.home.components.GuideScreenActions
 import com.example.travelcrumbs.ui.home.components.HomeFeatureSections
+import com.example.travelcrumbs.ui.home.components.NearbyRoadmapsArea
 import com.example.travelcrumbs.ui.home.components.PlaceActions
 import com.example.travelcrumbs.ui.home.components.NoTripTop
 import com.example.travelcrumbs.ui.home.components.SdkCheckCard
@@ -45,6 +46,7 @@ import com.example.travelcrumbs.ui.tripstart.TripStartScreen
  * 맨 위 영역은 늘 첫 자리 · 그 아래만 스크롤(정차 전용). 「설정」(D35) · 「기록 일시정지」 · 「음성」 · 「여행 종료」는 두지 않음(#6 D10 · N12).
  * 추천 안내 뒤 진행한 여행을 끝냈으면 별점 팝업(#41 B-06)을 로드맵마다 한 번 띄움(중간 정차 · 안내만 받음엔 없음).
  * 「추천 보러 가기」 누름 = 앱 틀의 목적지를 「추천」으로 바꾸는 사용자 행동([onOpenRecommendations] · 이벤트 Flow 없음).
+ * 맨 위 영역 아래 「내 근처 리뷰 많은 로드맵」 가로 카드(#55) — 카드 누름 = 앱 틀이 「추천」 칸 그 로드맵 B-04 로([onOpenRoadmap]).
  * 길안내 연결 화면(#4 navigation 2.3)이 열려 있으면 위 셋 대신 그 화면을 그림(U64 (a) · U66).
  *
  * [featureSections] · [showSdkCard] 는 테스트가 시험 구역 · 카드 표시를 고를 때만 바꿈 —
@@ -55,6 +57,7 @@ fun HomeScreen(
     onOpenRecommendations: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenTrip: (Long?) -> Unit = {},
+    onOpenRoadmap: (tripNo: Long, sidoNm: String) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = viewModel(),
     showSdkCard: Boolean = BuildConfig.DEBUG,
     showDevTools: Boolean = BuildConfig.DEBUG,
@@ -65,7 +68,7 @@ fun HomeScreen(
     // 내비에서 돌아옴 — 놓친 길안내 시작 알림을 내비 상태로 대조(#4 R1)
     LifecycleResumeEffect(viewModel) {
         viewModel.onScreenResumed()
-        onPauseOrDispose { }
+        onPauseOrDispose { viewModel.onScreenPaused() }
     }
 
     if (uiState.tripStartOpen) {
@@ -130,6 +133,14 @@ fun HomeScreen(
                     )
                 }
             }
+
+            // 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 2-2) — 맨 위 영역 바로 아래 · 진행 중 여행 · 주행엔 없음(숨김 상태면 아무것도 안 그림)
+            NearbyRoadmapsArea(
+                section = uiState.nearby,
+                onOpen = onOpenRoadmap,
+                onAgree = viewModel::onAgreeNearby,
+                onDecline = viewModel::onDeclineNearby,
+            )
 
             if (featureSections != null) {
                 featureSections()

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.map.OfflineMapRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.place.PinnedPlacesRepository
 import com.example.travelcrumbs.data.place.PlaceCatalogRepository
@@ -25,6 +26,7 @@ import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DraftPlaceInput
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.NearbySectionState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.SdkStatus
@@ -77,6 +79,7 @@ class HomeViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val tagRepository: TagRepository,
     private val unfinishedInputRepository: UnfinishedInputRepository,
+    offlineMap: OfflineMapRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -181,7 +184,39 @@ class HomeViewModel @Inject constructor(
         onSaved = { message.value = it },
     )
 
-    private val extras = combine(rating.item, v6Part, tagSheet.item) { prompt, part, sheet -> Triple(prompt, part, sheet) }
+    /**
+     * 「내 근처 리뷰 많은 로드맵」(#55) — 정차 · 진행 중 여행 없음 · 다른 화면(A-01 · A-05 · 길안내 연결 화면)이 기록 칸을 차지하지 않을 때만
+     * 위치를 묻고 구역을 그림(스펙 home-nearby 2-2 · 3-2).
+     */
+    private val nearby = NearbyRoadmapsHolder(
+        scope = viewModelScope,
+        recommendations = recommendationRepository,
+        ratings = ratingRepository,
+        navi = naviRepository,
+        users = userRepository,
+        offlineMap = offlineMap,
+        publicTripChanges = tripRepository.trips,
+        eligible = combine(
+            drivingSignalRepository.drivingState,
+            recordingRepository.tripInProgress,
+            savedStateHandle.getStateFlow(KEY_TRIP_START, false),
+            combine(tripRepository.pendingReviewTripNo, rating.item) { review, prompt -> review != null && prompt == null },
+            combine(guideRequests.state, guideScreenFrom) { request, from -> guideScreenOf(request, from) != null },
+        ) { driving, inProgress, tripStart, reviewing, guiding ->
+            driving == DrivingState.PARKED && !inProgress && !tripStart && !reviewing && !guiding
+        },
+    )
+
+    private val extras = combine(rating.item, v6Part, tagSheet.item, nearby.section) { prompt, part, sheet, section ->
+        Extras(prompt, part, sheet, section)
+    }
+
+    private data class Extras(
+        val prompt: com.example.travelcrumbs.ui.components.RatingDialogItem?,
+        val v6: V6Part,
+        val sheet: com.example.travelcrumbs.ui.components.PlaceTagSheetItem?,
+        val nearby: NearbyRoadmapsSection,
+    )
 
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
@@ -189,7 +224,7 @@ class HomeViewModel @Inject constructor(
         sdkCheck,
         places,
         extras,
-    ) { progress, shown, sdk, part, (prompt, v6, sheet) ->
+    ) { progress, shown, sdk, part, (prompt, v6, sheet, nearbySection) ->
         val parked = sdk.drivingState == DrivingState.PARKED
         sdk.copy(
             hasTrip = progress.hasTrip,
@@ -216,6 +251,8 @@ class HomeViewModel @Inject constructor(
             dummyRoute = part.dummyRoute.takeIf { parked },
             dummyRouteAvailable = demoFeatures.dummyRoute,
             ratingPrompt = prompt,
+            // 주행 · 모름 · 진행 중 여행이면 도우미 상태와 무관하게 자격 없음(2-7 · 화면이 안 그려짐)
+            nearby = if (parked && !progress.status.inProgress) nearbySection else NearbyRoadmapsSection(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -346,6 +383,24 @@ class HomeViewModel @Inject constructor(
     /** 화면이 다시 앞으로 옴(시작 · 재개 · R1) — 바로 앞 요청이 아직 시작 알림을 못 받았으면 입구가 내비 상태로 대조. */
     fun onScreenResumed() {
         guideRequests.recheck()
+        nearby.onScreenShown()
+    }
+
+    /** 근처 로드맵 동의 카드 「동의하고 보기」(#55 K3) — 정차 · 카드가 보일 때만. */
+    fun onAgreeNearby() {
+        if (uiState.value.nearby.state != NearbySectionState.CONSENT_NEEDED) return
+        nearby.agree()
+    }
+
+    /** 근처 로드맵 동의 카드 「괜찮아요」(#55 K4) — 거부 행 · 다시 묻지 않음(N20). */
+    fun onDeclineNearby() {
+        if (uiState.value.nearby.state != NearbySectionState.CONSENT_NEEDED) return
+        nearby.decline()
+    }
+
+    /** 화면이 뒤로 감 · 사라짐(다른 칸 · 백그라운드) — 근처 로드맵 위치를 새로 묻지 않음(#55 · H27). */
+    fun onScreenPaused() {
+        nearby.onScreenHidden()
     }
 
     /**

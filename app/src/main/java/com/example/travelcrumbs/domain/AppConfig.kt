@@ -75,6 +75,13 @@ object AppConfig {
      */
     const val LOCAL_TRIP_RECO_NO_OFFSET: Long = 1_000_000L
 
+    /**
+     * 홈 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 3-3 · N1 · N8) — 근처 반경(km · 경계 포함) · 카드 최대 장수.
+     * 반경 안 로드맵이 없으면 같은 정렬로 전국 대체(N2).
+     */
+    const val NEARBY_ROADMAP_RADIUS_KM: Int = 10
+    const val NEARBY_ROADMAP_MAX_CNT: Int = 10
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 
