@@ -13,6 +13,7 @@ import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.ui.driving.DrivingViewModel
 import com.example.travelcrumbs.ui.home.HomeViewModel
+import com.example.travelcrumbs.ui.gleo.GleoCommandViewModel
 import com.example.travelcrumbs.ui.recommendations.RecommendationsViewModel
 import com.example.travelcrumbs.ui.settings.SettingsViewModel
 import com.example.travelcrumbs.ui.tripstart.TripStartViewModel
@@ -37,6 +38,7 @@ class ShellTestGraph(
 ) {
     val time = FakeTimeSource(now = 1_000L)
     val driving = FakeDrivingSignalRepository(initialDriving)
+    val gleo = FakeGleoActionRepository()
     val recordingLocal = if (withTrip) FakeRecordingLocalDataSource(com.example.travelcrumbs.domain.model.CurrentTrip.start(time.now).copy(tripNo = tripNo)) else FakeRecordingLocalDataSource()
     val recording = recordingRepositoryOf(time, recordingLocal)
     val inputs = unfinishedInputRepositoryOf(time)
@@ -77,6 +79,7 @@ class ShellTestGraph(
 
     private fun create(modelClass: Class<*>): ViewModel = when (modelClass) {
         AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState)
+        GleoCommandViewModel::class.java -> GleoCommandViewModel(gleo)
         DrivingViewModel::class.java -> DrivingViewModel(
             recordingRepository = recording,
             recordPlace = recordPlace,

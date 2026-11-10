@@ -7,4 +7,6 @@ enum class ActionResult {
     /** 아직 기능이 없음 → 화면이 「준비 중」 안내. */
     NOT_READY,
     FAILED,
+    /** 저장 요청 이후 응답으로 실제 기록을 확인하지 못함. */
+    UNCONFIRMED,
 }

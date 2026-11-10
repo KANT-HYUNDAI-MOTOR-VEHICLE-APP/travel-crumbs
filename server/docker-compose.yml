@@ -1,0 +1,18 @@
+# 로컬 개발용 PostgreSQL 17 — 실행: docker compose up -d db
+# 접속: localhost:5432 · DB travel_crumbs · 사용자 travel · 비밀번호 travel (내 PC 개발용)
+services:
+  db:
+    image: postgres:17
+    container_name: travel-crumbs-db
+    environment:
+      POSTGRES_USER: travel
+      POSTGRES_PASSWORD: travel
+      POSTGRES_DB: travel_crumbs
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    name: travel-crumbs-pgdata
