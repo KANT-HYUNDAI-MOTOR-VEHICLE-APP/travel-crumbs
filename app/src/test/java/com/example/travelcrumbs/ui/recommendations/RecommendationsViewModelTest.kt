@@ -90,7 +90,7 @@ class RecommendationsViewModelTest {
         runCurrent()
 
         assertEquals(
-            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 0, "평창군" to 0, null to 6),
+            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 1, "평창군" to 1, null to 8),
             state.sigunguCards.map { it.sigunguNm to it.tripCnt },
         )
     }
@@ -129,6 +129,29 @@ class RecommendationsViewModelTest {
         vm.selectCompanion(CompanionType.SOLO)
         runCurrent()
         assertTrue(state.rankedTrips.isEmpty())
+    }
+
+    @Test
+    fun `R7 강원 전체 — 부모님 · 반려동물 칩이면 그 동행자 로드맵만 별점순`() = runTest(dispatcher) {
+        start()
+        vm.selectSido("강원")
+        runCurrent()
+        vm.selectRegion(null)
+        runCurrent()
+
+        vm.selectCompanion(CompanionType.PARENT)
+        runCurrent()
+        assertEquals(CompanionType.PARENT, state.companion)
+        assertEquals(listOf("대관령 바람 쐬기", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(CompanionType.PET)
+        runCurrent()
+        assertEquals(CompanionType.PET, state.companion)
+        assertEquals(listOf("춘천 호수 한 바퀴"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(null)
+        runCurrent()
+        assertEquals(8, state.rankedTrips.size)
     }
 
     @Test
