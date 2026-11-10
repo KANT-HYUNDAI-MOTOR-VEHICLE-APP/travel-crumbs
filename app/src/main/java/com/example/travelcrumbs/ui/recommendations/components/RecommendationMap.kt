@@ -55,7 +55,6 @@ import com.example.travelcrumbs.ui.recommendations.map.MapAccess
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
-import kotlin.math.cos
 import com.example.travelcrumbs.ui.theme.Dimens
 import dagger.hilt.android.EntryPointAccessors
 import org.maplibre.android.MapLibre
@@ -171,9 +170,8 @@ fun RecommendationMap(
                 val domestic = here?.takeIf { ready.countryBounds.contains(it) }
                 ownLocation = domestic
                 if (domestic != null && !latestUi.firstFitDone) {
-                    val delta = AppConfig.RECO_MAP_FIRST_FIT_RADIUS_KM / 111.195
-                    val longitude = delta / cos(Math.toRadians(domestic.lat))
-                    map?.moveCamera(CameraUpdateFactory.newLatLngBounds(MapBounds(domestic.lng - longitude, domestic.lat - delta, domestic.lng + longitude, domestic.lat + delta).toLatLngBounds(), fitPaddingPx(mapView)))
+                    val bounds = RecommendationMapRules.fitBounds(domestic, AppConfig.RECO_MAP_FIRST_FIT_RADIUS_KM)
+                    map?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.toLatLngBounds(), fitPaddingPx(mapView)))
                     latestCallbacks.onFirstFitDone()
                 }
                 latestCallbacks.onLocation(true, true, when { here == null -> LocationResultKind.FAILED; domestic == null -> LocationResultKind.ABROAD; else -> LocationResultKind.DOMESTIC })

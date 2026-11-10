@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.domain
 
+import com.example.travelcrumbs.domain.model.MapCoord
 import com.example.travelcrumbs.domain.model.RecommendedPlace
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.Region
@@ -93,5 +94,25 @@ class RecommendationMapRulesTest {
     fun `M35 후보 장소는 리뷰 많은 순 · 같으면 장소 번호 순`() {
         val ranked = RecommendationMapRules.rankPlaceNos(listOf(3L, 1L, 2L), mapOf(1L to 5, 2L to 9, 3L to 5))
         assertEquals(listOf(2L, 1L, 3L), ranked)
+    }
+
+    @Test
+    fun `M03 반경 10km 범위 — 위도 폭은 반경 · 경도 폭은 위도만큼 넓힘`() {
+        val center = MapCoord(lng = 128.59, lat = 38.2)
+        val bounds = RecommendationMapRules.fitBounds(center, radiusKm = 10.0)
+
+        val latDelta = 10.0 / AppConfig.KM_PER_DEGREE_LAT
+        assertEquals(center.lat - latDelta, bounds.south, 1e-9)
+        assertEquals(center.lat + latDelta, bounds.north, 1e-9)
+        // 북위 38.2도에서 경도 1도는 위도 1도보다 짧음 → 경도 폭이 더 넓음
+        val lngDelta = (bounds.east - bounds.west) / 2
+        assertEquals(latDelta / kotlin.math.cos(Math.toRadians(38.2)), lngDelta, 1e-9)
+        assertTrue(lngDelta > latDelta)
+        assertTrue(bounds.contains(center))
+
+        // 적도에서는 같음 · 반경 경계(10km 북쪽 점)는 범위 끝
+        val equator = RecommendationMapRules.fitBounds(MapCoord(lng = 0.0, lat = 0.0), radiusKm = 10.0)
+        assertEquals(equator.north - 0.0, (equator.east - equator.west) / 2, 1e-9)
+        assertTrue(bounds.contains(MapCoord(lng = center.lng, lat = center.lat + latDelta)))
     }
 }

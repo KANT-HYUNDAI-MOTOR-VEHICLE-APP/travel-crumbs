@@ -51,4 +51,14 @@ class KoreaMapRepositoryTest {
         assertNotNull(asset)
         assertEquals("asset://maps/korea_style.json", asset!!.styleUri)
     }
+
+    @Test
+    fun `지도 파일 이름 한 곳 — gradle 받기 작업 · 저장소 경로 · 스타일 소스 주소가 같은 파일`() {
+        val gradle = File("build.gradle.kts").readText()
+        val fileName = Regex("""val koreaMapFileName = "([^"]+)"""").find(gradle)!!.groupValues[1]
+        assertEquals("maps/$fileName", KOREA_MAP_TILES_FILE)
+
+        val style = File("src/main/assets/maps/korea_style.json").readText()
+        assertTrue(style.contains("\"pmtiles://asset://$KOREA_MAP_TILES_FILE\""))
+    }
 }

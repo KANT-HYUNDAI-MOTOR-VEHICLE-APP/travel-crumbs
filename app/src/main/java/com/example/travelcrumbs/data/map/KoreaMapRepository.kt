@@ -42,7 +42,7 @@ class AssetKoreaMapRepository internal constructor(
         if (loaded) return@withLock cached
         withContext(Dispatchers.IO) {
             runCatching {
-                check(exists(TILES_FILE)) { "지도 파일 비어 있음" }
+                check(exists(KOREA_MAP_TILES_FILE)) { "지도 파일 비어 있음" }
                 readText(STYLE_FILE)
                 parseKoreaMapBounds(readText(BOUNDS_FILE), STYLE_URI)
             }.onFailure { Log.w(TAG, "지도 자산을 읽지 못함: ${it.javaClass.simpleName}") }
@@ -55,12 +55,17 @@ class AssetKoreaMapRepository internal constructor(
 
     private companion object {
         const val TAG = "KoreaMapRepository"
-        const val TILES_FILE = "maps/korea-z12.pmtiles"
         const val STYLE_FILE = "maps/korea_style.json"
         const val BOUNDS_FILE = "maps/korea_bounds.json"
         const val STYLE_URI = "asset://$STYLE_FILE"
     }
 }
+
+/**
+ * 앱 assets 안 지도 파일 경로 — 파일 이름은 app/build.gradle.kts 의 koreaMapFileName(받기 작업의 원본)과 같아야 하고
+ * maps/korea_style.json 의 소스 주소(pmtiles://asset://…)도 이 경로를 가리켜야 함(KoreaMapRepositoryTest 가 셋을 대조).
+ */
+internal const val KOREA_MAP_TILES_FILE = "maps/korea-z12.pmtiles"
 
 @Serializable
 private data class KoreaBoundsJson(

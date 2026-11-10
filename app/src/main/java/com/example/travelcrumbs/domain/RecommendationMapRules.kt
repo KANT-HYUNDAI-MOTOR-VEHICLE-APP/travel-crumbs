@@ -1,11 +1,13 @@
 package com.example.travelcrumbs.domain
 
+import com.example.travelcrumbs.domain.model.MapBounds
 import com.example.travelcrumbs.domain.model.MapCoord
 import com.example.travelcrumbs.domain.model.MapMarker
 import com.example.travelcrumbs.domain.model.MapPinResult
 import com.example.travelcrumbs.domain.model.MapPlace
 import com.example.travelcrumbs.domain.model.RecommendedTrip
 import com.example.travelcrumbs.domain.model.ScreenPlace
+import kotlin.math.cos
 
 /** 추천 지도(#59)의 순수 계산 — 핀 원본 · 리뷰 수 순위(N12) · 로드맵 후보 순서 · 화면 묶음(N6) · 50개 한도. */
 object RecommendationMapRules {
@@ -35,6 +37,21 @@ object RecommendationMapRules {
     fun roadmapsOfPlace(trips: List<RecommendedTrip>, placeNo: Long): List<RecommendedTrip> =
         trips.filter { trip -> trip.places.any { it.placeNo == placeNo } }
             .sortedWith(compareByDescending<RecommendedTrip> { it.ratingCnt }.thenBy { it.tripNo })
+
+    /**
+     * 가운데 [center] 에서 반경 [radiusKm] 가 다 들어오는 지도 범위(N3 첫 맞춤 10km) — 경도 폭은 위도에 따라 넓힘(cos 보정).
+     * 지도 그리는 쪽만 씀(좌표 · 범위는 ViewModel 상태로 가지 않음).
+     */
+    fun fitBounds(center: MapCoord, radiusKm: Double): MapBounds {
+        val latDelta = radiusKm / AppConfig.KM_PER_DEGREE_LAT
+        val lngDelta = latDelta / cos(Math.toRadians(center.lat))
+        return MapBounds(
+            west = center.lng - lngDelta,
+            south = center.lat - latDelta,
+            east = center.lng + lngDelta,
+            north = center.lat + latDelta,
+        )
+    }
 
     /** 장소 번호를 리뷰 많은 순 · 같으면 장소 번호 순으로(묶음 후보 목록 · M35). */
     fun rankPlaceNos(placeNos: Collection<Long>, reviewCnts: Map<Long, Int>): List<Long> =

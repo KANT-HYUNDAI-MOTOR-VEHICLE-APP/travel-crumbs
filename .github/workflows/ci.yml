@@ -63,10 +63,12 @@ jobs:
           path: ~/.gradle/caches/travel-crumbs-map
           key: korea-map-${{ hashFiles('app/build.gradle.kts') }}
           restore-keys: korea-map-
-      - run: ./gradlew lint testDebugUnitTest assembleRelease
+      # 지도 받기만 토큰과 함께 앞 단계로(private 저장소 릴리스 자산 · contents: read · 값은 로그에 안 찍힘)
+      - run: ./gradlew :app:prepareKoreaMapAsset
         env:
-          # private 저장소 릴리스 자산을 API 로 받음(contents: read) — 값은 로그에 안 찍힘
           GH_TOKEN: ${{ github.token }}
+      # 본 단계엔 토큰 없음 — 지도는 위에서 채운 캐시(해시 확인)만 씀
+      - run: ./gradlew lint testDebugUnitTest assembleRelease
       # 서명 없는 release APK — 제출용 서명은 사람이 따로
       - uses: actions/upload-artifact@v4
         with:

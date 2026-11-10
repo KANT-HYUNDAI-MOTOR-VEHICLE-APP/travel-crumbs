@@ -28,6 +28,8 @@ from pathlib import Path
 GO_PMTILES_VERSION = "1.31.2"
 PROTOMAPS_BUILD = "20261109"
 SOURCE_URL = f"https://build.protomaps.com/{PROTOMAPS_BUILD}.pmtiles"
+# 확대 단계 · 출력 파일 이름(--out)은 app/build.gradle.kts 의 koreaMapFileName(korea-z12.pmtiles) · 릴리스 태그와 맞춰야 함.
+# 바꾸면 새 파일을 새 릴리스 태그로 올리고 gradle 의 태그 · 파일 이름 · SHA-256 을 함께 고침(원본은 gradle).
 MAX_ZOOM = 12
 
 # (경도, 위도) — 바깥 고리 하나씩. 본토는 휴전선 바로 북쪽 · 쓰시마 서쪽 바다로 그음.

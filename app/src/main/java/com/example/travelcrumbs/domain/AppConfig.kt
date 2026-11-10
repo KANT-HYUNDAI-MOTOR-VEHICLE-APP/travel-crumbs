@@ -102,6 +102,9 @@ object AppConfig {
     /** 추천 지도(#59) 첫 맞춤 반경(킬로미터 · N3) — 내 위치 중심 이 반경이 화면에 다 들어오게. 위치 사용(#55 문구 반영 뒤) 때 씀. */
     const val RECO_MAP_FIRST_FIT_RADIUS_KM: Double = 10.0
 
+    /** 위도 1도의 거리(킬로미터 · 지구 평균 반지름 6371.0 km 기준) — 반경 → 지도 범위 계산. */
+    const val KM_PER_DEGREE_LAT: Double = 111.195
+
     /** 추천 지도 위치 조회 시간 제한(밀리초) — 넘으면 「위치 없음」. 위치 사용(#55 문구 반영 뒤) 때 씀. */
     const val RECO_MAP_LOCATION_TIMEOUT_MILLIS: Long = 10_000L
 

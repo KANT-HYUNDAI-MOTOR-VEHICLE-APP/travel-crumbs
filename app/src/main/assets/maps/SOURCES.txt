@@ -58,13 +58,11 @@ The app shows "(c) OpenStreetMap contributors" on the map at all times.
 Low-zoom layers also contain Natural Earth data (public domain,
 https://www.naturalearthdata.com).
 
-The distributed database is the file korea-z12.pmtiles (PMTiles v3, Mapbox
-Vector Tiles, Protomaps basemap v4 layer schema). It is not stored in git; it
-is published as a GitHub release asset and fetched and SHA-256 checked at
-build time:
-- release tag   map-kr-z12-20261109
-- file          korea-z12.pmtiles, 68,978,093 bytes
-- sha256        4bc9db5875f8d070fae9bf31e273ff4042fbe43243ecd4a23c426b6738c050f0
+The distributed database is the PMTiles file in assets/maps/ (PMTiles v3,
+Mapbox Vector Tiles, Protomaps basemap v4 layer schema). It is not stored in
+git; it is published as a GitHub release asset and fetched and SHA-256 checked
+at build time. The release tag, file name and SHA-256 are kept in one place:
+app/build.gradle.kts (koreaMapReleaseTag, koreaMapFileName, koreaMapSha256).
 
 How it was made (script: tools/map/build_korea_pmtiles.py):
 - source: Protomaps basemap daily build 20261109
