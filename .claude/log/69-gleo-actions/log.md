@@ -45,3 +45,8 @@
 ## 2 DB 참고를 표준정의서 v0.4 기준으로 — 2026-11-11 · errorn
 - 사람 질문(표준을 따랐나)으로 대조: 이전 DB 절은 develop Room 구현을 옮긴 것이라 표준과 5곳 다름 — S1 trip_place_dtl.place_ord(D09 위반) · S2 addr(표준 밖) · S3 trip_status_hist 미기록(R12 · D27) · S4 추천 시드 모델 ≠ route_reco_dtl · S5 req_uuid · req_hash 정의서 미반영
 - 문서 · PDF 5절을 표준 기준으로 다시 쓰고 차이를 5.1 에 분리. Gleo 는 저장소 인터페이스만 불러 S1 ~ S3 · S5 는 저장소만 고치면 됨 · S4 만 지역 맞추기 입력 결정 필요
+
+## 2 다른 브랜치 대조 · DB 참고 보완 — 2026-11-11 · errorn
+- 원격 46 브랜치 · 이력 조사: route_reco_dtl · route_reco_place_dtl 구현 없음 · trip_status_hist 는 서버에만 · 지역 계산은 develop RoadmapRules.regionOfTrip 재사용 가능(S4 권장안)
+- 표준 문서 두 벌 발견: docs/data/standard.md v0.35(앱 · 센서) ↔ 루트 데이터표준정의서_v0.4.md(서버) — place_ord 차이(S1). 데이터 담당 정리 요청 초안 `_workspace/gleo-actions/msg-data-owner.md`
+- navi-autorecord/main(#66)과 4파일 충돌(TripPlaceRecorder 등) — 머지 순서 조율 필요

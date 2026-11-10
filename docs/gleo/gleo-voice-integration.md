@@ -70,15 +70,30 @@ Gleo 기능은 **새 테이블 · 칸을 만들지 않고** 화면 버튼과 같
 | 오늘 기록 | 읽기 `trip_place_dtl.recorded_at`(기기 시간대 자정 이후) · `trip_mst.trip_status_cd` · `place_cnt` |
 | 경로 추천 | 읽기 `route_reco_dtl`(추천유형코드 · 유사도 · 여행개수 · 소요시간) · `route_reco_place_dtl`(장소순서) — 4절 참고 |
 
-### 5.1 표준과 다른 지금 구현(DB 구축 때 맞출 것)
+### 5.1 먼저 정할 것 — 표준 문서가 두 벌
+
+| 파일 | 판 | 비고 |
+|---|---|---|
+| `docs/data/standard.md` | v0.35(11-06) | 하네스 규칙(ADR 0016)상 「항상 최신판」 자리 · 센서가 읽음 · **develop 앱(Room)이 따름** |
+| 루트 `데이터표준정의서_v0.4.md` | v0.4(11-08) | 더 최신 · data-crud 병합 때 들어옴 · **서버가 따름** · `standard.md` 로 아직 안 옮겨짐 |
+
+→ DB 구축 전에 v0.4 를 `docs/data/standard.md` 로 옮겨 기준을 하나로(지난 판은 `docs/data/archive/`). 아래 S1 은 이 정리에 따라 달라짐.
+
+### 5.2 표준(v0.4)과 다른 지금 구현
 
 | # | 지금(develop 앱 Room · 시드) | 표준 v0.4 | Gleo 쪽 영향 |
 |---|---|---|---|
-| S1 | `trip_place_dtl.place_ord`(마지막+1) | D09 — trip_place_dtl 에 place_ord 없음 · 순서는 `recorded_at` | 없음 — Gleo 는 순서를 쓰지 않음 |
-| S2 | `trip_place_dtl.addr`(내비 주소) | 표준 용어에 `addr` 없음 | 없음 — Gleo 는 주소를 읽거나 말하지 않음 |
-| S3 | 멈춤 · 재개 때 `trip_status_hist` 행을 남기지 않음 | R12 · D27 — 상태가 바뀔 때마다 1행 | Gleo 멈춤 · 재개도 같은 저장소를 쓰므로 **저장소를 고치면 Gleo 도 자동으로 따라감** |
-| S4 | 추천 = 시연 시드(지역 「경북 · 경주시」 · 별점 평균 · 참여 수) | `route_reco_dtl` · `route_reco_place_dtl` · 지역 · 별점 칸 없음 | **있음** — Gleo 지역 맞추기(「경주」 → 경주시)가 시드의 시도 짧은 이름 · 시군구 정식 이름에 기댐. 표준 추천 DB 로 바꿀 때 지역을 어디서 읽을지(장소 `place_mst` 주소 · 행정구역 등) 정해야 함 |
-| S5 | 서버 `trip_place_dtl.req_uuid` · `req_hash` | 결정 로그 「확정」 · 정의서 v0.4 본문 미반영(다음 버전) | 없음 — 지금 앱은 기기 안 저장이라 안 씀 |
+| S1 | `trip_place_dtl.place_ord`(마지막+1) | D09 — trip_place_dtl 에 place_ord 없음 · 순서는 `recorded_at`(v0.35 에는 있음) | 없음 — Gleo 는 순서를 쓰지 않음 |
+| S2 | `trip_place_dtl.addr`(내비 주소) | 표준 용어에 `addr` 없음 | 없음 — Gleo 는 주소를 직접 쓰지 않음(S4 지역 계산에는 쓰임) |
+| S3 | 멈춤 · 재개 때 `trip_status_hist` 행을 남기지 않음(서버에만 테이블 있음) | R12 · D27 — 상태가 바뀔 때마다 1행 | 저장소를 고치면 Gleo 도 자동으로 따라감 |
+| S4 | 추천 = 시연 시드(지역 「경북 · 경주시」 · 별점 평균 · 참여 수) | `route_reco_dtl` · `route_reco_place_dtl`(어느 브랜치에도 구현 없음) · 지역 · 별점 칸 없음 | **있음** — 지역 맞추기가 시드 이름 꼴에 기댐. **권장: 지역은 develop 의 `RoadmapRules.regionOfTrip`(장소 주소 → 시도 짧은 이름 · 시군구)으로 계산** — 공개 여행을 추천에 올릴 때 이미 쓰는 함수라 Gleo 지역 맞추기와 이름 꼴이 같음 |
+| S5 | 서버 `trip_place_dtl.req_uuid` · `req_hash` | 결정 로그 「확정」 · 정의서 v0.4 본문 미반영(다음 판) | 없음 — 지금 앱은 기기 안 저장이라 안 씀 |
 
-- Gleo 코드는 저장소 인터페이스(`TripRepository.addPlace` · `RecordingRepository.togglePause` · `RecommendationRepository`)만 부름 → **S1 ~ S3 · S5 는 저장소 구현만 표준대로 바꾸면 Gleo 수정 없음.** S4 만 지역 맞추기 입력을 새 추천 DB 에 맞춰야 함.
+- Gleo 코드는 저장소 인터페이스(`TripRepository.addPlace` · `RecordingRepository.togglePause` · `RecommendationRepository`)만 부름 → **S1 ~ S3 · S5 는 저장소 구현만 표준대로 바꾸면 Gleo 수정 없음.** S4 는 새 추천 저장소가 지역을 `regionOfTrip` 꼴로 주면 Gleo 수정 없음.
 - 좌표는 콜백 · 로그에 넣지 않음.
+
+### 5.3 다른 브랜치와 겹치는 곳
+
+| 브랜치 | 무엇 | 겹침 | 할 일 |
+|---|---|---|---|
+| `navi-autorecord/main`(#66 · 아직 develop 전) | 내비 목적지 자동 기록 — 수동 기록 직전에 자동 기록 대기분을 정리 | `TripPlaceRecorder` · `DrivingViewModel` · 시험 2 — 4파일 충돌 | Gleo 기록도 자동 기록 정리를 거치는 게 맞음 · 나중에 들어가는 쪽이 합침 · 순서 조율 |
