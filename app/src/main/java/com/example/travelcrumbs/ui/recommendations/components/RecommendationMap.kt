@@ -65,6 +65,7 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.Style
 
 /** 지도 부품이 화면(ViewModel)으로 올리는 것 — 장소 번호 · 개수 · 결과 종류만(좌표 없음 · 스펙 3-1). */
@@ -160,6 +161,7 @@ fun RecommendationMap(
                 ownLocation = null
                 ownPoint = null
                 latestCallbacks.onLocation(access.consent, false, LocationResultKind.NONE)
+                if (access.loaded && !access.consent && cameraSettled) latestCallbacks.onFirstFitDone()
                 return@repeatOnLifecycle
             }
             try {
@@ -253,7 +255,7 @@ fun RecommendationMap(
                 holder.markFocusApplied(latestUi.focusSeq)
             }
             cameraSettled = true
-            if (!access.consent || saved != null) latestCallbacks.onFirstFitDone()
+            if ((access.loaded && !access.consent) || saved != null) latestCallbacks.onFirstFitDone()
             recompute(report = true)
         }
     }
@@ -347,7 +349,8 @@ private fun createMapView(context: Context): MapView? = runCatching {
     MapLibre.getInstance(context)
     // 지도는 앱 자산만 — 렌더러가 네트워크를 쓰지 않게 끔(M31)
     MapLibre.setConnected(false)
-    MapView(context).also { it.onCreate(null) }
+    // Compose AndroidView 안에서 별도 SurfaceView의 Z-order가 창을 덮지 않게 TextureView로 합성.
+    MapView(context, MapLibreMapOptions.createFromAttributes(context).textureMode(true)).also { it.onCreate(null) }
 }.getOrNull()
 
 private fun fitPaddingPx(view: View): Int =

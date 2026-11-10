@@ -20,6 +20,18 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecommendationMapRuntimeTest {
     @Test
+    fun `M03 동의 흐름이 아직 준비 안 된 초기값과 동의 없음 구분`() = runTest {
+        assertFalse(MapAccess().loaded)
+        val users = FakeCurrentUserRepository()
+        users.recordConsent(ConsentType.LOCATION_RECO, true)
+        val runtime = RecommendationMapRuntime(users, FakeDrivingSignalRepository(DrivingState.PARKED), FakeNaviRepository(), FakeTripRepository())
+        val resolved = runtime.access.first()
+        assertTrue(resolved.loaded)
+        assertTrue(resolved.consent)
+        assertTrue(resolved.parked)
+    }
+
+    @Test
     fun `M02 M23 M24 M39 동의 정차 둘 다 필요 · 철회 즉시 불허`() = runTest {
         val users = FakeCurrentUserRepository()
         val driving = FakeDrivingSignalRepository(DrivingState.PARKED)

@@ -22,7 +22,7 @@ class RecommendationMapRuntime @Inject constructor(
     trips: TripRepository,
 ) {
     val access = combine(users.consents, driving.drivingState) { consents, state ->
-        MapAccess(consents[ConsentType.LOCATION_RECO]?.agreed == true, state == DrivingState.PARKED)
+        MapAccess(consents[ConsentType.LOCATION_RECO]?.agreed == true, state == DrivingState.PARKED, loaded = true)
     }.distinctUntilChanged()
 
     val publicChanges = trips.trips.map { Unit }
@@ -33,4 +33,4 @@ class RecommendationMapRuntime @Inject constructor(
     }
 }
 
-data class MapAccess(val consent: Boolean = false, val parked: Boolean = false)
+data class MapAccess(val consent: Boolean = false, val parked: Boolean = false, val loaded: Boolean = false)
