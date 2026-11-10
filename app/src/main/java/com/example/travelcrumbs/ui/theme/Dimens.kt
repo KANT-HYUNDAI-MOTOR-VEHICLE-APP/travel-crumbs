@@ -33,6 +33,9 @@ object Dimens {
     val RoadmapWideMinWidth = 1000.dp
     val RoadmapSketchHeight = 320.dp
 
+    /** 주요 버튼 높이(디자인 시스템 7절 「주요 버튼 높이 72 이상」 · 주요 터치 영역 72) — 홈 근처 로드맵 동의 카드 버튼(#55 · PR #64 리뷰). */
+    val PrimaryButtonHeight = 72.dp
+
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 

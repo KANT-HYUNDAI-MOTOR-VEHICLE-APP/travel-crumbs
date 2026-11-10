@@ -37,11 +37,11 @@ import com.example.travelcrumbs.ui.home.NearbyRoadmapCardItem
 import com.example.travelcrumbs.ui.home.NearbyRoadmapsSection
 import com.example.travelcrumbs.domain.model.NearbySectionState
 import com.example.travelcrumbs.ui.components.AppCard
+import com.example.travelcrumbs.ui.components.DemoDataLine
 import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.RoadmapMap
+import com.example.travelcrumbs.ui.components.RouteSketch
 import com.example.travelcrumbs.ui.components.SecondaryButton
-import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
-import com.example.travelcrumbs.ui.recommendations.components.RoadmapMap
-import com.example.travelcrumbs.ui.recommendations.components.RouteSketch
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
@@ -133,10 +133,10 @@ private fun NearbyConsentCard(onAgree: () -> Unit, onDecline: () -> Unit, modifi
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-            PrimaryButton(onClick = onAgree, modifier = Modifier.heightIn(min = Dimens.ChipHeight)) {
+            PrimaryButton(onClick = onAgree, modifier = Modifier.heightIn(min = Dimens.PrimaryButtonHeight)) {
                 Text(text = stringResource(R.string.nearby_consent_agree), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
-            SecondaryButton(onClick = onDecline, modifier = Modifier.heightIn(min = Dimens.ChipHeight)) {
+            SecondaryButton(onClick = onDecline, modifier = Modifier.heightIn(min = Dimens.PrimaryButtonHeight)) {
                 Text(text = stringResource(R.string.nearby_consent_decline), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
         }
@@ -217,7 +217,7 @@ private fun NearbyRoadmapCard(card: NearbyRoadmapCardItem, onClick: () -> Unit) 
                 .fillMaxWidth()
             // B-04 와 같은 규칙 — 앱에 묶은 도로 지도가 장소 전부를 덮으면 도로 지도 · 아니면 경로 그림(점선)
             val routeMap = card.routeMap
-            if (routeMap != null) RoadmapMap(map = routeMap, modifier = previewModifier) else RouteSketch(points = card.sketch, modifier = previewModifier)
+            if (routeMap != null) RoadmapMap(map = routeMap, modifier = previewModifier, showSampleNote = false) else RouteSketch(points = card.sketch, modifier = previewModifier)
             // 순위는 이름 줄 맨 앞(B-02 순위 숫자 꼴) — 아래 두 줄은 카드 폭 전체를 써 거리가 잘리지 않게
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),

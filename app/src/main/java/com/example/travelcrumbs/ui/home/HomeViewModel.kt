@@ -32,6 +32,8 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.ui.rating.RatingPopupHolder
 import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
+import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
+import com.example.travelcrumbs.ui.components.RatingDialogItem
 import com.example.travelcrumbs.ui.components.UiMessage
 import com.example.travelcrumbs.ui.components.toSummary
 import com.example.travelcrumbs.domain.model.TripStatus
@@ -195,7 +197,8 @@ class HomeViewModel @Inject constructor(
         navi = naviRepository,
         users = userRepository,
         offlineMap = offlineMap,
-        publicTripChanges = tripRepository.trips,
+        timeSource = timeSource,
+        publicTripChanges = tripRepository.trips.map { },
         eligible = combine(
             drivingSignalRepository.drivingState,
             recordingRepository.tripInProgress,
@@ -212,9 +215,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private data class Extras(
-        val prompt: com.example.travelcrumbs.ui.components.RatingDialogItem?,
+        val prompt: RatingDialogItem?,
         val v6: V6Part,
-        val sheet: com.example.travelcrumbs.ui.components.PlaceTagSheetItem?,
+        val sheet: PlaceTagSheetItem?,
         val nearby: NearbyRoadmapsSection,
     )
 
@@ -251,8 +254,8 @@ class HomeViewModel @Inject constructor(
             dummyRoute = part.dummyRoute.takeIf { parked },
             dummyRouteAvailable = demoFeatures.dummyRoute,
             ratingPrompt = prompt,
-            // 주행 · 모름 · 진행 중 여행이면 도우미 상태와 무관하게 자격 없음(2-7 · 화면이 안 그려짐)
-            nearby = if (parked && !progress.status.inProgress) nearbySection else NearbyRoadmapsSection(),
+            // 자격(정차 · 진행 중 여행 없음 · 다른 화면 없음) 판정은 도우미의 eligible 한 곳 — 여기서는 그 결과를 그대로
+            nearby = nearbySection,
         )
     }.stateIn(
         scope = viewModelScope,

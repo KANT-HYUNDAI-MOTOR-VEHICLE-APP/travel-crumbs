@@ -17,9 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.components.BackButton
+import com.example.travelcrumbs.ui.components.DemoDataLine
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.RatingDialog
-import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationPageContent

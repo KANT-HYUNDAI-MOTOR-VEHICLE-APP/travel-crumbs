@@ -10,6 +10,7 @@ import com.example.travelcrumbs.domain.NearbyRoadmapRules
 import com.example.travelcrumbs.domain.RankedRoadmap
 import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RoadmapMapRules
+import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.NearbyConsent
 import com.example.travelcrumbs.domain.model.NearbyLookupResult
@@ -40,7 +41,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * [NearbyRoadmapRules.sectionState](판정 순서) · 전이 번호는 스펙 3-2 의 T1 ~ T20.
  *
  * 위치는 기존 내비 현재 위치 조회([NaviRepository.currentLocation]) 1회 · 동의함(Y)일 때만 · 결과 좌표는 로드맵별 거리(미터)로
- * 바꾼 즉시 버림 — 이 도우미 · 화면 상태 · 저장 · 로그 어디에도 내 좌표 · 주소가 남지 않음(3-5). 화면이 안 보이면 구독 · 조회 없음.
+ * 바꾼 즉시 버림 — 이 도우미 · 화면 상태 · 저장 · 로그 어디에도 내 좌표 · 주소가 남지 않음(3-5). 화면이 안 보이면 조회 없음(동의만 구독).
+ * 재진입 조회는 마지막 성공 뒤 [AppConfig.NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS] 이 지나야(N7) · 동의 · 묶음 변화 · 내비 재연결은 바로.
+ * 「정차 · 진행 중 여행 없음 · 다른 화면이 기록 칸을 차지하지 않음」 판정의 단일 원천은 [eligible] — 화면 상태는 이 도우미의 [section] 을 그대로 씀.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NearbyRoadmapsHolder(
@@ -50,8 +53,9 @@ class NearbyRoadmapsHolder(
     private val navi: NaviRepository,
     private val users: CurrentUserRepository,
     offlineMap: OfflineMapRepository,
+    private val timeSource: TimeSource,
     eligible: Flow<Boolean>,
-    publicTripChanges: Flow<Any?>,
+    publicTripChanges: Flow<Unit>,
 ) {
     /** 원천 ① ② ③ 의 지금 값 — 동의를 아직 못 읽었으면 [consent] null(자격 없음처럼 그림 · 동의 카드가 깜박이지 않게). */
     private data class Inputs(val eligible: Boolean, val consent: NearbyConsent?, val ready: Boolean)
@@ -65,6 +69,9 @@ class NearbyRoadmapsHolder(
     private var result: NearbyLookupResult? = null
     private val core = MutableStateFlow(Core(inputs, result))
     private var lookup: Job? = null
+
+    /** 마지막으로 위치를 얻은 시각 — 재진입(T4 · T5)은 이 뒤 [AppConfig.NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS] 안이면 조회를 생략. */
+    private var lastLocatedAt: Long? = null
     private val routeMapCache = mutableMapOf<Long, CachedRouteMap>()
 
     /** 지금 그릴 구역 — 논리 상태 + 카드(근처 있음 · 전국 대체만). 별점이 바뀌면 마지막 거리로 다시 정렬(T16 · 조회 0). */
@@ -90,20 +97,15 @@ class NearbyRoadmapsHolder(
 
     init {
         scope.launch { mapPack.value = offlineMap.mapPack() }
-        // ① ② ③ — 화면이 보일 때만 구독(안 보이면 자격 없음 · 기록 경과 시계 등도 붙잡지 않음 · H27)
+        // ① ③ 은 화면이 보일 때만 구독(안 보이면 자격 없음 · 기록 상태 등도 붙잡지 않음 · H27) ·
+        // ② 동의는 늘 구독 — 홈이 가려진 채 설정에서 철회해도 메모리의 거리를 바로 지움(3-5 · T9)
         scope.launch {
-            screenShown
-                .flatMapLatest { shown ->
-                    if (!shown) {
-                        flowOf(Inputs(eligible = false, consent = null, ready = false))
-                    } else {
-                        combine(
-                            eligible.distinctUntilChanged(),
-                            users.consents.map { NearbyConsent.of(it[ConsentType.LOCATION_RECO]?.agreed) },
-                            navi.ready,
-                        ) { ok, consent, ready -> Inputs(ok, consent, ready) }
-                    }
-                }
+            combine(
+                screenShown.flatMapLatest { shown ->
+                    if (!shown) flowOf(false to false) else combine(eligible.distinctUntilChanged(), navi.ready, ::Pair)
+                },
+                users.consents.map { NearbyConsent.of(it[ConsentType.LOCATION_RECO]?.agreed) }.distinctUntilChanged(),
+            ) { (ok, ready), consent -> Inputs(ok, consent, ready) }
                 .collect(::onInputs)
         }
         // ⑤ 공개 로드맵 묶음 — 화면이 보일 때만
@@ -139,17 +141,22 @@ class NearbyRoadmapsHolder(
         inputs = next
         val wasActive = prev.eligible && prev.consent == NearbyConsent.AGREED
         when {
-            // T1 — 진행 중 조회 취소 · 늦은 결과 버림 · 마지막 결과는 메모리에 둠
-            !next.eligible || next.consent == null -> cancelLookup()
-            // T2 · T3 · T7 · T9 — 동의가 없거나 철회됨: 조회 0 · 철회면 마지막 거리도 지움
-            next.consent != NearbyConsent.AGREED -> {
+            // T2 · T3 · T7 · T9 — 동의가 없거나 철회됨(화면이 가려져 있어도): 조회 0 · 마지막 거리도 지움
+            next.consent != null && next.consent != NearbyConsent.AGREED -> {
                 cancelLookup()
                 result = null
+                lastLocatedAt = null
             }
-            // T4 · T5 · T6 · T8 — 새로 조회할 수 있게 됨: 보이던 카드(근처 있음 · 전국 대체)면 그대로 두고 새로 고침
-            !wasActive -> {
-                if (!showedCards()) result = null
-                startLookup()
+            // T1 — 진행 중 조회 취소 · 늦은 결과 버림 · 마지막 결과는 메모리에 둠
+            !next.eligible || next.consent == null -> cancelLookup()
+            // T4 · T5 — 재진입: 마지막 성공 뒤 최소 간격 안이면 그대로(조회 0) · 아니면 보이던 카드는 두고 새로 고침
+            // T6 · T8 — 동의가 새로 생김: 결과가 이미 비어 있어 간격과 무관하게 바로 조회
+            !wasActive -> when {
+                result is NearbyLookupResult.Located && recentlyLocated() -> Unit
+                else -> {
+                    if (!showedCards()) result = null
+                    startLookup()
+                }
             }
             // T14 — 위치 못 얻음에서 내비가 연결됨 · T15 그 밖의 연결 변화는 그대로
             result == NearbyLookupResult.Unavailable && next.ready && !prev.ready -> {
@@ -179,9 +186,17 @@ class NearbyRoadmapsHolder(
     private fun startLookup() {
         if (lookup?.isActive == true) return
         lookup = scope.launch {
-            result = locate()
+            val found = locate()
+            result = found
+            if (found is NearbyLookupResult.Located) lastLocatedAt = timeSource.nowMillis()
             publish()
         }
+    }
+
+    /** 마지막 위치 성공이 최소 간격 안인가(N7 · 재진입 조회 생략). */
+    private fun recentlyLocated(): Boolean {
+        val at = lastLocatedAt ?: return false
+        return timeSource.nowMillis() - at < AppConfig.NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS
     }
 
     private fun cancelLookup() {

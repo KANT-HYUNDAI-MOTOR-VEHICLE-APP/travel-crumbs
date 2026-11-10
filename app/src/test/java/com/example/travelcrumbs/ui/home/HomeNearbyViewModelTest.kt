@@ -335,12 +335,13 @@ class HomeNearbyViewModelTest {
     }
 
     @Test
-    fun `H25 T4 근처 있음 · 화면 다시 앞에 옴 — 카드 그대로 보인 채 조회 1회 · 위치 확인 중으로 안 돌아감`() = runTest(dispatcher) {
+    fun `H25 T4 근처 있음 · 5분 지나 화면 다시 앞에 옴 — 카드 그대로 보인 채 조회 1회 · 위치 확인 중으로 안 돌아감`() = runTest(dispatcher) {
         val env = Env()
         shown(env)
         val before = env.section.cards
         env.vm.onScreenPaused()
         runCurrent()
+        env.time.now += AppConfig.NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS
         env.navi.delayMs = 1_000
         env.vm.onScreenResumed()
         runCurrent()
@@ -350,6 +351,60 @@ class HomeNearbyViewModelTest {
         runCurrent()
         assertEquals(2, env.navi.calls)
         assertEquals(NearbySectionState.NEARBY, env.state)
+    }
+
+    @Test
+    fun `N7 재진입 최소 간격 — 마지막 성공 5분 안 재진입은 조회 0회(카드 그대로) · 5분 지나면 1회`() = runTest(dispatcher) {
+        val env = Env()
+        shown(env)
+        assertEquals(1, env.navi.calls)
+        env.time.now += AppConfig.NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS - 1
+        reshow(env)
+        assertEquals(1, env.navi.calls)
+        assertEquals(NearbySectionState.NEARBY, env.state)
+        assertEquals(listOf(101L, 102L, 103L), env.section.cards.map { it.tripNo })
+
+        env.time.now += 1
+        reshow(env)
+        assertEquals(2, env.navi.calls)
+        assertEquals(NearbySectionState.NEARBY, env.state)
+    }
+
+    @Test
+    fun `N7 동의 변화는 간격과 무관하게 바로 — 철회 뒤 다시 동의하면 5분 안이어도 위치 확인 중 · 조회 1회`() = runTest(dispatcher) {
+        val env = Env()
+        shown(env)
+        env.users.recordConsent(ConsentType.LOCATION_RECO, false)
+        runCurrent()
+        env.navi.delayMs = 500
+        env.users.recordConsent(ConsentType.LOCATION_RECO, true)
+        runCurrent()
+        assertEquals(NearbySectionState.LOCATING, env.state)
+        advanceTimeBy(501)
+        runCurrent()
+        assertEquals(2, env.navi.calls)
+        assertEquals(NearbySectionState.NEARBY, env.state)
+    }
+
+    @Test
+    fun `T9 홈이 가려진 채 철회 — 메모리 거리 바로 지움(다시 동의하고 홈이 보이면 카드가 아닌 위치 확인 중부터)`() = runTest(dispatcher) {
+        val env = Env()
+        shown(env)
+        assertEquals(NearbySectionState.NEARBY, env.state)
+        env.vm.onScreenPaused()
+        runCurrent()
+        env.users.recordConsent(ConsentType.LOCATION_RECO, false)
+        runCurrent()
+        env.users.recordConsent(ConsentType.LOCATION_RECO, true)
+        runCurrent()
+        env.navi.delayMs = 500
+        env.vm.onScreenResumed()
+        runCurrent()
+        assertEquals(NearbySectionState.LOCATING, env.state)
+        assertTrue(env.section.cards.isEmpty())
+        advanceTimeBy(501)
+        runCurrent()
+        assertEquals(2, env.navi.calls)
     }
 
     @Test
