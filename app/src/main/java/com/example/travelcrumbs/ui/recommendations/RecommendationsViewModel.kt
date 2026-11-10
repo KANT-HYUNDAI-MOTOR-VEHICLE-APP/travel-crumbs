@@ -187,9 +187,13 @@ class RecommendationsViewModel @Inject constructor(
 
     fun onMessageShown() = guidance.update { it.copy(message = null) }
 
-    /** B-04 「별점 주기」 · 「내 별점 ★n · 고치기」 → B-06 팝업(이미 준 별점이면 그 값으로 채움). 안내 기록이 없으면 아무 일 없음. */
+    /** B-04 별점 진입 — 안내 전에는 자격 안내 · 안내 후에는 B-06 팝업. */
     fun openRating() {
         val tripNo = selection.value.tripNo ?: return
+        if (uiState.value.detail?.canRate != true) {
+            guidance.update { it.copy(message = UiMessage.RATING_GUIDANCE_REQUIRED) }
+            return
+        }
         rating.open(tripNo)
     }
 

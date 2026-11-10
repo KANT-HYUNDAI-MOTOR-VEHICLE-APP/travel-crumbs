@@ -55,6 +55,7 @@ private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.GUIDANCE_REQUESTED -> R.string.guidance_requested
     UiMessage.GUIDANCE_FAILED -> R.string.guidance_failed
     UiMessage.RATING_SAVED -> R.string.rating_saved
+    UiMessage.RATING_GUIDANCE_REQUIRED -> R.string.rating_guidance_required
     UiMessage.PLACE_DRAFT_SAVED -> R.string.notice_place_draft_saved
     UiMessage.PLACE_SAVED -> R.string.notice_place_saved
     UiMessage.LOCATION_UNAVAILABLE -> R.string.notice_location_unavailable
