@@ -6,6 +6,9 @@ import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
+import com.example.travelcrumbs.ui.components.RatingDialogItem
+import com.example.travelcrumbs.ui.components.TripSummaryItem
 import com.example.travelcrumbs.ui.components.UiMessage
 
 /**
@@ -39,8 +42,31 @@ data class HomeUiState(
      * 좌표 · 현재 위치 칸 없음(navigation 3.1 · U53).
      */
     val dummyRoute: PlaceItem? = null,
+    /**
+     * 길안내 연결 화면(2.3)에 그릴 장소(id · 이름 · 주소) — null 이면 닫힘(홈 목록). 열림이면 홈 목록(맨 위 영역 · 두 구역 · debug 카드)을
+     * 그리지 않음. 좌표 · 현재 위치 칸 없음(navigation 3.1 · U53).
+     */
+    val guideScreen: PlaceItem? = null,
     /** 이 빌드에 「더미 경로」가 있나 — debug 만(U55). 버튼 표시는 아래 [dummyRouteVisible]. */
     val dummyRouteAvailable: Boolean = false,
+    /** 다녀온 로드맵 별점 자동 팝업(#41 B-06) — 없으면 null. */
+    val ratingPrompt: RatingDialogItem? = null,
+    /** 여행이 하나라도 있나(v6 — 첫 실행엔 없음 · #51 U1). */
+    val hasTrip: Boolean = true,
+    /** 진행 중 여행 이름 — 없으면 「새 여행」. */
+    val tripName: String? = null,
+    /** C-02 인사(user_mst.nickname_nm · #51 U2). */
+    val nicknameNm: String = "",
+    /** C-02 최근 여행 카드 — 가장 최근 끝난 여행 1개 · 없으면 null(「최근 여행이 없어요」). */
+    val recentTrip: TripSummaryItem? = null,
+    /** A-04 여행 종료 확인 팝업(정차 「여행 종료」). */
+    val endConfirmVisible: Boolean = false,
+    /** A-01 여행 시작 화면이 열림(진행 중 여행이 없을 때만 · #51 U3). */
+    val tripStartOpen: Boolean = false,
+    /** A-03 장소 기록 · 태그 시트 — 정차일 때만 · 없으면 null(#51 U4). */
+    val tagSheet: PlaceTagSheetItem? = null,
+    /** A-05 로드맵 검토를 기다리는 여행(끝난 최근 여행 · 별점 팝업이 없을 때만 · #51 U5) — 있으면 기록 칸이 검토 화면. */
+    val reviewTripNo: Long? = null,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /
@@ -51,8 +77,8 @@ data class HomeUiState(
     /** 「여기로 안내」 누를 수 있음 = 내비 연결됨 · 요청 중 아님(navigation 3.1 — 따로 칸을 두지 않음). */
     val guideEnabled: Boolean get() = naviReady && routeRequest !is RouteRequestState.Requesting
 
-    /** 「다시 시도」 보임 = 실패(이유 무관 · U51) · 누를 수 있음 = 「여기로 안내」와 같은 식. */
-    val retryVisible: Boolean get() = routeRequest is RouteRequestState.Failed
+    /** 「다시 시도」(G4) 보임 = 길안내 연결 화면 열림 · 실패(이유 무관 · U51 · U71) · 누를 수 있음 = 「여기로 안내」와 같은 식. */
+    val retryVisible: Boolean get() = guideScreen != null && routeRequest is RouteRequestState.Failed
     val retryEnabled: Boolean get() = retryVisible && guideEnabled
 
     /** 「더미 경로」 보임 = 실패 · debug 빌드 · 누를 수 있음 = 패널이 닫혀 있음(내비 연결과 무관). */

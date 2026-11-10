@@ -7,9 +7,6 @@ import javax.inject.Inject
 class RequestRouteGuidanceUseCase @Inject constructor(
     private val requester: RouteGuidanceRequester,
 ) {
-    /** 실제 안내가 가는지(포트 그대로). */
-    val available: Boolean get() = requester.available
-
     suspend operator fun invoke(place: RecommendedPlace): GuidanceRequestResult = requester.requestRoute(
         GuidanceDestination(
             placeNo = place.placeNo,

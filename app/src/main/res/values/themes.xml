@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TravelCrumbs" parent="android:Theme.Material.NoActionBar" />
+    <!-- 창 바탕 = Background/Base(지시서 5장) — 앱이 그려지기 전에도 같은 색 -->
+    <style name="Theme.TravelCrumbs" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background_base</item>
+        <item name="android:statusBarColor">@color/background_base</item>
+        <item name="android:navigationBarColor">@color/background_base</item>
+    </style>
 </resources>

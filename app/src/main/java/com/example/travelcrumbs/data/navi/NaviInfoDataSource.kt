@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.data.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
+import ai.pleos.playground.navi.data.CurrentLocationInfo
 import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.RouteInfo
 import ai.pleos.playground.navi.data.RouteStartInfo
@@ -9,6 +10,7 @@ import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
 import android.util.Log
+import com.example.travelcrumbs.domain.model.CurrentLocation
 import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
@@ -27,7 +29,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Pleos NaviHelper 를 감싸는 유일한 파일 — `ai.pleos.*` 타입은 이 패키지 밖으로 나가지 않음.
- * 쓰는 범위: 조회 getRouteStateInfo · getDestinationInfo(권한 `NAVI_ROUTE`) · 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
+ * 쓰는 범위: 조회 getRouteStateInfo · getDestinationInfo · getCurrentLocationInfo(권한 `NAVI_ROUTE` · 현재 위치는 #51 U4 가 더함) ·
+ * 목적지 설정 requestRoute(권한 `NAVI_ROUTE_SEARCH` · #4).
  * 문서: https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/NaviHelper/destinations
  */
 @Singleton
@@ -85,6 +88,43 @@ class NaviInfoDataSource @Inject constructor(
             destinationLatitude = destination.latitude,
             destinationLongitude = destination.longitude,
         )
+    }
+
+    /**
+     * 지금 위치 한 번(#51 U4 「이 장소 기록」) — 위도 · 경도 · 주소. 다른 조회와 같은 창([queryWindow]) 안에서 — 그 사이 온 onError 를
+     * 길안내 요청 결과로 쓰지 않게(기존 규칙 그대로). 값은 로그에 남기지 않음.
+     */
+    suspend fun currentLocation(): CurrentLocation = queryWindow.around { currentLocationOnce() }
+
+    private suspend fun currentLocationOnce(): CurrentLocation = suspendCancellableCoroutine { continuation ->
+        val listener = object : NaviHelperEventListener {
+            override fun onCurrentLocationInfo(currentLocationInfo: CurrentLocationInfo) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) {
+                    continuation.resume(
+                        CurrentLocation(
+                            lat = currentLocationInfo.latitude,
+                            lng = currentLocationInfo.longitude,
+                            addr = currentLocationInfo.address.takeIf { it.isNotBlank() },
+                        ),
+                    )
+                }
+            }
+
+            override fun onError(errorCode: NaviErrorCode) {
+                naviHelper.removeListener(this)
+                if (continuation.isActive) {
+                    continuation.resumeWithException(IllegalStateException(errorCode.name))
+                }
+            }
+        }
+        naviHelper.addListener(listener)
+        continuation.invokeOnCancellation { naviHelper.removeListener(listener) }
+        runCatching { naviHelper.getCurrentLocationInfo() }
+            .onFailure { error ->
+                naviHelper.removeListener(listener)
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
     }
 
     private suspend fun destinationInfo(): DestinationInfo = queryWindow.around { destinationInfoOnce() }

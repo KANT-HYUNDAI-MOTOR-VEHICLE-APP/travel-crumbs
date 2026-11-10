@@ -25,6 +25,10 @@ android {
     useLibrary("android.car")
 
     defaultConfig {
+        // 차량 내비 앱 패키지 — 매니페스트 <queries>(placeholder) 와 NaviAppDataSource(BuildConfig) 가 이 값 하나를 씀(#51 리뷰 K5)
+        val naviPackage = "ai.umos.maps.android.navigation.app"
+        manifestPlaceholders["naviPackage"] = naviPackage
+        buildConfigField("String", "NAVI_PACKAGE", "\"$naviPackage\"")
         applicationId = "com.example.travelcrumbs"
         minSdk = 28
         targetSdk = 34

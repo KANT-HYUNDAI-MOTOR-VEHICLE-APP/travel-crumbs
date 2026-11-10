@@ -40,7 +40,7 @@ import com.example.travelcrumbs.ui.recommendations.TripDetailItem
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
- * B-04 추천 로드맵 상세 — 여행명 · 별점 · 닉네임 · 동행자 · 장소 수 · 지역 / 경로 그림 · 장소 순서(태그 · 「여기로 안내」) /
+ * B-04 추천 로드맵 상세 — 여행명 · 별점(안내받은 로드맵이면 「별점 주기」 / 「내 별점 ★n · 고치기」 · #41) · 닉네임 · 동행자 · 장소 수 · 지역 / 경로 그림 · 장소 순서(태그 · 「여기로 안내」) /
  * 맨 아래 주요 행동 하나 「첫 장소부터 안내」(Primary). 로드맵 전체 경유지 안내는 하지 않음(장소 하나씩 · 이슈 범위 밖).
  */
 @Composable
@@ -48,6 +48,7 @@ fun TripDetailContent(
     detail: TripDetailItem,
     onGuideFromFirst: () -> Unit,
     onGuideHere: (Long) -> Unit,
+    onOpenRating: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -55,9 +56,27 @@ fun TripDetailContent(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             RecoTitle(detail.tripNm, modifier = Modifier.weight(1f))
             RatingText(detail.ratingAvg, detail.ratingCnt)
+            if (detail.canRate) {
+                // 안내받은 로드맵만(#41) — 주요 행동은 맨 아래 「첫 장소부터 안내」 하나라 Secondary
+                SecondaryButton(
+                    onClick = onOpenRating,
+                    modifier = Modifier.heightIn(min = Dimens.ChipHeight),
+                ) {
+                    Text(
+                        text = detail.myRatingScore
+                            ?.let { stringResource(R.string.rating_mine, it) }
+                            ?: stringResource(R.string.rating_open),
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
@@ -83,12 +102,16 @@ fun TripDetailContent(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            RouteSketch(
-                points = detail.sketch,
-                modifier = Modifier
-                    .weight(Dimens.DetailRouteWeight)
-                    .fillMaxHeight(),
-            )
+            val routeModifier = Modifier
+                .weight(Dimens.DetailRouteWeight)
+                .fillMaxHeight()
+            // 앱에 묶은 도로 지도가 이 로드맵을 덮으면 지도 · 아니면 기존 경로 그림(점선)
+            val routeMap = detail.routeMap
+            if (routeMap != null) {
+                RoadmapMap(map = routeMap, modifier = routeModifier)
+            } else {
+                RouteSketch(points = detail.sketch, modifier = routeModifier)
+            }
             Column(
                 modifier = Modifier
                     .weight(1f - Dimens.DetailRouteWeight)

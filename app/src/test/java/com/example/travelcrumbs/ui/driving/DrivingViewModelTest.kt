@@ -2,13 +2,18 @@ package com.example.travelcrumbs.ui.driving
 
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.Place
+import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
+import com.example.travelcrumbs.testing.FakeNaviRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeStartVoiceInputUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +38,7 @@ class DrivingViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val driving = FakeDrivingSignalRepository(DrivingState.DRIVING)
+    private val ratings = ratingRepositoryOf()
 
     @Before
     fun setUp() {
@@ -49,13 +55,46 @@ class DrivingViewModelTest {
         voice: ActionResult = ActionResult.NOT_READY,
         recording: RecordingRepository = recordingRepositoryOf(FakeTimeSource()),
         handle: SavedStateHandle = SavedStateHandle(),
+        navi: FakeNaviRepository = FakeNaviRepository(),
     ) = DrivingViewModel(
         recordingRepository = recording,
         recordPlace = FakeRecordPlaceUseCase(recordPlace),
         startVoiceInput = FakeStartVoiceInputUseCase(voice),
         drivingSignalRepository = driving,
         savedStateHandle = handle,
+        ratingRepository = ratings,
+        naviRepository = navi,
     )
+
+    @Test
+    fun `U0-1 내비 안내 카드 — 화면이 앞에 오면 안내 중 목적지 이름 · 내비 앱 있음 · 내비 보기 누르면 내비 앱 열림`() = runTest(dispatcher) {
+        val navi = FakeNaviRepository()
+        navi.guidingTo(Place("p", "속초 중앙시장", "강원 속초시", 38.2, 128.59))
+        val vm = viewModel(navi = navi)
+        subscribe(vm)
+
+        vm.onScreenResumed()
+        runCurrent()
+        assertEquals("속초 중앙시장", vm.uiState.value.naviDestinationName)
+        assertTrue(vm.uiState.value.naviAppAvailable)
+
+        vm.onOpenNavi()
+        assertEquals(1, navi.naviAppOpens)
+        vm.onScreenPaused()
+    }
+
+    @Test
+    fun `U0-2 내비 안내 카드 — 내비 연결 안 됨 · 안내 중 아님이면 이름 없음 · 내비 앱 없으면 버튼 없음`() = runTest(dispatcher) {
+        val navi = FakeNaviRepository(ready = false).apply { naviApp = false }
+        val vm = viewModel(navi = navi)
+        subscribe(vm)
+
+        vm.onScreenResumed()
+        runCurrent()
+        assertEquals(null, vm.uiState.value.naviDestinationName)
+        assertFalse(vm.uiState.value.naviAppAvailable)
+        vm.onScreenPaused()
+    }
 
     @Test
     fun `V11 첫 실행 — 여행명 없음 · 기록 중 · 0분 · 장소 0 · 팝업 없음 · 버튼 활성`() = runTest(dispatcher) {
@@ -97,14 +136,14 @@ class DrivingViewModelTest {
     }
 
     @Test
-    fun `T16 연결 지점이 DONE 이면 안내 없음`() = runTest(dispatcher) {
+    fun `T16 U4-1 연결 지점이 DONE 이면 「위치를 저장했어요 · 태그는 정차 후에」`() = runTest(dispatcher) {
         val vm = viewModel(recordPlace = ActionResult.DONE)
         subscribe(vm)
 
         vm.onRecordPlace()
         runCurrent()
 
-        assertNull(vm.uiState.value.message)
+        assertEquals(UiMessage.PLACE_DRAFT_SAVED, vm.uiState.value.message)
     }
 
     @Test
@@ -149,6 +188,23 @@ class DrivingViewModelTest {
         vm.onVoice()
         runCurrent()
         assertEquals(UiMessage.NOT_READY, vm.uiState.value.message)
+    }
+
+    @Test
+    fun `R25 추천 안내 뒤 여행 종료 → 그 로드맵이 별점 자동 팝업 대상 · 종료 전(중간 정차)엔 아님`() = runTest(dispatcher) {
+        ratings.recordGuidance(101, "속초 가족여행", "민지네")
+        val vm = viewModel()
+        subscribe(vm)
+        var records: RatingRecords? = null
+        backgroundScope.launch { ratings.records.collect { records = it } }
+        runCurrent()
+        assertNull(RecommendationRules.pendingRatingPrompt(records!!))
+
+        vm.onEndTrip()
+        vm.onConfirmEndTrip()
+        runCurrent()
+
+        assertEquals(101L, RecommendationRules.pendingRatingPrompt(records!!)?.tripNo)
     }
 
     @Test

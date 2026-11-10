@@ -4,12 +4,17 @@ import android.content.Intent
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
+import com.example.travelcrumbs.domain.GuideRequestTracker
+import com.example.travelcrumbs.domain.GuidanceStartRecorder
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteRequestResult
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +43,27 @@ class FakeNaviRepository(
     override val ready: StateFlow<Boolean> = readyState
 
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
+
+    /** 내비 앱이 있는 기기 흉내(#51 U0) — 거짓이면 「내비 보기」 없음. */
+    var naviApp: Boolean = true
+
+    /** 「내비 보기」 · 목적지 없는 여행 시작으로 내비 앱을 연 횟수. */
+    var naviAppOpens: Int = 0
+        private set
+
+    /** 지금 위치(#51 U4) — null 이면 못 읽음. */
+    var location: com.example.travelcrumbs.domain.model.CurrentLocation? =
+        com.example.travelcrumbs.domain.model.CurrentLocation(38.2049, 128.5906, "강원 속초시 중앙로 147")
+
+    override suspend fun currentLocation(): com.example.travelcrumbs.domain.model.CurrentLocation? = location
+
+    override fun naviAppAvailable(): Boolean = naviApp
+
+    override fun openNaviApp(): Boolean {
+        if (!naviApp) return false
+        naviAppOpens++
+        return true
+    }
 
     /** 길안내 요청을 받은 장소들(#4) — 요청 건수를 셈. */
     val routeRequests = mutableListOf<Place>()
@@ -104,3 +130,10 @@ class FakeGleoActionRepository(
         handledCount++
     }
 }
+
+/**
+ * 시험용 길안내 요청 입구 — 앱 수명 범위를 흉내 낸 자기 scope(메인 · 시험에선 setMain 의 시험 디스패처).
+ * 새로 만들면 프로세스 재생성 흉내(요청 상태 대기 · T108).
+ */
+fun guideTrackerOf(navi: FakeNaviRepository, recorder: GuidanceStartRecorder): GuideRequestTracker =
+    GuideRequestTracker(navi, recorder, CoroutineScope(SupervisorJob() + Dispatchers.Main))

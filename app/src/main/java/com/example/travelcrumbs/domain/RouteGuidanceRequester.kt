@@ -1,15 +1,10 @@
 package com.example.travelcrumbs.domain
 
 /**
- * 길안내 요청 포트(#37 B-05) — 차량 내비로 목적지 하나를 넘김.
- * 지금 바인딩: debug = 요청을 기록하고 성공으로 답하는 시연용 구현 · release = 「안내할 수 없음」(di/GuidanceModule · 빌드 타입별).
- * #4(`navigation/main`)의 NaviRepository.requestRoute 가 develop 에 들어오면 그것을 감싼 구현으로 바인딩만 바꿈.
- * 모양은 #4 의 Place(name · address · latitude · longitude) → RouteRequestResult(Started · Failed) 와 1:1.
+ * 길안내 요청 포트(#37 B-05) — 차량 내비로 목적지 하나를 넘기고 시작 · 실패를 기다림.
+ * 바인딩: [TrackerRouteGuidanceRequester](성호님 길안내 입구 GuideRequestTracker 하나로 · #51 U7 · 모든 빌드 · di/GuidanceModule).
  */
 interface RouteGuidanceRequester {
-    /** 실제 차량 내비로 안내가 가는지 — 아니면 화면이 「시연용 · 실제 안내는 준비 중」을 함께 보임(release 연결 전). */
-    val available: Boolean
-
     suspend fun requestRoute(destination: GuidanceDestination): GuidanceRequestResult
 }
 

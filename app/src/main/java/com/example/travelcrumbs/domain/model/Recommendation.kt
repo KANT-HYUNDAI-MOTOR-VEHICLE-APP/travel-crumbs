@@ -27,6 +27,17 @@ data class Region(
     val sigunguNm: String?,
 )
 
+/**
+ * 시도 짧은 이름(지역 마스터 · 제안) — 앱 안 한 곳(#51 리뷰 K4). 주소 → 지역 계산(RoadmapRules)과 추천 시드가 이 목록을 씀.
+ * 서버 지역 마스터가 생기면 그 값으로 바뀜.
+ */
+object SidoNames {
+    val ALL: List<String> = listOf(
+        "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
+        "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
+    )
+}
+
 /** 시도 하나와 그 아래 시군구 목록(지역 마스터 · 제안). */
 data class SidoRegion(
     val sidoNm: String,

@@ -7,6 +7,9 @@ object Dimens {
     val ScreenPadding = 24.dp
     val ItemSpacing = 16.dp
 
+    /** 섹션 사이 간격(디자인 시스템 7절 24) — 기록 칸의 맨 위 영역 · 「가 볼 장소」 · 「장소 고르기」 사이. */
+    val SectionSpacing = 24.dp
+
     /** 주행 화면 버튼 — 크게 · 한 번 터치(디자인 시스템 7절 주요 버튼 높이 72 이상). */
     val DrivingButtonHeight = 96.dp
 
@@ -18,6 +21,17 @@ object Dimens {
      * + 버튼 안쪽 여백 48 이 한 칸에 들어가는 폭(223) × 4 + 간격 16 × 3.
      */
     val DrivingButtonsRowMinWidth = 940.dp
+
+    /** C-02 「여행 시작」 · 「추천 보러 가기」 카드 — 이 폭보다 좁으면(나눈 칸) 위아래로 · 카드 최소 높이(#51 U2). */
+    val HomeChoiceRowMinWidth = 900.dp
+    val HomeChoiceCardHeight = 160.dp
+
+    /** 설정 카드 오른쪽 버튼(「수정」 · 「철회」) 최소 폭(#51 U2). */
+    val SettingsActionMinWidth = 160.dp
+
+    /** A-05 · A-08 — 이 폭 이상이면 경로 그림 왼쪽 · 장소 오른쪽 · 아니면 위아래(경로 그림 높이) · #51 U5. */
+    val RoadmapWideMinWidth = 1000.dp
+    val RoadmapSketchHeight = 320.dp
 
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
@@ -46,14 +60,20 @@ object Dimens {
     val ButtonBorderWidth = 2.dp
 
     /** 주행 화면 지도 자리 테두리. */
-    val MapPlaceholderBorder = 2.dp
+    /**
+     * 주행 화면 내용 폭이 이 값 이상이면 「넓은 칸」(앱 영역 전체 · 내비가 옆에 없음) — 「내비 안내」 카드를 그림(#51 U0).
+     * 나눈 칸(약 817dp − 레일 120)은 이보다 좁고, 나누지 않은 앱 영역(1682 − 120)은 넓음.
+     */
+    val DrivingWideMinWidth = 1000.dp
     /** 장소 항목 오른쪽 버튼(「여기로 안내」 · 「고정」) 최소 폭 — 높이는 [HomeButtonHeight](스펙 navigation E5 · E10). */
     val PlaceButtonMinWidth = 220.dp
 
-    /** 더미 경로 패널(스펙 navigation E13-2) 정지 도식 — 그림 높이 고정 · 점 반지름 · 선 굵기. */
-    val DummyRouteDiagramHeight = 40.dp
-    val DummyRouteDotRadius = 10.dp
-    val DummyRouteLineWidth = 4.dp
+    /** 길안내 연결 화면 지도 박스(스펙 navigation 2.3 G1 · G1-D) — 점 반지름 · 선 굵기 · 점이 모서리에서 떨어진 거리 · 글자 자리. */
+    val GuideMapDotRadius = 10.dp
+    val GuideMapLineWidth = 4.dp
+    val GuideMapDotInset = 48.dp
+    val GuideMapLabelOffset = 68.dp
+    val GuideMapTextPadding = 160.dp
 
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
     val NoticeLineHeight = 40.dp
@@ -79,10 +99,38 @@ object Dimens {
     val SketchLineWidth = 4.dp
     const val DetailRouteWeight = 0.42f
 
+    /** 추천 상세 도로 지도 — 지역 이름 · 출처 여백, 번호 핀 테두리, 지형 · 도로별 선 두께. */
+    val RoadmapMapLabelPadding = 8.dp
+    val RoadmapMapEdgePadding = 16.dp
+    val RoadmapMapLabelInset = 44.dp
+    val RoadmapMapPinOutline = 2.dp
+    val RoadmapMapRiverWidth = 6.dp
+    val RoadmapMapShoreWidth = 1.2.dp
+    val RoadmapMapLocalRoadWidth = 0.8.dp
+    val RoadmapMapStreetWidth = 1.3.dp
+    val RoadmapMapMajorRoadWidth = 1.8.dp
+
     /** 추천 상세 장소 칸의 「여기로 안내」 버튼 최소 폭. */
     val GuideHereButtonMinWidth = 200.dp
+
+    /**
+     * 팝업 틀(AppDialog · 디자인 시스템 18절) 폭 = 창 폭 × [DialogWidthFraction] 을 [DialogMinWidth] ~ [DialogMaxWidth] 로 자름(#51 사람 요청).
+     * 비율 0.6 = 사람이 실기기에서 「적당하다」고 본 B-05 팝업 폭(앱 창 1682dp 의 약 60%). 최소 560 = 버튼 두 개(주요 버튼 글자 28)
+     * + 별 다섯 개(88 × 5 + 16 × 4) 가 한 줄에 드는 폭. 최대 1040 = 별점 팝업(#41) 이 쓰던 최대 폭 그대로.
+     * 창이 최소보다 좁으면 창 폭(바깥 여백 뺀)까지 줄어듦.
+     */
+    const val DialogWidthFraction = 0.6f
+    val DialogMinWidth = 560.dp
+    val DialogMaxWidth = 1040.dp
+
+    /** 별점 팝업(#41 B-06) 별 하나의 터치 칸. */
+    val RatingStarSize = 88.dp
 
     /** 선택 카드 · 칩 테두리. */
     val SelectedBorderWidth = 2.dp
     val CardBorderWidth = 1.dp
+
+    /** 카드(AppCard) 안 여백 · 안 요소 간격(디자인 시스템 7절 카드 내부 여백 20). */
+    val CardPadding = 20.dp
+    val CardContentSpacing = 8.dp
 }

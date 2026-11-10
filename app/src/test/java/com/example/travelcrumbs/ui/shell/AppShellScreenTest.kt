@@ -42,6 +42,7 @@ import com.example.travelcrumbs.ui.shell.components.railLabelTag
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.theme.TravelCrumbsColors
 import com.example.travelcrumbs.ui.theme.TravelCrumbsTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -124,8 +125,9 @@ class AppShellScreenTest {
             rail(destination).performClick()
             assertHighlighted(destination)
             compose.onAllNodes(hasText(text(destination.labelRes))).assertCountEquals(2)
-            compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
         }
+        // 설정(C-03 · #51 U2) — 닉네임 · 동의 카드
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
     }
 
     @Test
@@ -162,8 +164,7 @@ class AppShellScreenTest {
     }
 
     @Test
-    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 내비 연결 전이면 안내 팝업에 시연용 안내`() {
-        graph.guidance.available = false
+    fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 안내 팝업에 시연용 안내 없음(실제 내비 연결)`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
@@ -174,7 +175,7 @@ class AppShellScreenTest {
         compose.onNodeWithText("속초 가족여행").performClick()
         compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
         button(R.string.reco_guide_from_first).performClick()
-        compose.onNodeWithText(text(R.string.guidance_demo_only)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.guidance_start)).assertIsDisplayed()
     }
 
     @Test
@@ -235,7 +236,7 @@ class AppShellScreenTest {
         show()
         rail(AppDestination.SETTINGS).performClick()
 
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
         pressBack()
         assertHighlighted(AppDestination.RECORDS)
         compose.onNodeWithText(text(R.string.action_record_place)).assertIsDisplayed()
@@ -293,7 +294,7 @@ class AppShellScreenTest {
 
         drive(DrivingState.PARKED)
         assertHighlighted(AppDestination.SETTINGS)
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.settings_nickname)).assertIsDisplayed()
     }
 
     @Test
@@ -319,13 +320,13 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.map_placeholder)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.driving_navi_card_title)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_voice).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_end_trip).assertIsDisplayed().assertIsEnabled()
-        // 눌리는 것 = 레일 4칸 + 버튼 4개뿐
-        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4)
+        // 눌리는 것 = 레일 4칸 + 버튼 4개 + 넓은 칸 「내비 안내」 카드의 「내비 보기」(#51 U0 · 보조 버튼)뿐
+        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4 + 1)
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.unfinished_input_banner_text))).assertCountEquals(0)
@@ -532,7 +533,7 @@ class AppShellScreenTest {
         button(R.string.action_pause_recording).assertDoesNotExist()
         button(R.string.action_resume_recording).assertDoesNotExist()
         button(R.string.action_voice).assertDoesNotExist()
-        button(R.string.action_end_trip).assertDoesNotExist()
+        // 「여행 종료」는 v6 C-02 정차 진행 중 화면에도 있음(#51 U2 · A-04 팝업)
         compose.onAllNodes(hasText(text(R.string.nav_settings)) and hasClickAction()).assertCountEquals(1)
     }
 
@@ -623,6 +624,9 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         button(R.string.action_start_trip).performClick()
+        // A-01(#51 U3) — 이름 · 동행자 · 목적지 없이 바로 「동의하고 기록 시작」
+        button(R.string.action_consent_and_start).performClick()
+        compose.waitForIdle()
 
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
@@ -631,7 +635,6 @@ class AppShellScreenTest {
         assertNoStartTripElements()
 
         drive(DrivingState.DRIVING)
-        compose.onNodeWithText(text(R.string.trip_name_default)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsEnabled()
@@ -695,7 +698,7 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         assertHighlighted(AppDestination.TRIPS)
-        compose.onNodeWithText(text(R.string.not_ready)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.trips_sub)).assertIsDisplayed()
         compose.onAllNodes(hasText(text(R.string.driving_restricted))).assertCountEquals(0)
     }
 
@@ -788,4 +791,30 @@ class AppShellScreenTest {
         /** 5 mm · 160 dpi(에뮬레이터 Pleos_Connect_v2.1.0 · 1dp = 1px) = 5 / 25.4 × 160 ≈ 31.5dp. */
         val FIVE_MM_AT_160_DPI = (5f / 25.4f * 160f).dp
     }
+
+    @Test
+    fun `R29 추천 안내 뒤 주행 중 여행 종료 — 주행 중엔 별점 팝업 없음 · 정차 뒤 기록 화면에 한 번 · 나중에면 닫힘`() {
+        runBlocking { graph.ratings.recordGuidance(101, "속초 가족여행", "민지네") }
+        show()
+        // 안내만 받고 정차(중간 정차) — 팝업 없음
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+
+        drive(DrivingState.DRIVING)
+        button(R.string.action_end_trip).performClick()
+        button(R.string.end_trip_confirm_end).performClick()
+        compose.waitForIdle()
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+
+        drive(DrivingState.PARKED)
+        compose.onNodeWithText(text(R.string.rating_title)).assertIsDisplayed()
+        compose.onNodeWithText("민지네").assertIsDisplayed()
+        button(R.string.rating_submit).assertIsNotEnabled()
+
+        button(R.string.rating_later).performClick()
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+        drive(DrivingState.DRIVING)
+        drive(DrivingState.PARKED)
+        compose.onAllNodes(hasText(text(R.string.rating_title))).assertCountEquals(0)
+    }
 }
+

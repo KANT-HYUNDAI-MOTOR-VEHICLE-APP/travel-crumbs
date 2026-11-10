@@ -1,12 +1,15 @@
 package com.example.travelcrumbs.ui.recommendations
 
+import com.example.travelcrumbs.testing.FakeTimeSource
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
 import com.example.travelcrumbs.domain.GuidanceRequestResult
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
+import com.example.travelcrumbs.testing.FakeOfflineMapRepository
 import com.example.travelcrumbs.testing.FakeRouteGuidanceRequester
+import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.ui.components.UiMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,6 +34,7 @@ class RecommendationsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val guidance = FakeRouteGuidanceRequester()
+    private val ratings = ratingRepositoryOf()
 
     @Before
     fun setUp() {
@@ -46,6 +50,9 @@ class RecommendationsViewModelTest {
         repository = SeedRecommendationRepository(),
         requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
         savedStateHandle = saved,
+        ratingRepository = ratings,
+        timeSource = FakeTimeSource(),
+        offlineMap = FakeOfflineMapRepository(),
     )
 
     private val state get() = vm.uiState.value
@@ -69,7 +76,7 @@ class RecommendationsViewModelTest {
         start()
 
         assertEquals(RecommendationPage.REGION, state.page)
-        assertEquals(10, state.sidoNms.size)
+        assertEquals(com.example.travelcrumbs.domain.model.SidoNames.ALL, state.sidoNms)
         assertNull(state.selectedSidoNm)
         assertTrue(state.sigunguCards.isEmpty())
         assertTrue(state.demoData)
@@ -83,7 +90,7 @@ class RecommendationsViewModelTest {
         runCurrent()
 
         assertEquals(
-            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 0, "평창군" to 0, null to 6),
+            listOf("속초시" to 3, "강릉시" to 2, "양양군" to 1, "춘천시" to 1, "평창군" to 1, null to 8),
             state.sigunguCards.map { it.sigunguNm to it.tripCnt },
         )
     }
@@ -122,6 +129,29 @@ class RecommendationsViewModelTest {
         vm.selectCompanion(CompanionType.SOLO)
         runCurrent()
         assertTrue(state.rankedTrips.isEmpty())
+    }
+
+    @Test
+    fun `R7 강원 전체 — 부모님 · 반려동물 칩이면 그 동행자 로드맵만 별점순`() = runTest(dispatcher) {
+        start()
+        vm.selectSido("강원")
+        runCurrent()
+        vm.selectRegion(null)
+        runCurrent()
+
+        vm.selectCompanion(CompanionType.PARENT)
+        runCurrent()
+        assertEquals(CompanionType.PARENT, state.companion)
+        assertEquals(listOf("대관령 바람 쐬기", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(CompanionType.PET)
+        runCurrent()
+        assertEquals(CompanionType.PET, state.companion)
+        assertEquals(listOf("춘천 호수 한 바퀴"), state.rankedTrips.map { it.tripNm })
+
+        vm.selectCompanion(null)
+        runCurrent()
+        assertEquals(8, state.rankedTrips.size)
     }
 
     @Test
@@ -254,5 +284,111 @@ class RecommendationsViewModelTest {
         assertEquals("바다 보고 시장 한 바퀴", state.detail!!.tripNm)
         assertEquals(CompanionType.SPOUSE, state.companion)
         assertEquals("속초시", state.regionSigunguNm)
+    }
+
+    private fun TestScope.guideTrip101() {
+        toSokcho()
+        vm.openTrip(101)
+        runCurrent()
+        vm.askGuidanceFromFirst()
+        runCurrent()
+        vm.startGuidance()
+        runCurrent()
+    }
+
+    @Test
+    fun `R26 안내 요청 성공 → 별점 자격 · B-04 별점 주기 → 별 5 · 태그 → 평균 · 참여 수 · 정렬 · 태그 수 바로 반영`() = runTest(dispatcher) {
+        start()
+        toSokcho()
+        vm.openTrip(101)
+        runCurrent()
+        assertFalse(state.detail!!.canRate) // 안내 기록 없음 → 버튼 없음
+        vm.openRating()
+        runCurrent()
+        assertNull(state.rating)
+        val kidsBefore = state.tagCounts.first { it.tagNo == 1L }.cnt
+
+        vm.askGuidanceFromFirst()
+        runCurrent()
+        vm.startGuidance()
+        runCurrent()
+        assertTrue(state.detail!!.canRate)
+        assertNull(state.detail!!.myRatingScore)
+
+        vm.openRating()
+        runCurrent()
+        val dialog = state.rating!!
+        assertEquals("민지네", dialog.nicknameNm)
+        assertFalse(dialog.canSubmit)
+        assertTrue(state.handlesBack)
+
+        vm.selectRatingScore(5)
+        vm.toggleRatingTag(1)
+        runCurrent()
+        vm.submitRating()
+        runCurrent()
+
+        assertNull(state.rating)
+        assertEquals(UiMessage.RATING_SAVED, state.message)
+        val detail = state.detail!!
+        assertEquals(13, detail.ratingCnt)
+        assertEquals((4.8 * 12 + 5) / 13, detail.ratingAvg, 1e-9)
+        assertEquals(5, detail.myRatingScore)
+        assertEquals(kidsBefore + 1, state.tagCounts.first { it.tagNo == 1L }.cnt)
+
+        vm.onBack()
+        runCurrent()
+        val card = state.rankedTrips.first { it.tripNo == 101L }
+        assertEquals(13, card.ratingCnt)
+        assertEquals(1, card.rank)
+    }
+
+    @Test
+    fun `R27 안내 요청 실패면 별점 자격 없음 — B-04 버튼 없음`() = runTest(dispatcher) {
+        guidance.result = GuidanceRequestResult.Failed
+        start()
+        guideTrip101()
+
+        assertEquals(UiMessage.GUIDANCE_FAILED, state.message)
+        assertFalse(state.detail!!.canRate)
+        vm.openRating()
+        runCurrent()
+        assertNull(state.rating)
+    }
+
+    @Test
+    fun `R28 고치기 — 내 별점으로 채워 열림 · 다시 주면 바뀜 · 참여 수는 그대로 · 나중에는 닫기만`() = runTest(dispatcher) {
+        start()
+        guideTrip101()
+        vm.openRating()
+        runCurrent()
+        vm.selectRatingScore(5)
+        vm.toggleRatingTag(3)
+        runCurrent()
+        vm.submitRating()
+        runCurrent()
+
+        vm.openRating()
+        runCurrent()
+        val reopened = state.rating!!
+        assertEquals(5, reopened.ratingScore)
+        assertEquals(listOf(3L), reopened.tags.filter { it.selected }.map { it.tagNo })
+
+        vm.dismissRating()
+        runCurrent()
+        assertNull(state.rating)
+        assertEquals(5, state.detail!!.myRatingScore)
+
+        vm.openRating()
+        runCurrent()
+        vm.selectRatingScore(1)
+        runCurrent()
+        vm.submitRating()
+        runCurrent()
+
+        val detail = state.detail!!
+        assertEquals(1, detail.myRatingScore)
+        assertEquals(13, detail.ratingCnt)
+        assertEquals((4.8 * 12 + 1) / 13, detail.ratingAvg, 1e-9)
     }
 }

@@ -1,24 +1,37 @@
+@file:OptIn(ExperimentalTextApi::class)
+
 package com.example.travelcrumbs.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.travelcrumbs.R
 
 /*
  * 글자 단계 — 디자인 시스템 6절(#34). 160 dpi 에뮬레이터 기준 1px = 1dp → px 를 sp 로.
- * 서체는 시스템 기본(한글은 Noto Sans CJK 계열 — 6절 대체 서체). Asta Sans 파일은 넣지 않음(이슈 범위 밖).
+ * 서체는 Asta Sans(42dot · SIL OFL 1.1 · 가변 굵기 · res/font/asta_sans.ttf · 라이선스 assets/licenses/asta-sans-OFL.txt · #4).
+ * 서체에 없는 글자는 시스템 서체(Noto Sans CJK 계열 — 6절 대체 서체)로 보임. 글자 단계 수치는 #34 그대로.
  * 줄 높이는 글자 5 mm(160 dpi ≈ 31.5dp) 이상이 되게 본문 이상 34sp 이상(레일 · 주행 버튼 V46 · V61).
  */
-private val ScreenTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 48.sp)
-private val SectionTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
-private val CardTitle = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp)
+private val AstaSans = FontFamily(
+    Font(R.font.asta_sans, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.asta_sans, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.asta_sans, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+)
+
+private val ScreenTitle = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 48.sp)
+private val SectionTitle = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
+private val CardTitle = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp)
 // 크기를 바꾸면 Dimens.DrivingButtonsRowMinWidth(「기록 일시정지」가 한 칸에 들어가는 폭)를 다시 계산.
-private val ButtonLabel = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 36.sp)
-private val Body = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 34.sp)
+private val ButtonLabel = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 36.sp)
+private val Body = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.Normal, fontSize = 24.sp, lineHeight = 34.sp)
 // 보조 단계(줄 높이 28 < 5 mm)는 주행 중 필수 정보에 쓰지 않음 · 중요 정보는 Body 이상(6절).
-private val Supporting = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 28.sp)
+private val Supporting = TextStyle(fontFamily = AstaSans, fontWeight = FontWeight.Normal, fontSize = 20.sp, lineHeight = 28.sp)
 
 /**
  * Material 단계 ↔ 디자인 시스템 단계. display · headlineLarge = 화면 제목(최대 40) · headlineMedium = 섹션 제목 ·

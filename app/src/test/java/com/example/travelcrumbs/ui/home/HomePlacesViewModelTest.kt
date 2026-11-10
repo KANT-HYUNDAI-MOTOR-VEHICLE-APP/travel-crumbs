@@ -1,5 +1,12 @@
 package com.example.travelcrumbs.ui.home
 
+import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
+import com.example.travelcrumbs.testing.FakeTagRepository
+import com.example.travelcrumbs.testing.FakeTripRepository
+import com.example.travelcrumbs.testing.FakeCurrentUserRepository
+import androidx.lifecycle.SavedStateHandle
+import com.example.travelcrumbs.data.recommendation.SeedRecommendationRepository
+import com.example.travelcrumbs.testing.ratingRepositoryOf
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.combineDrivingState
 import com.example.travelcrumbs.domain.model.DemoFeatures
@@ -19,6 +26,7 @@ import com.example.travelcrumbs.testing.FakePlaceCatalogRepository
 import com.example.travelcrumbs.testing.FakePlaceStatsRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeTimeSource
+import com.example.travelcrumbs.testing.guideTrackerOf
 import com.example.travelcrumbs.testing.recordingRepositoryOf
 import com.example.travelcrumbs.testing.testPlace
 import kotlinx.coroutines.CompletableDeferred
@@ -77,9 +85,17 @@ class HomePlacesViewModelTest {
             naviRepository = navi,
             placeCatalogRepository = catalog,
             pinnedPlacesRepository = pinnedLocal.repository,
-            pinRepository = pins,
+            guideRequests = guideTrackerOf(navi, pins),
             placeStatsRepository = stats,
             demoFeatures = DemoFeatures(dummyRoute = dummyRoute),
+            ratingRepository = ratingRepositoryOf(),
+            recommendationRepository = SeedRecommendationRepository(),
+            timeSource = FakeTimeSource(),
+            savedStateHandle = SavedStateHandle(),
+            userRepository = FakeCurrentUserRepository(),
+            tripRepository = FakeTripRepository(),
+            tagRepository = FakeTagRepository(),
+            unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
         )
         val state: HomeUiState get() = vm.uiState.value
     }
