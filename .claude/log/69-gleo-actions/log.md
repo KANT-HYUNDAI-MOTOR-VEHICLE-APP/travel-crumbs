@@ -26,3 +26,8 @@
 - 센서: 단위 452(새 23) 통과 · lint 오류 0 · debug/release 빌드 · release 스키마 · 매니페스트 SHOW_TRAVEL_INFO 만 · manifest · secrets · hygiene · frontmatter · data standard · guard 녹색
 - 에뮬레이터(ADB · Gleo 형식 Intent): PAUSE → 일시정지 · PAUSE 다시 → already paused · RESUME · TODAY 1곳 · 「경주」 → 신라 유적 산책 + 추천 칸 경북 경주시 순위 · 「대구」 → 실패 · 지역 없음 → 서울 강남구 · END → 기록 칸 + 종료 확인 팝업 · STOP → 입력 실패 · OPEN 은 앱이 받지 않음
 - 막힘: 실제 음성 T16 · T17 은 사람 발화 대기(두 번 기록 시도 동안 발화 없음)
+
+## 2 실제 음성 시험 · Gleo 보고서 — 2026-11-10 · errorn
+- 산출물: `docs/gleo/gleo-voice-integration.md`(실측 31 발화 · 지표 · 실패/예외 E1~E9 · 말하기 가이드 · 남은 시험 T-A~T-I · 결정 Q1~Q3) · 수정 `c37daaa`(빈 region · 추천 설명 · invokeWord)
+- 지표: 성공 7건 말 끝 → Gleo 수락 중앙값 1.97초(Gleo 판단 1.42 · 앱 0.045 · Gleo 수락 0.50). 콜백 거절 0.
+- 막힘: 일반 여행 추천 질문은 Gleo 가 웹 검색으로 가져감(앱에서 강제 불가) · 콜드 부팅 직후 위치 조회 10초로 앱 7초 기한 초과 — 사람 결정 Q1 · Q2
