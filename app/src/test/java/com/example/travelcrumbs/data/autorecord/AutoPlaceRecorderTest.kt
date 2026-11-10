@@ -308,8 +308,9 @@ class AutoPlaceRecorderTest {
         assertTrue(f.store.nameList.isEmpty())
     }
 
+    /** 대기 · 진행 중 직접 안내 삭제 · 안 고친 자동 이름 null · 고친 이름 유지 · 주소 이름 null · 좌표 주소 null · 원본 0 · 띠 칸 그대로. */
     @Test
-    fun `T16 위치 동의 철회 — 대기 · 직접 안내 삭제 · 안 고친 자동 이름 null · 고친 이름 유지 · 주소 이름 null · 좌표 주소 null · 원본 0 · 띠 칸 그대로`() = runTest {
+    fun `T16 위치 동의 철회 — 대기 · 자동 이름 삭제 · 고친 이름 유지`() = runTest {
         val f = ready()
         start(f, A)
         arrive(f, A.name)
@@ -587,8 +588,9 @@ class AutoPlaceRecorderTest {
         assertEquals(1, f.store.pendingList.size)
     }
 
+    /** 대기 A(PARKED 봄) · 500 m 떨어진 카페 C 에서 수동 기록 — 장소 A(n+1 · 기록 시각 = 도착 시각) → C(n+2) · 띠 칸은 자동이 쓰지 않음. */
     @Test
-    fun `T48 대기 A(PARKED 봄) · 500 m 떨어진 카페 C 에서 수동 기록 — 장소 A(n+1 · 도착 시각) → C(n+2) · 띠 칸은 자동이 쓰지 않음`() = runTest {
+    fun `T48 대기 A · 500 m 밖 수동 기록 — A 먼저 확정 → 수동 C`() = runTest {
         val f = ready()
         start(f, A)
         val arrivedAt = f.time.now
