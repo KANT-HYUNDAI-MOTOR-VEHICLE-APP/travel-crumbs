@@ -140,6 +140,26 @@
     <string name="reco_guide_here">여기로 안내</string>
     <string name="reco_guide_from_first">★ 첫 장소부터 안내</string>
     <string name="reco_meta_separator">" · "</string>
+    <!-- 추천 지도(#59 B-01 · 스펙 2-1 ~ 2-3) -->
+    <string name="reco_map_preparing">지도를 준비하고 있어요</string>
+    <string name="reco_map_locating">내 위치를 확인하고 있어요</string>
+    <string name="reco_map_no_location">현재 위치를 확인하지 못했어요. 지역을 골라 주세요</string>
+    <string name="reco_map_outside">지금 위치는 지도 범위 밖이에요. 고른 지역을 보여 드려요</string>
+    <string name="reco_map_empty">이 범위에는 아직 공개된 장소가 없어요</string>
+    <string name="reco_map_failed">지도를 불러오지 못했어요. 지역을 골라 랭킹을 볼 수 있어요</string>
+    <string name="reco_map_attribution">© OpenStreetMap contributors</string>
+    <string name="reco_map_license_title">지도 출처 · 라이선스</string>
+    <string name="reco_map_license_osm">지도 자료 © OpenStreetMap contributors · Open Database License(ODbL) 1.0</string>
+    <string name="reco_map_license_ne">낮은 확대 단계 일부 Natural Earth(퍼블릭 도메인)</string>
+    <string name="reco_map_license_maplibre">지도 그리기 MapLibre Native · BSD 2-Clause</string>
+    <string name="reco_map_license_offline">지도는 앱에 들어 있는 자료로만 그려요 · 인터넷으로 지도를 받지 않아요</string>
+    <string name="reco_map_close">닫기</string>
+    <string name="reco_map_pin_desc">장소 핀</string>
+    <string name="reco_map_cluster_desc">장소 %1$d곳 묶음</string>
+    <string name="reco_map_candidates_title">이 근처 장소 %1$d곳</string>
+    <string name="reco_map_roadmaps_label">이 장소가 있는 로드맵</string>
+    <string name="reco_map_by">%1$s님의 로드맵</string>
+    <string name="reco_map_open_roadmap">로드맵 보기</string>
 
     <!-- 동행자 유형(표준 v0.4 COMPANION_TYPE 코드명) -->
     <string name="companion_solo">혼자</string>

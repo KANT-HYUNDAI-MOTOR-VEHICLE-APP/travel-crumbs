@@ -133,4 +133,20 @@ object Dimens {
     /** 카드(AppCard) 안 여백 · 안 요소 간격(디자인 시스템 7절 카드 내부 여백 20). */
     val CardPadding = 20.dp
     val CardContentSpacing = 8.dp
+
+    /** 추천 지도(#59 B-01) — 낱개 핀 · 숫자 묶음 핀 지름(터치 칸 48dp 이상) · 테두리. */
+    val RecoMapPinSize = 48.dp
+    val RecoMapClusterSize = 64.dp
+    val RecoMapPinBorder = 3.dp
+    val RecoMapPinSelectedBorder = 6.dp
+
+    /** 추천 지도 첫 맞춤 · 시도 이동 때 지도 가장자리 여백(짧은 변 비율). */
+    const val RecoMapFitPaddingFraction = 0.06f
+
+    /** 지역 고르기 머리(제목 · 칩 · 시군구) 최대 높이 — 남는 높이는 지도(창 높이 비율). */
+    const val RecoRegionHeaderMaxFraction = 0.45f
+
+    /** 지도 위 장소 카드 · 후보 목록 최대 폭 · 최대 높이(지도 높이 비율). */
+    val RecoMapCardMaxWidth = 640.dp
+    const val RecoMapCardMaxHeightFraction = 0.8f
 }

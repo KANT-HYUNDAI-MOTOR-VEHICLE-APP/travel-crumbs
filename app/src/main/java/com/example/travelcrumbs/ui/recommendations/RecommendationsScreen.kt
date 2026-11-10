@@ -22,6 +22,7 @@ import com.example.travelcrumbs.ui.components.RatingDialog
 import com.example.travelcrumbs.ui.recommendations.components.DemoDataLine
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
+import com.example.travelcrumbs.ui.recommendations.components.RecommendationMapCallbacks
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationPageContent
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -56,6 +57,20 @@ fun RecommendationsScreen(
             onGuideFromFirst = viewModel::askGuidanceFromFirst,
             onGuideHere = viewModel::askGuidance,
             onOpenRating = viewModel::openRating,
+            map = RecommendationMapCallbacks(
+                onReady = viewModel::onMapReady,
+                onFailed = viewModel::onMapFailed,
+                onFirstFitDone = viewModel::onMapFirstFitDone,
+                onMovedByUser = viewModel::onMapMovedByUser,
+                onPins = viewModel::onMapPins,
+                onSelectPlace = viewModel::selectMapPlace,
+                onSelectCluster = viewModel::selectMapCluster,
+            ),
+            onSelectMapCandidate = viewModel::selectMapCandidate,
+            onSelectCardRoadmap = viewModel::selectCardRoadmap,
+            onOpenCardRoadmap = viewModel::openCardRoadmap,
+            onCardGuidance = viewModel::askCardGuidance,
+            onCloseMapCard = viewModel::closeMapCard,
         )
     }
 
@@ -81,7 +96,7 @@ fun RecommendationsScreen(
                 .fillMaxWidth()
                 .padding(top = Dimens.ItemSpacing),
         ) {
-            RecommendationPageContent(uiState = uiState, actions = actions)
+            RecommendationPageContent(uiState = uiState, actions = actions, entryKey = entryKey)
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }

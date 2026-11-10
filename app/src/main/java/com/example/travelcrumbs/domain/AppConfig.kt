@@ -88,4 +88,20 @@ object AppConfig {
     /** Gleo 에 돌려줄 문장(영어 완전한 문장) — 화면 문구가 아니라 프로토콜 값이라 strings.xml 이 아님. */
     const val GLEO_OPEN_SUCCESS_MESSAGE: String = "Travel Crumbs is now open on the screen."
     const val GLEO_OPEN_FAIL_MESSAGE: String = "Travel Crumbs could not read the request."
+
+    /** 추천 지도(#59) 첫 맞춤 반경(킬로미터 · N3) — 내 위치 중심 이 반경이 화면에 다 들어오게. 위치 사용(#55 문구 반영 뒤) 때 씀. */
+    const val RECO_MAP_FIRST_FIT_RADIUS_KM: Double = 10.0
+
+    /** 추천 지도 위치 조회 시간 제한(밀리초) — 넘으면 「위치 없음」. 위치 사용(#55 문구 반영 뒤) 때 씀. */
+    const val RECO_MAP_LOCATION_TIMEOUT_MILLIS: Long = 10_000L
+
+    /** 추천 지도 한 화면 표시(낱개 핀 + 묶음 핀) 최대 수(N6). */
+    const val RECO_MAP_MARKER_LIMIT: Int = 50
+
+    /** 화면에서 이 거리(dp) 안에 겹치는 핀은 숫자 묶음 핀 하나로(N6). */
+    const val RECO_MAP_CLUSTER_RADIUS_DP: Float = 40f
+
+    /** 지도 확대 범위 — 자산은 확대 단계 12까지 · 화면은 15까지 늘려 보임(N8 결정 2026-11-10). */
+    const val RECO_MAP_MIN_ZOOM: Double = 5.0
+    const val RECO_MAP_MAX_ZOOM: Double = 15.0
 }

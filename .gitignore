@@ -43,3 +43,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# 지도 자산(#59) — GitHub 릴리스에 올리고 빌드 때 받음(app/build.gradle.kts prepareKoreaMapAsset) · 커밋 금지
+*.pmtiles
