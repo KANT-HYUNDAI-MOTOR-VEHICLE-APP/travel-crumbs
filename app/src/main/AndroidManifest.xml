@@ -54,9 +54,12 @@
             <!--
               Gleo Interface — assets/schema.json 의 function 이름과 같은 action.
               Gleo AI 가 context.startActivity() 로 부름(component = "activity").
+              실제 Gleo(Pleos Connect v2.1.0 에뮬레이터, 2026-11-10 확인)는 「패키지명.함수명」으로 보냄 —
+              공식 예제의 접두어 없는 꼴도 함께 받음(#25).
             -->
             <intent-filter>
                 <action android:name="OPEN_TRAVEL_CRUMBS" />
+                <action android:name="com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

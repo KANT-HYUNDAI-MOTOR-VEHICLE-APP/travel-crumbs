@@ -259,7 +259,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             when (recordPlace()) {
                 ActionResult.DONE -> latestPlaceNo()?.let(tagSheet::open)
-                ActionResult.NOT_READY, ActionResult.FAILED -> message.value = UiMessage.NOT_READY
+                ActionResult.NOT_READY, ActionResult.FAILED, ActionResult.UNCONFIRMED -> message.value = UiMessage.NOT_READY
             }
         }
     }

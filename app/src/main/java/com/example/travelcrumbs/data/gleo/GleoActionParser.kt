@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.data.gleo
 
+import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.GleoAction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -21,6 +22,14 @@ object GleoActionParser {
     fun parse(action: String?, actionParam: String?): Result<GleoAction> = runCatching {
         val functionName = action?.takeIf { it.isNotBlank() }
             ?: error("intent action is missing")
+        if (functionName == AppConfig.GLEO_FUNCTION_RECORD) {
+            require((actionParam?.length ?: 0) <= AppConfig.GLEO_MAX_ACTION_PARAM_CHARS)
+            // RECORD는 업무 파라미터가 없음. lenient OPEN 해석과 분리해 잘못된 JSON을 거절.
+            val raw = actionParam?.takeIf { it.isNotBlank() } ?: EMPTY_OBJECT
+            val obj = Json.parseToJsonElement(raw) as? JsonObject ?: error("ACTION_PARAM is not a JSON object")
+            require(obj.isEmpty())
+            return@runCatching GleoAction(functionName, emptyMap())
+        }
         val raw = actionParam?.takeIf { it.isNotBlank() } ?: EMPTY_OBJECT
         val element = json.parseToJsonElement(raw)
         val obj = element as? JsonObject ?: error("ACTION_PARAM is not a JSON object")

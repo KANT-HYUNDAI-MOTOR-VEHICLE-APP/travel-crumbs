@@ -7,6 +7,7 @@ import com.example.travelcrumbs.data.unfinishedinput.DefaultUnfinishedInputRepos
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputLocalDataSource
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
+import java.util.UUID
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -63,7 +64,7 @@ class FakeRecordPlaceUseCase(private val result: ActionResult = ActionResult.NOT
     var calls: Int = 0
         private set
 
-    override suspend fun invoke(): ActionResult {
+    override suspend fun invoke(idempotencyKey: UUID?): ActionResult {
         calls++
         return result
     }

@@ -113,7 +113,7 @@ def coord(value: float) -> Decimal:
 
 
 async def find_by_uuid(
-    session: AsyncSession, user_no: int, trip_uuid: str
+    session: AsyncSession, user_no: int, trip_uuid: str, *, lock: bool = False
 ) -> TripMst | None:
     """내 여행만 — 다른 사용자의 여행 UUID 면 없는 것으로."""
     stmt = select(TripMst).where(
@@ -121,6 +121,9 @@ async def find_by_uuid(
         TripMst.user_no == user_no,
         TripMst.deleted_yn == "N",
     )
+    if lock:
+        # FOR NO KEY UPDATE serializes keyed writes and allows foreign key checks.
+        stmt = stmt.with_for_update(key_share=True)
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -151,6 +154,9 @@ async def add_place(
     lat: float,
     lng: float,
     recorded_at: datetime,
+    *,
+    req_uuid: str | None,
+    req_hash: str | None,
 ) -> TripPlaceDtl:
     """임시 기록(draft_yn = Y) — 장소 연결 · 메모 · 후기는 정차 후(A-06)."""
     row = TripPlaceDtl(
@@ -158,12 +164,26 @@ async def add_place(
         lat=coord(lat),
         lng=coord(lng),
         recorded_at=recorded_at,
+        req_uuid=req_uuid,
+        req_hash=req_hash,
         created_user_no=user_no,
     )
     session.add(row)
     await session.flush()
     await session.refresh(row)
     return row
+
+
+async def find_place_by_request(
+    session: AsyncSession, trip_no: int, user_no: int, req_uuid: str
+) -> TripPlaceDtl | None:
+    # Deleted records still reserve their request keys.
+    stmt = select(TripPlaceDtl).where(
+        TripPlaceDtl.trip_no == trip_no,
+        TripPlaceDtl.created_user_no == user_no,
+        TripPlaceDtl.req_uuid == req_uuid,
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def increase_place_cnt(session: AsyncSession, trip_no: int) -> int:

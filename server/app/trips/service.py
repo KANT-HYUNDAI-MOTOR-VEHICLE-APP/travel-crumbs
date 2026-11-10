@@ -17,11 +17,15 @@
 - 내비 후보를 골랐으면 같은 POI 의 공식 장소(place_mst)에 연결, 없으면 새로 만듦(결정 로그 D19 · D20)
 """
 
+import json
 from datetime import UTC, datetime
+from hashlib import sha256
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode
 from app.history import repository as history_repository
 from app.places import repository as place_repository
 from app.trips import repository
@@ -91,14 +95,51 @@ async def add_route_points(
 
 
 async def record_place(
-    session: AsyncSession, user_no: int, trip_uuid: str, req: TripPlaceCreateRequest
+    session: AsyncSession,
+    user_no: int,
+    trip_uuid: str,
+    req: TripPlaceCreateRequest,
+    idempotency_key: UUID | None = None,
 ) -> TripPlaceResponse:
-    trip = await _active_trip(session, user_no, trip_uuid)
-    row = await repository.add_place(
-        session, trip.trip_no, user_no, req.lat, req.lng, req.recorded_at
-    )
-    place_cnt = await repository.increase_place_cnt(session, trip.trip_no)
-    await session.commit()
+    trip = await _my_trip(session, user_no, trip_uuid, lock=idempotency_key is not None)
+    req_uuid = str(idempotency_key) if idempotency_key is not None else None
+    req_hash = None
+    row = None
+    if req_uuid is not None:
+        # Compare validated coordinates before storage rounds them to 7 decimal places.
+        body = (
+            req.lat or 0.0,
+            req.lng or 0.0,
+            req.recorded_at.astimezone(UTC).isoformat(),
+        )
+        req_hash = sha256(json.dumps(body).encode()).hexdigest()
+        row = await repository.find_place_by_request(
+            session, trip.trip_no, user_no, req_uuid
+        )
+
+    if row is None:
+        _require_active_trip(trip)
+        row = await repository.add_place(
+            session,
+            trip.trip_no,
+            user_no,
+            req.lat,
+            req.lng,
+            req.recorded_at,
+            req_uuid=req_uuid,
+            req_hash=req_hash,
+        )
+        place_cnt = await repository.increase_place_cnt(session, trip.trip_no)
+        await session.commit()
+    else:
+        if row.deleted_yn == "Y":
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TRIP_PLACE_NOT_FOUND")
+        if row.req_hash != req_hash:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, detail=ErrorCode.IDEMPOTENCY_KEY_CONFLICT
+            )
+        place_cnt = trip.place_cnt
+
     return TripPlaceResponse(
         trip_place_no=row.trip_place_no,
         lat=float(row.lat),
@@ -308,8 +349,10 @@ async def route(
     )
 
 
-async def _my_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:
-    trip = await repository.find_by_uuid(session, user_no, trip_uuid)
+async def _my_trip(
+    session: AsyncSession, user_no: int, trip_uuid: str, *, lock: bool = False
+) -> TripMst:
+    trip = await repository.find_by_uuid(session, user_no, trip_uuid, lock=lock)
     if trip is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TRIP_NOT_FOUND")
     return trip
@@ -376,9 +419,13 @@ async def _change_status(
 async def _active_trip(session: AsyncSession, user_no: int, trip_uuid: str) -> TripMst:
     """진행 중(기록 중 또는 일시정지)인 내 여행."""
     trip = await _my_trip(session, user_no, trip_uuid)
+    _require_active_trip(trip)
+    return trip
+
+
+def _require_active_trip(trip: TripMst) -> None:
     if trip.trip_status_cd not in (TripStatus.RECORDING, TripStatus.PAUSED):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="TRIP_NOT_RECORDING")
-    return trip
 
 
 async def _recording_trip(

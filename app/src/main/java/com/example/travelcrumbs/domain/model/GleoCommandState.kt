@@ -1,0 +1,20 @@
+package com.example.travelcrumbs.domain.model
+
+/** 앱이 직접 관측한 명령 상태. 음성 원문·좌표·여행 식별자는 보관하지 않음. */
+data class GleoCommandState(
+    val noticeId: Long = 0L,
+    val phase: GleoCommandPhase = GleoCommandPhase.IDLE,
+)
+
+enum class GleoCommandPhase(val inProgress: Boolean = false) {
+    IDLE,
+    PREPARING(inProgress = true),
+    LOADING_TRIP(inProgress = true),
+    PROCESSING(inProgress = true),
+    SAVED,
+    INVALID_REQUEST,
+    NOT_READY,
+    CONSENT_REQUIRED,
+    FAILED,
+    UNCONFIRMED,
+}

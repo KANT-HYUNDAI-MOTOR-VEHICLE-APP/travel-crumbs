@@ -21,6 +21,7 @@ jobs:
       app: ${{ steps.filter.outputs.app }}
       server: ${{ steps.filter.outputs.server }}
       server_exists: ${{ steps.exists.outputs.server }}
+      server_tools: ${{ steps.exists.outputs.server_tools }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -40,8 +41,12 @@ jobs:
               - '.github/workflows/ci.yml'
       # server/ 는 아직 없음. ci.yml 만 고쳐도 위 필터가 켜지므로 폴더 유무를 함께 봄 —
       # 서버 첫 이슈에서 폴더가 생기면 이 줄은 저절로 true 가 됨.
+      # 서버 검사 도구(ruff · mypy · import-linter · pytest)가 pyproject 에 아직 없음(#25 PR #27 에서 처음 드러남).
+      # 도구가 들어오기 전엔 server 잡을 건너뜀 — pyproject 에 ruff 가 들어오면 이 줄은 저절로 true 가 됨.
       - id: exists
-        run: echo "server=$([ -d server ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "server=$([ -d server ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "server_tools=$(grep -qs ruff server/pyproject.toml && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   app:
     needs: changes
@@ -70,7 +75,7 @@ jobs:
 
   server:
     needs: changes
-    if: needs.changes.outputs.server == 'true' && needs.changes.outputs.server_exists == 'true'
+    if: needs.changes.outputs.server == 'true' && needs.changes.outputs.server_exists == 'true' && needs.changes.outputs.server_tools == 'true'
     runs-on: ubuntu-latest
     services:
       db:
