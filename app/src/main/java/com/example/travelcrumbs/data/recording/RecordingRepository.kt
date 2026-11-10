@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * 지금 여행 상태 · 경과의 단일 출처(#6 D1 · 스펙 app-shell-v5 3-4) — 홈 · 주행 화면이 같은 값을 봄.
@@ -23,6 +24,13 @@ import kotlinx.coroutines.flow.flowOf
 interface RecordingRepository {
     /** 상태 + 경과(분) + 여행명 · 장소 수 — 기록 중이면 분이 바뀔 때마다 새 값. */
     val progress: Flow<RecordingProgress>
+
+    /**
+     * 진행 중 여행(RECORDING · PAUSED)이 있나 — 상태가 바뀔 때만 새 값(경과 시계를 돌리지 않음 · #55 홈 근처 로드맵 자격 판정).
+     * 기본은 [progress] 에서 뽑음 · 기본 구현은 여행 값에서 바로.
+     */
+    val tripInProgress: Flow<Boolean>
+        get() = progress.map { it.status.inProgress }.distinctUntilChanged()
 
     /** 「기록 일시정지」 · 「기록 재개」 — RECORDING ↔ PAUSED · 그 밖 상태는 그대로(D30 · V64 · 이름은 gleo-ai/main 과 같게 · N16). */
     suspend fun togglePause()
@@ -55,6 +63,10 @@ class DefaultRecordingRepository @Inject constructor(
     override val progress: Flow<RecordingProgress> = local.trip
         .distinctUntilChanged()
         .flatMapLatest { trip -> trip?.ticks() ?: flowOf(RecordingProgress.NONE) }
+        .distinctUntilChanged()
+
+    override val tripInProgress: Flow<Boolean> = local.trip
+        .map { it?.status?.inProgress == true }
         .distinctUntilChanged()
 
     override suspend fun togglePause() {

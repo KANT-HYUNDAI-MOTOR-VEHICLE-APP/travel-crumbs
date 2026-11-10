@@ -63,7 +63,13 @@ data class RecommendationsUiState(
     val rating: RatingDialogItem? = null,
     /** 안내 요청 결과 · 별점 저장 한 줄(요청함 · 시작 못 함 · 남겼어요) — 화면이 보여 준 뒤 지움. */
     val message: UiMessage? = null,
+    /** 지금 B-04 를 기록 칸 근처 로드맵 카드로 열었나(#55) — 참이면 B-04 의 뒤로가 기록 칸으로(N13). */
+    val detailFromHome: Boolean = false,
 ) {
+    /** 뒤로(시스템 · 머리글)가 이 칸을 떠나 기록 칸으로 가야 하나 — 홈 카드로 연 B-04 · 팝업 없음(#55 · 3-4). */
+    val backLeavesTab: Boolean
+        get() = detailFromHome && page == RecommendationPage.DETAIL && confirm == null && rating == null
+
     /** 시스템 뒤로를 이 칸이 받는지 — 팝업이 떠 있거나 B-01 이 아닐 때. 아니면 앱 틀이 받음(「기록」으로). */
     val handlesBack: Boolean
         get() = confirm != null || rating != null || page != RecommendationPage.REGION ||

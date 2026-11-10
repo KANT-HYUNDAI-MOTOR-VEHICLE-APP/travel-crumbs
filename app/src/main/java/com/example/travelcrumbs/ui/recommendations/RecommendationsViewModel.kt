@@ -129,12 +129,25 @@ class RecommendationsViewModel @Inject constructor(
      * 앱 틀의 진입 값(레일 「추천」 · 「추천 보러 가기」마다 오름)이 지난번과 다르면 B-01 부터 · 고른 것 초기화.
      * 같으면(주행 → 정차 · 화면 재구성 · 프로세스 재생성) 보던 화면 그대로.
      */
-    fun onEntry(entryKey: Int) {
+    fun onEntry(entryKey: Int, openTripNo: Long? = null, openSidoNm: String? = null) {
         // 화면에 들어올 때마다 공개 자료를 다시 읽음 — 비공개 · 삭제된 장소의 핀 · 카드를 지움(M26)
         loadAllTrips()
         if (savedStateHandle.get<Int>(KEY_ENTRY) == entryKey) return
         savedStateHandle[KEY_ENTRY] = entryKey
-        updateSelection { Selection.START }
+        updateSelection {
+            if (openTripNo == null || openSidoNm == null) {
+                Selection.START
+            } else {
+                // 기록 칸 근처 로드맵 카드(#55 · 3-4) — 그 로드맵 B-04 부터 · 못 찾으면 B-01(시도는 골라 둔 채)
+                Selection.START.copy(
+                    page = RecommendationPage.DETAIL,
+                    sidoNm = openSidoNm,
+                    tripNo = openTripNo,
+                    detailFrom = RecommendationPage.REGION,
+                    detailFromHome = true,
+                )
+            }
+        }
         guidance.value = GuidanceProgress()
         rating.clear()
         // 지도 준비 · 실패는 지도가 알려 준 그대로 두고 첫 맞춤 · 결과 · 후보만 처음부터(지도 위치는 지도 그리는 쪽이 진입 값으로 버림)
@@ -223,7 +236,7 @@ class RecommendationsViewModel @Inject constructor(
 
     /** B-02 · B-03 로드맵 카드 → B-04. 뒤로는 온 화면으로. */
     fun openTrip(tripNo: Long) = updateSelection {
-        it.copy(page = RecommendationPage.DETAIL, tripNo = tripNo, detailFrom = it.page, confirmPlaceNo = null)
+        it.copy(page = RecommendationPage.DETAIL, tripNo = tripNo, detailFrom = it.page, confirmPlaceNo = null, detailFromHome = false)
     }
 
     /** B-04 「첫 장소부터 안내」 → B-05 팝업. */
@@ -303,7 +316,7 @@ class RecommendationsViewModel @Inject constructor(
     private fun backFrom(sel: Selection): Selection =
         when {
             sel.confirmPlaceNo != null -> sel.copy(confirmPlaceNo = null)
-            sel.page == RecommendationPage.DETAIL -> sel.copy(page = sel.detailFrom, tripNo = null)
+            sel.page == RecommendationPage.DETAIL -> sel.copy(page = sel.detailFrom, tripNo = null, detailFromHome = false)
             sel.page == RecommendationPage.TAGS -> sel.copy(page = RecommendationPage.RANKING)
             sel.page == RecommendationPage.RANKING -> sel.copy(page = RecommendationPage.REGION)
             else -> sel
@@ -398,6 +411,7 @@ class RecommendationsViewModel @Inject constructor(
             },
             guidanceRequesting = progress.requesting,
             message = progress.message,
+            detailFromHome = sel.detailFromHome,
         )
     }
 
@@ -502,6 +516,7 @@ class RecommendationsViewModel @Inject constructor(
         // 지도: 선택 장소 번호 · 고른 로드맵 번호만(지도 위치 · 확대 · 좌표 없음 · M27 · M41)
         savedStateHandle[KEY_MAP_PLACE] = next.mapPlaceNo
         savedStateHandle[KEY_MAP_TRIP] = next.mapTripNo
+        savedStateHandle[KEY_DETAIL_FROM_HOME] = next.detailFromHome
     }
 
     private fun restoreSelection(): Selection = Selection(
@@ -517,6 +532,7 @@ class RecommendationsViewModel @Inject constructor(
         mapPlaceNo = savedStateHandle[KEY_MAP_PLACE],
         mapTripNo = savedStateHandle[KEY_MAP_TRIP],
         mapFromCandidates = false,
+        detailFromHome = savedStateHandle[KEY_DETAIL_FROM_HOME] ?: false,
     )
 
     /** 사용자가 고른 것 — 화면 상태의 원본(저장 · 복원 단위). */
@@ -534,6 +550,8 @@ class RecommendationsViewModel @Inject constructor(
         val mapPlaceNo: Long?,
         val mapTripNo: Long?,
         val mapFromCandidates: Boolean,
+        /** B-04 를 기록 칸 근처 로드맵 카드로 열었나(#55) — 뒤로가 기록 칸으로. */
+        val detailFromHome: Boolean = false,
     ) {
         companion object {
             /** B-01 · 아무것도 고르지 않음. */
@@ -598,6 +616,7 @@ class RecommendationsViewModel @Inject constructor(
         const val KEY_ENTRY = "reco_entry_key"
         const val KEY_MAP_PLACE = "reco_map_place_no"
         const val KEY_MAP_TRIP = "reco_map_trip_no"
+        const val KEY_DETAIL_FROM_HOME = "reco_detail_from_home"
 
         inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
             enumValues<E>().firstOrNull { it.name == name }
