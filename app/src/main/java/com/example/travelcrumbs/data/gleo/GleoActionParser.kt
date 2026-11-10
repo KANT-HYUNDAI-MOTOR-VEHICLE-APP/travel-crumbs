@@ -27,6 +27,9 @@ object GleoActionParser {
             val primitive = value as? JsonPrimitive ?: error("$key is not a primitive")
             require(primitive.isString) { "$key is not a string" }
             primitive.content
+        }.filterNot { (key, value) ->
+            // 실제 Gleo 는 지역을 말하지 않으면 region 을 빼지 않고 빈 문자열로 보냄(#69 실기 2026-11-10) → 「말하지 않음」.
+            key == AppConfig.GLEO_PARAM_REGION && value.isBlank()
         }
         when (functionName) {
             AppConfig.GLEO_FUNCTION_RECORD -> require(values.isEmpty())
@@ -37,9 +40,7 @@ object GleoActionParser {
             AppConfig.GLEO_FUNCTION_INFO -> {
                 require((values.keys - setOf(AppConfig.GLEO_PARAM_INFO_TYPE, AppConfig.GLEO_PARAM_REGION)).isEmpty())
                 require(values[AppConfig.GLEO_PARAM_INFO_TYPE] in INFO_TYPES)
-                values[AppConfig.GLEO_PARAM_REGION]?.let {
-                    require(it.isNotBlank() && it.length <= AppConfig.GLEO_MAX_REGION_CHARS)
-                }
+                values[AppConfig.GLEO_PARAM_REGION]?.let { require(it.length <= AppConfig.GLEO_MAX_REGION_CHARS) }
             }
             else -> error("unknown function")
         }

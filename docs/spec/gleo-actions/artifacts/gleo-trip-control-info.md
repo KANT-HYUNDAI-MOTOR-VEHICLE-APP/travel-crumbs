@@ -152,7 +152,7 @@ debug(`app/src/debug/assets/schema.json`) — 3개. release(`app/src/main/assets
 | T14 | 동시 명령 | RECORD 처리 중 CONTROL | 두 번째 즉시 fail |
 | T15 | release | 빌드 산출물 | 스키마·매니페스트에 U1 결정 함수만 |
 | T16 | 실제 음성 | 「기록 잠깐 멈춰 줘」 · 「다시 기록해 줘」 · 「여행 끝낼게」 · 「오늘 몇 군데 기록했어?」 · 「근처 추천 코스 알려 줘」 · 「경주 근처 추천 코스 알려 줘」 | 각각 해당 함수(마지막은 `region` 경주) · 7초 안 수락 |
-| T17 | OPEN 제거 | 「여행 부스러기 열어 줘」 | Gleo 기본 앱 실행으로 열림(우리 함수 호출 없음) |
+| T17 | OPEN 제거 | 「Travel Crumbs 열어 줘」 | Gleo 기본 앱 실행으로 열림(우리 함수 호출 없음) |
 
 ## 6. 사람 결정(2026-11-10 · 스펙 PR #70)
 
@@ -161,7 +161,7 @@ debug(`app/src/debug/assets/schema.json`) — 3개. release(`app/src/main/assets
 | U1 | release 에서 `SHOW_TRAVEL_INFO`만 허용할까 | 허용. RECORD · CONTROL 은 R1 확인 전까지 debug 만 |
 | U2 | 음성 END 를 확인 팝업 없이 바로 끝낼까 | 팝업만 |
 | U3 | 「근처」 기준 | 말한 지역이 있으면 그 지역(「경주 근처」 → 경주시), 없으면 현재 위치에서 가장 가까운 시군구 1곳 |
-| U4 | OPEN 없이 「여행 부스러기 열어 줘」가 열리는지 | OPEN 을 빼고 진행 · T17 실기 확인. 안 열리면 그때 다시 결정 |
+| U4 | OPEN 없이 「Travel Crumbs 열어 줘」가 열리는지 | OPEN 을 빼고 진행 · T17 실기 확인. 안 열리면 그때 다시 결정 |
 
 ## 7. 완료 조건
 

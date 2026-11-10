@@ -1,13 +1,14 @@
 {
   "packageName": "com.example.travelcrumbs",
-  "appDescription": "An app that records the places of a car trip and recommends travel roadmaps shared by other drivers.",
+  "appDescription": "Travel Crumbs records the places visited on a car trip and recommends travel routes and courses that other drivers shared.",
+  "invokeWord": "트래블 크럼스",
   "version": "0.1.0",
   "actionCalls": [
     {
       "type": "function",
       "function": {
         "name": "SHOW_TRAVEL_INFO",
-        "description": "Tells the user today's Travel Crumbs trip records or recommended travel roadmaps for a region.",
+        "description": "Recommends Travel Crumbs travel routes and courses for a region or near the vehicle and shows them on the screen, or tells today's Travel Crumbs trip records.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -17,11 +18,11 @@
                 "TODAY_RECORDS",
                 "RECOMMENDED_ROADMAPS"
               ],
-              "description": "Which Travel Crumbs information to tell the user."
+              "description": "RECOMMENDED_ROADMAPS for travel route or course recommendations, TODAY_RECORDS for the places recorded today."
             },
             "region": {
               "type": "string",
-              "description": "Korean city, county, district or province name the user asked about for recommended roadmaps; omit when the user did not name a place."
+              "description": "Korean city, county, district or province the user wants travel route recommendations for; omit when no place is named."
             }
           },
           "required": [

@@ -40,6 +40,11 @@ class GleoActionParserTest {
         assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"region":"경주"}""").isFailure)
         assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"WEATHER"}""").isFailure)
         assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"TODAY_RECORDS","lat":"37"}""").isFailure)
+        // 실제 Gleo: 지역을 안 말하면 region 이 빈 문자열 → 키가 없는 것과 같게
+        val blank = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":""}""").getOrThrow()
+        assertEquals(null, blank.parameters["region"])
+        val spaces = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":"  "}""").getOrThrow()
+        assertEquals(null, spaces.parameters["region"])
         val tooLong = "가".repeat(AppConfig.GLEO_MAX_REGION_CHARS + 1)
         assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":"$tooLong"}""").isFailure)
     }
