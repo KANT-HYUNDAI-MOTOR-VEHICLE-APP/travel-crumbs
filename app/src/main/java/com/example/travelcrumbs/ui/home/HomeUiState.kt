@@ -6,7 +6,9 @@ import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.domain.model.TripStatus
+import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
 import com.example.travelcrumbs.ui.components.RatingDialogItem
+import com.example.travelcrumbs.ui.components.TripSummaryItem
 import com.example.travelcrumbs.ui.components.UiMessage
 
 /**
@@ -49,6 +51,22 @@ data class HomeUiState(
     val dummyRouteAvailable: Boolean = false,
     /** 다녀온 로드맵 별점 자동 팝업(#41 B-06) — 없으면 null. */
     val ratingPrompt: RatingDialogItem? = null,
+    /** 여행이 하나라도 있나(v6 — 첫 실행엔 없음 · #51 U1). */
+    val hasTrip: Boolean = true,
+    /** 진행 중 여행 이름 — 없으면 「새 여행」. */
+    val tripName: String? = null,
+    /** C-02 인사(user_mst.nickname_nm · #51 U2). */
+    val nicknameNm: String = "",
+    /** C-02 최근 여행 카드 — 가장 최근 끝난 여행 1개 · 없으면 null(「최근 여행이 없어요」). */
+    val recentTrip: TripSummaryItem? = null,
+    /** A-04 여행 종료 확인 팝업(정차 「여행 종료」). */
+    val endConfirmVisible: Boolean = false,
+    /** A-01 여행 시작 화면이 열림(진행 중 여행이 없을 때만 · #51 U3). */
+    val tripStartOpen: Boolean = false,
+    /** A-03 장소 기록 · 태그 시트 — 정차일 때만 · 없으면 null(#51 U4). */
+    val tagSheet: PlaceTagSheetItem? = null,
+    /** A-05 로드맵 검토를 기다리는 여행(끝난 최근 여행 · 별점 팝업이 없을 때만 · #51 U5) — 있으면 기록 칸이 검토 화면. */
+    val reviewTripNo: Long? = null,
 ) {
     /**
      * 맨 위 영역 모양 — 진행 중(RECORDING · PAUSED): 기록 상태 · 경과 · 장소 수 · 「이 장소 기록」 /

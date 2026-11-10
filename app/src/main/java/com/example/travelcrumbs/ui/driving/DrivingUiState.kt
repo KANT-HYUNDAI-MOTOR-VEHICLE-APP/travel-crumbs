@@ -13,6 +13,10 @@ data class DrivingUiState(
     /** 여행 종료 확인 팝업 표시. */
     val endConfirmVisible: Boolean = false,
     val message: UiMessage? = null,
+    /** 내비 안내 카드(넓은 칸 · #51 U0) — 내비가 지금 목적지로 안내 중이면 그 이름 · 아니면 null. */
+    val naviDestinationName: String? = null,
+    /** 「내비 보기」 — 이 기기에 내비 앱이 있을 때만. */
+    val naviAppAvailable: Boolean = false,
 ) {
     /** 「이 장소 기록」 · 「여행 종료」 — 진행 중 여행(RECORDING · PAUSED)일 때만(D26 · N23 · N24). 「음성」은 늘. */
     val recordingActionsEnabled: Boolean get() = tripStatus.inProgress

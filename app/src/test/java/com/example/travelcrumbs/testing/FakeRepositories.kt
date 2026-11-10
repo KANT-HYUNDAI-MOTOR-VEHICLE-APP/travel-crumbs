@@ -44,6 +44,27 @@ class FakeNaviRepository(
 
     override suspend fun routeState(): NaviRouteState = result.getOrThrow()
 
+    /** 내비 앱이 있는 기기 흉내(#51 U0) — 거짓이면 「내비 보기」 없음. */
+    var naviApp: Boolean = true
+
+    /** 「내비 보기」 · 목적지 없는 여행 시작으로 내비 앱을 연 횟수. */
+    var naviAppOpens: Int = 0
+        private set
+
+    /** 지금 위치(#51 U4) — null 이면 못 읽음. */
+    var location: com.example.travelcrumbs.domain.model.CurrentLocation? =
+        com.example.travelcrumbs.domain.model.CurrentLocation(38.2049, 128.5906, "강원 속초시 중앙로 147")
+
+    override suspend fun currentLocation(): com.example.travelcrumbs.domain.model.CurrentLocation? = location
+
+    override fun naviAppAvailable(): Boolean = naviApp
+
+    override fun openNaviApp(): Boolean {
+        if (!naviApp) return false
+        naviAppOpens++
+        return true
+    }
+
     /** 길안내 요청을 받은 장소들(#4) — 요청 건수를 셈. */
     val routeRequests = mutableListOf<Place>()
 

@@ -55,6 +55,7 @@ class RecordingLocalDataSourceTest {
     @Test
     fun `V57 #6 판 PAUSED 누적 30분 — 실행하면 PAUSED 그대로 · 경과 30분 · 시계가 가도 그대로 · 옛 키 지워짐`() = runBlocking {
         seedLegacy(status = "PAUSED", accumulated = 30 * minute, segmentStart = 5 * minute)
+        local.update { it } // 처음 쓸 때 옛 값 옮기기(Room 판 prepare 가 부르는 길 · #51 U1)
 
         val progress = DefaultRecordingRepository(local, time).progress.first()
 
@@ -73,6 +74,7 @@ class RecordingLocalDataSourceTest {
     @Test
     fun `V57 #6 판 RECORDING — 누적 + 저장된 구간 시작부터 이어짐 · 앱이 꺼져 있던 시간 포함`() = runBlocking {
         seedLegacy(status = "RECORDING", accumulated = 10 * minute, segmentStart = time.now - 20 * minute)
+        local.update { it } // 처음 쓸 때 옛 값 옮기기(Room 판 prepare 가 부르는 길 · #51 U1)
 
         val progress = DefaultRecordingRepository(local, time).progress.first()
 

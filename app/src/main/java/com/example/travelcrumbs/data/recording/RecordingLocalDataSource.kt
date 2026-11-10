@@ -14,16 +14,20 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** 지금 여행 요약을 기기 안에 남김 — 앱 종료 · 재부팅 뒤 복원(#6 D3 · 스펙 app-shell-v5 4-1). */
+/**
+ * 지금 여행 요약을 기기 안에 남김 — 앱 종료 · 재부팅 뒤 복원(#6 D3 · 스펙 app-shell-v5 4-1).
+ * 바인딩은 Room 판([RoomRecordingLocalDataSource] · trip_mst · #51 U1). DataStore 판은 옛 기기 값을 옮길 때만 읽음.
+ */
 interface RecordingLocalDataSource {
     /** 저장된 지금 여행 요약 — 없으면 null(#6 판 값만 있어도 null · [update] 가 옮김). */
     val trip: Flow<CurrentTrip?>
 
     /**
      * 읽고 바꾸기를 한 번에(원자적) — 두 화면이 거의 동시에 눌러도 어긋나지 않게.
-     * 새 키가 비어 있고 #6 판 값이 있으면 그 값을 옮겨 [transform] 에 넘기고 옛 키를 지움(N10).
+     * [transform] 이 null 을 돌려주면 아무것도 바꾸지 않음(여행이 없는데 일시정지 · 종료 등).
+     * DataStore 판: 새 키가 비어 있고 #6 판 값이 있으면 그 값을 옮겨 [transform] 에 넘기고 옛 키를 지움(N10).
      */
-    suspend fun update(transform: (CurrentTrip?) -> CurrentTrip)
+    suspend fun update(transform: (CurrentTrip?) -> CurrentTrip?)
 }
 
 @Singleton
@@ -34,13 +38,31 @@ class DataStoreRecordingLocalDataSource @Inject constructor(
 
     override val trip: Flow<CurrentTrip?> = dataStore.data.map { it.toTrip() }
 
-    override suspend fun update(transform: (CurrentTrip?) -> CurrentTrip) {
+    override suspend fun update(transform: (CurrentTrip?) -> CurrentTrip?) {
         dataStore.edit { prefs ->
             val current = prefs.toTrip() ?: prefs.legacyTrip(timeSource.nowMillis())
-            prefs.write(transform(current))
+            transform(current)?.let { prefs.write(it) }
             prefs.remove(Legacy.RECORDING_STATUS)
             prefs.remove(Legacy.RECORDING_ACCUMULATED_MILLIS)
             prefs.remove(Legacy.RECORDING_SEGMENT_START_MILLIS)
+        }
+    }
+
+    /** 옮긴 뒤 지움 — 지금 여행 요약 키 전부(#51 U1 · Room 으로 옮긴 뒤 한 번). */
+    suspend fun clear() {
+        dataStore.edit { prefs ->
+            listOf(
+                AppPreferencesKeys.TRIP_STATUS,
+                AppPreferencesKeys.TRIP_NAME,
+                AppPreferencesKeys.TRIP_START_AT_MILLIS,
+                AppPreferencesKeys.TRIP_END_AT_MILLIS,
+                AppPreferencesKeys.TRIP_PLACE_COUNT,
+                AppPreferencesKeys.TRIP_ACCUMULATED_MILLIS,
+                AppPreferencesKeys.TRIP_SEGMENT_START_MILLIS,
+                Legacy.RECORDING_STATUS,
+                Legacy.RECORDING_ACCUMULATED_MILLIS,
+                Legacy.RECORDING_SEGMENT_START_MILLIS,
+            ).forEach { prefs.remove(it) }
         }
     }
 

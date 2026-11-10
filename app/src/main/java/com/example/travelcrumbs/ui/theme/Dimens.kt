@@ -22,6 +22,17 @@ object Dimens {
      */
     val DrivingButtonsRowMinWidth = 940.dp
 
+    /** C-02 「여행 시작」 · 「추천 보러 가기」 카드 — 이 폭보다 좁으면(나눈 칸) 위아래로 · 카드 최소 높이(#51 U2). */
+    val HomeChoiceRowMinWidth = 900.dp
+    val HomeChoiceCardHeight = 160.dp
+
+    /** 설정 카드 오른쪽 버튼(「수정」 · 「철회」) 최소 폭(#51 U2). */
+    val SettingsActionMinWidth = 160.dp
+
+    /** A-05 · A-08 — 이 폭 이상이면 경로 그림 왼쪽 · 장소 오른쪽 · 아니면 위아래(경로 그림 높이) · #51 U5. */
+    val RoadmapWideMinWidth = 1000.dp
+    val RoadmapSketchHeight = 320.dp
+
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
 
@@ -49,7 +60,11 @@ object Dimens {
     val ButtonBorderWidth = 2.dp
 
     /** 주행 화면 지도 자리 테두리. */
-    val MapPlaceholderBorder = 2.dp
+    /**
+     * 주행 화면 내용 폭이 이 값 이상이면 「넓은 칸」(앱 영역 전체 · 내비가 옆에 없음) — 「내비 안내」 카드를 그림(#51 U0).
+     * 나눈 칸(약 817dp − 레일 120)은 이보다 좁고, 나누지 않은 앱 영역(1682 − 120)은 넓음.
+     */
+    val DrivingWideMinWidth = 1000.dp
     /** 장소 항목 오른쪽 버튼(「여기로 안내」 · 「고정」) 최소 폭 — 높이는 [HomeButtonHeight](스펙 navigation E5 · E10). */
     val PlaceButtonMinWidth = 220.dp
 
@@ -84,11 +99,31 @@ object Dimens {
     val SketchLineWidth = 4.dp
     const val DetailRouteWeight = 0.42f
 
+    /** 추천 상세 도로 지도 — 지역 이름 · 출처 여백, 번호 핀 테두리, 지형 · 도로별 선 두께. */
+    val RoadmapMapLabelPadding = 8.dp
+    val RoadmapMapEdgePadding = 16.dp
+    val RoadmapMapLabelInset = 44.dp
+    val RoadmapMapPinOutline = 2.dp
+    val RoadmapMapRiverWidth = 6.dp
+    val RoadmapMapShoreWidth = 1.2.dp
+    val RoadmapMapLocalRoadWidth = 0.8.dp
+    val RoadmapMapStreetWidth = 1.3.dp
+    val RoadmapMapMajorRoadWidth = 1.8.dp
+
     /** 추천 상세 장소 칸의 「여기로 안내」 버튼 최소 폭. */
     val GuideHereButtonMinWidth = 200.dp
 
-    /** 별점 팝업(#41 B-06) 최대 폭 · 별 하나의 터치 칸. */
-    val RatingDialogMaxWidth = 1040.dp
+    /**
+     * 팝업 틀(AppDialog · 디자인 시스템 18절) 폭 = 창 폭 × [DialogWidthFraction] 을 [DialogMinWidth] ~ [DialogMaxWidth] 로 자름(#51 사람 요청).
+     * 비율 0.6 = 사람이 실기기에서 「적당하다」고 본 B-05 팝업 폭(앱 창 1682dp 의 약 60%). 최소 560 = 버튼 두 개(주요 버튼 글자 28)
+     * + 별 다섯 개(88 × 5 + 16 × 4) 가 한 줄에 드는 폭. 최대 1040 = 별점 팝업(#41) 이 쓰던 최대 폭 그대로.
+     * 창이 최소보다 좁으면 창 폭(바깥 여백 뺀)까지 줄어듦.
+     */
+    const val DialogWidthFraction = 0.6f
+    val DialogMinWidth = 560.dp
+    val DialogMaxWidth = 1040.dp
+
+    /** 별점 팝업(#41 B-06) 별 하나의 터치 칸. */
     val RatingStarSize = 88.dp
 
     /** 선택 카드 · 칩 테두리. */

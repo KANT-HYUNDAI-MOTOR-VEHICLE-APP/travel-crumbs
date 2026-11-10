@@ -53,6 +53,28 @@ object AppConfig {
     const val RATING_SCORE_MIN: Int = 1
     const val RATING_SCORE_MAX: Int = 5
 
+    /** 주행 화면 「내비 안내」 카드가 내비 안내 상태를 다시 읽는 간격(밀리초 · #51 U0) — 화면이 앞에 있을 때만. */
+    const val NAVI_STATUS_REFRESH_MILLIS: Long = 15_000L
+
+    /**
+     * 기기 안 기본 사용자(#51 U1) — 로그인 화면(C-01) 전까지 한 명. 로그인 담당이 CurrentUserRepository 구현을 바꾸면 안 씀.
+     * 기본 닉네임은 화면 문구가 아니라 user_mst.nickname_nm 의 처음 값(데이터)이라 여기 둠 — C-03 에서 바꿈.
+     */
+    const val LOCAL_USER_NO: Long = 1L
+    const val DEFAULT_NICKNAME_NM: String = "여행자"
+
+    /** 입력 길이 한도(글자) — 닉네임 · 여행명 · 장소 이름은 표준 도메인 「명」 100 · 메모는 「메모」 500 안에서 화면에 맞게. */
+    const val NICKNAME_MAX_LENGTH: Int = 20
+    const val TRIP_NAME_MAX_LENGTH: Int = 40
+    const val PLACE_NAME_MAX_LENGTH: Int = 60
+    const val MEMO_MAX_LENGTH: Int = 500
+
+    /**
+     * 내 공개 여행이 추천 로드맵에 오를 때 쓰는 번호 = 이 값 + trip_no(#51 U6 · U7) — 시드 로드맵 번호(101 ~ 301)와 겹치지 않게.
+     * 별점 기록(기기 안)도 이 번호로 남음. 서버 추천 API 가 생기면 서버 번호로 바뀜.
+     */
+    const val LOCAL_TRIP_RECO_NO_OFFSET: Long = 1_000_000L
+
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
 

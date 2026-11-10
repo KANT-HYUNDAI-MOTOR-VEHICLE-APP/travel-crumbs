@@ -11,6 +11,10 @@ import com.example.travelcrumbs.data.place.PlaceStatsRepository
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
+import com.example.travelcrumbs.data.trip.TagRepository
+import com.example.travelcrumbs.data.trip.TripRepository
+import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
+import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuideRequestState
@@ -19,18 +23,23 @@ import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DemoFeatures
+import com.example.travelcrumbs.domain.model.DraftPlaceInput
 import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.SdkStatus
 import com.example.travelcrumbs.ui.rating.RatingPopupHolder
+import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
 import com.example.travelcrumbs.ui.components.UiMessage
+import com.example.travelcrumbs.ui.components.toSummary
+import com.example.travelcrumbs.domain.model.TripStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -60,10 +69,14 @@ class HomeViewModel @Inject constructor(
     private val placeStatsRepository: PlaceStatsRepository,
     private val guideRequests: GuideRequestTracker,
     private val demoFeatures: DemoFeatures,
-    ratingRepository: RatingRepository,
+    private val ratingRepository: RatingRepository,
     recommendationRepository: RecommendationRepository,
-    timeSource: TimeSource,
-    savedStateHandle: SavedStateHandle,
+    private val timeSource: TimeSource,
+    private val savedStateHandle: SavedStateHandle,
+    userRepository: CurrentUserRepository,
+    private val tripRepository: TripRepository,
+    private val tagRepository: TagRepository,
+    private val unfinishedInputRepository: UnfinishedInputRepository,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -133,15 +146,61 @@ class HomeViewModel @Inject constructor(
         PlacesPart.of(all, pinnedIds, request, stats, marks.guideScreenFrom, marks.dummyRouteAttempt)
     }
 
+    /** v6 첫 화면(C-02 · #51 U2) — 닉네임 · 최근 끝난 여행 1개 · 여행 종료 확인 팝업. */
+    private val v6Part = combine(
+        userRepository.user,
+        tripRepository.trips,
+        savedStateHandle.getStateFlow(KEY_END_CONFIRM, false),
+        savedStateHandle.getStateFlow(KEY_TRIP_START, false),
+        tripRepository.pendingReviewTripNo,
+    ) { user, trips, endConfirm, tripStart, reviewTripNo ->
+        V6Part(
+            tripStartOpen = tripStart,
+            reviewTripNo = reviewTripNo,
+            nicknameNm = user.nicknameNm,
+            recentTrip = trips.firstOrNull { it.status == TripStatus.COMPLETED }?.toSummary(timeSource.zoneId()),
+            endConfirmVisible = endConfirm,
+        )
+    }
+
+    private data class V6Part(
+        val tripStartOpen: Boolean,
+        val reviewTripNo: Long?,
+        val nicknameNm: String,
+        val recentTrip: com.example.travelcrumbs.ui.components.TripSummaryItem?,
+        val endConfirmVisible: Boolean,
+    )
+
+    /** A-03 장소 기록 · 태그 시트(#51 U4) — 정차 중 「이 장소 기록」 · 「이어서 쓰기」 띠로 엶. */
+    private val tagSheet = PlaceTagSheetHolder(
+        scope = viewModelScope,
+        trips = tripRepository,
+        tags = tagRepository,
+        savedStateHandle = savedStateHandle,
+        timeSource = timeSource,
+        onSaved = { message.value = it },
+    )
+
+    private val extras = combine(rating.item, v6Part, tagSheet.item) { prompt, part, sheet -> Triple(prompt, part, sheet) }
+
     val uiState: StateFlow<HomeUiState> = combine(
         recordingRepository.progress,
         message,
         sdkCheck,
         places,
-        rating.item,
-    ) { progress, shown, sdk, part, prompt ->
+        extras,
+    ) { progress, shown, sdk, part, (prompt, v6, sheet) ->
         val parked = sdk.drivingState == DrivingState.PARKED
         sdk.copy(
+            hasTrip = progress.hasTrip,
+            tripName = progress.tripName,
+            nicknameNm = v6.nicknameNm,
+            recentTrip = v6.recentTrip,
+            endConfirmVisible = v6.endConfirmVisible && progress.status.inProgress,
+            tripStartOpen = v6.tripStartOpen && !progress.status.inProgress,
+            tagSheet = sheet.takeIf { parked },
+            // A-05 검토는 별점 팝업(#41)이 닫힌 뒤(지시서 U5 순서)
+            reviewTripNo = v6.reviewTripNo.takeIf { prompt == null },
             tripStatus = progress.status,
             elapsedMinutes = progress.elapsedMinutes,
             placeCount = progress.placeCount,
@@ -166,6 +225,14 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { candidates.value = placeCatalogRepository.candidates() }
+        // 「이어서 쓰기」 띠(주행 중 기록한 임시저장 장소 · #51 U4) — 그 장소로 A-03 시트를 엶
+        viewModelScope.launch {
+            unfinishedInputRepository.pendingRestore.collect { restore ->
+                if (restore?.destinationId != DraftPlaceInput.DESTINATION_ID) return@collect
+                restore.fields[DraftPlaceInput.FIELD_TRIP_PLACE_NO]?.toLongOrNull()?.let(tagSheet::open)
+                unfinishedInputRepository.consumeRestore(DraftPlaceInput.DESTINATION_ID)
+            }
+        }
         // 주행 · 모름이 되면 길안내 연결 화면 · 더미 경로를 닫음 — 정차로 돌아와도 홈 목록(U54 넓힘 · T124 · T125).
         // 주행 중엔 홈 화면이 그려지지 않아 uiState 구독이 멈추므로 따로 받음(주행 판정 출처는 하나 · 공유 흐름).
         viewModelScope.launch {
@@ -187,15 +254,63 @@ class HomeViewModel @Inject constructor(
     /** 별점 팝업 「별점 주기」 — 저장되면 팝업이 사라지고 한 줄 안내. */
     fun submitRating() = rating.submit(uiState.value.ratingPrompt)
 
+    /** 정차 「이 장소 기록」 — 장소 저장(위치 · 임시저장) 뒤 A-03 시트를 그 장소로 엶(#51 U4). */
     fun onRecordPlace() {
         viewModelScope.launch {
-            if (recordPlace() == ActionResult.NOT_READY) message.value = UiMessage.NOT_READY
+            when (recordPlace()) {
+                ActionResult.DONE -> latestPlaceNo()?.let(tagSheet::open)
+                ActionResult.NOT_READY, ActionResult.FAILED -> message.value = UiMessage.NOT_READY
+            }
         }
     }
 
-    /** 임시 「여행 시작」(D26 · D34) — 확인 없이 바로 새 여행 RECORDING · 진행 중 여행이면 저장소가 아무 일도 안 함. */
+    private suspend fun latestPlaceNo(): Long? {
+        val tripNo = recordingRepository.progress.first().tripNo ?: return null
+        return tripRepository.trip(tripNo).first()?.places?.maxByOrNull { it.placeOrd }?.tripPlaceNo
+    }
+
+    fun onTagNameChange(value: String) = tagSheet.onNameChange(value)
+
+    fun onTagMemoChange(value: String) = tagSheet.onMemoChange(value)
+
+    fun onToggleSheetTag(tagNo: Long) = tagSheet.toggleTag(tagNo)
+
+    fun onSkipTagSheet() = tagSheet.skip()
+
+    fun onSaveTagSheet() = tagSheet.save()
+
+    /** C-02 「여행 시작」 — A-01 여행 시작 화면을 기록 칸 안에 엶(#51 U3). */
     fun onStartTrip() {
-        viewModelScope.launch { recordingRepository.startNewTrip() }
+        savedStateHandle[KEY_TRIP_START] = true
+    }
+
+    /** A-01 시작 끝 — 기록 화면으로 · 내비를 못 열었으면 그 한 줄. */
+    fun onTripStartDone(notice: UiMessage?) {
+        savedStateHandle[KEY_TRIP_START] = false
+        message.value = notice
+    }
+
+    /** A-01 시스템 뒤로 — 시작하지 않고 닫음. */
+    fun onTripStartCancel() {
+        savedStateHandle[KEY_TRIP_START] = false
+    }
+
+    /** 정차 「여행 종료」(C-02 진행 중 · #51 U2) — A-04 확인 팝업만 엶. */
+    fun onEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = true
+    }
+
+    /** A-04 「계속 기록」 · 바깥 · 뒤로 — 팝업만 닫음. */
+    fun onContinueRecording() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+    }
+
+    /** A-04 「종료」 — COMPLETED · 안내받은 추천 로드맵이 있으면 별점 자동 팝업 대상(#41) · 이어서 A-05 검토(#51 U5). */
+    fun onConfirmEndTrip() {
+        savedStateHandle[KEY_END_CONFIRM] = false
+        viewModelScope.launch {
+            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+        }
     }
 
     fun onMessageShown() {
@@ -291,6 +406,11 @@ class HomeViewModel @Inject constructor(
                 onFailure = { SdkStatus.Failed(it.toCode()) },
             )
         }
+    }
+
+    private companion object {
+        const val KEY_END_CONFIRM = "home_end_confirm_visible"
+        const val KEY_TRIP_START = "home_trip_start_open"
     }
 
     private fun Throwable.toCode(): String =

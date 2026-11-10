@@ -30,6 +30,15 @@ class AppShellViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
+    /** 칸 진입 값 — 추천 칸 처음부터(#37) · 내 여행 칸에서 열 여행(#51 U2 · U6). combine 인자 수를 줄이려고 하나로. */
+    private val entries = combine(
+        savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
+        savedStateHandle.getStateFlow(KEY_TRIPS_ENTRY, 0),
+        savedStateHandle.getStateFlow<Long?>(KEY_TRIPS_OPEN, null),
+    ) { recommendations, trips, openTripNo -> Entries(recommendations, trips, openTripNo) }
+
+    private data class Entries(val recommendations: Int, val trips: Int, val openTripNo: Long?)
+
     /** 판정 — 아래 init 이 목적지를 먼저 고친 뒤 이 값을 바꿈(전환 순간 옛 목적지가 한 번 보이지 않게). null = 첫 값 전. */
     private val drivingState = MutableStateFlow<DrivingState?>(null)
 
@@ -38,15 +47,17 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle.getStateFlow(KEY_DESTINATION, AppDestination.START.id),
         savedStateHandle.getStateFlow(KEY_DRIVING_DESTINATION, AppDestination.DRIVING_START.id),
         unfinishedInputRepository.savedInput,
-        savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
-    ) { driving, selected, drivingDestination, unfinished, recommendationsEntry ->
+        entries,
+    ) { driving, selected, drivingDestination, unfinished, entry ->
         AppShellUiState(
             // 첫 값 전엔 모름 → 주행처럼(안전 쪽 · #6 D12)
             drivingState = driving ?: DrivingState.UNKNOWN,
             selectedDestination = AppDestination.fromId(selected),
             drivingDestination = AppDestination.fromId(drivingDestination),
             unfinishedInputAvailable = unfinished != null,
-            recommendationsEntry = recommendationsEntry,
+            recommendationsEntry = entry.recommendations,
+            tripsEntry = entry.trips,
+            tripsOpenTripNo = entry.openTripNo,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -88,12 +99,26 @@ class AppShellViewModel @Inject constructor(
         val parked = drivingState.value == DrivingState.PARKED
         savedStateHandle[if (parked) KEY_DESTINATION else KEY_DRIVING_DESTINATION] = destination.id
         if (parked && destination == AppDestination.RECOMMENDATIONS) enterRecommendations()
+        if (parked && destination == AppDestination.TRIPS) {
+            savedStateHandle[KEY_TRIPS_OPEN] = null
+            savedStateHandle[KEY_TRIPS_ENTRY] = (savedStateHandle.get<Int>(KEY_TRIPS_ENTRY) ?: 0) + 1
+        }
     }
 
     /** 기록 칸 「추천 보러 가기」(진행 중 여행이 아닐 때만 보임 · D34) → 「추천」 칸. */
     fun openRecommendations() {
         savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
         enterRecommendations()
+    }
+
+    /**
+     * 내 여행 하나를 엶(C-02 최근 여행 카드 · A-06 저장 뒤 · #51) — 「내 여행」 칸으로 · 그 칸이 [tripNo] 상세(A-08)부터.
+     * [tripNo] null = 보관함(A-07) 목록부터.
+     */
+    fun openTrip(tripNo: Long?) {
+        savedStateHandle[KEY_DESTINATION] = AppDestination.TRIPS.id
+        savedStateHandle[KEY_TRIPS_OPEN] = tripNo
+        savedStateHandle[KEY_TRIPS_ENTRY] = (savedStateHandle.get<Int>(KEY_TRIPS_ENTRY) ?: 0) + 1
     }
 
     /** 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정). 주행 → 정차 복원은 이 값을 바꾸지 않음. */
@@ -119,5 +144,7 @@ class AppShellViewModel @Inject constructor(
         const val KEY_DRIVING_DESTINATION = "driving_destination"
         const val KEY_WAS_DRIVING_MODE = "was_driving_mode"
         const val KEY_RECOMMENDATIONS_ENTRY = "recommendations_entry"
+        const val KEY_TRIPS_ENTRY = "trips_entry"
+        const val KEY_TRIPS_OPEN = "trips_open_trip_no"
     }
 }
