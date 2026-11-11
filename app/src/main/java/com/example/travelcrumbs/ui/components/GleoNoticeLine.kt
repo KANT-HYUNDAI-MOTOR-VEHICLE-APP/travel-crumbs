@@ -70,11 +70,20 @@ fun GleoNoticeLine(
             if (showProgress) CircularProgressIndicator(modifier = Modifier.size(Dimens.RailIconSize))
             Text(
                 // 장소 수 · 지역 이름이 있는 문구만 [GleoCommandState.detail] 을 끼움(좌표 없음).
-                text = state.detail?.let { stringResource(text, it) } ?: stringResource(text),
+                text = state.detail?.let { stringResource(text, it) } ?: stringResource(plainTextFor(text)),
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
     }
+}
+
+/** 지역 · 장소 수 자리가 있는 문구에 넣을 값이 없을 때 쓰는 자리표시자 없는 문구(화면에 %1$s 가 보이지 않게). */
+private fun plainTextFor(res: Int): Int = when (res) {
+    R.string.gleo_recommended_parked -> R.string.gleo_recommended_parked_plain
+    R.string.gleo_recommended_driving -> R.string.gleo_recommended_driving_plain
+    R.string.gleo_no_recommendation -> R.string.gleo_no_recommendation_plain
+    R.string.gleo_today_records -> R.string.gleo_today_records_plain
+    else -> res
 }

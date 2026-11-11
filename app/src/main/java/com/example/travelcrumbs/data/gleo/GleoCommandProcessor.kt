@@ -36,9 +36,10 @@ class GleoCommandProcessor(
     private val recordPlace: RecordPlaceUseCase,
     private val sendCallback: (GleoCallback) -> Unit,
     private val writeEnabled: Boolean,
-    private val tripControl: suspend (operation: String) -> GleoOutcome = { error("tripControl not wired") },
-    private val travelInfo: suspend (infoType: String, region: String?) -> GleoOutcome = { _, _ -> error("travelInfo not wired") },
+    private val tripControl: suspend (operation: String) -> GleoOutcome,
+    private val travelInfo: suspend (infoType: String, region: String?) -> GleoOutcome,
     private val newRequestId: () -> UUID = UUID::randomUUID,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val recording = AtomicBoolean(false)
     @Volatile private var busyFunction: String? = null
@@ -84,7 +85,7 @@ class GleoCommandProcessor(
             val responded = AtomicBoolean(false)
             fun finish(outcome: GleoOutcome) {
                 if (!responded.compareAndSet(false, true)) return
-                _state.value = GleoCommandState(noticeId, outcome.phase, outcome.detail, outcome.screen)
+                _state.value = GleoCommandState(noticeId, outcome.phase, outcome.detail, outcome.screen, clock())
                 respond(GleoCallback(request.functionName, outcome.status, outcome.message, outcome.data))
             }
             val deadline = launch(start = CoroutineStart.UNDISPATCHED) {

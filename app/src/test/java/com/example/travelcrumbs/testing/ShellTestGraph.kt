@@ -78,7 +78,7 @@ class ShellTestGraph(
     }
 
     private fun create(modelClass: Class<*>): ViewModel = when (modelClass) {
-        AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState)
+        AppShellViewModel::class.java -> AppShellViewModel(driving, inputs, savedState, gleo)
         GleoCommandViewModel::class.java -> GleoCommandViewModel(gleo)
         DrivingViewModel::class.java -> DrivingViewModel(
             recordingRepository = recording,

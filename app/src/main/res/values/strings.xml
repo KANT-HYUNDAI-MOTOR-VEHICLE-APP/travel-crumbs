@@ -190,6 +190,10 @@
     <string name="gleo_recommended_parked">%1$s 추천 코스를 열었어요</string>
     <string name="gleo_recommended_driving">%1$s 추천 코스는 정차 후 볼 수 있어요</string>
     <string name="gleo_no_recommendation">%1$s 추천 코스가 아직 없어요</string>
+    <string name="gleo_no_recommendation_plain">추천 코스가 아직 없어요</string>
+    <string name="gleo_recommended_parked_plain">추천 코스를 열었어요</string>
+    <string name="gleo_recommended_driving_plain">추천 코스는 정차 후 볼 수 있어요</string>
+    <string name="gleo_today_records_plain">오늘 기록을 확인했어요</string>
     <string name="gleo_request_failed">요청을 처리하지 못했어요</string>
     <string name="gleo_busy">다른 요청을 처리하고 있어요</string>
 

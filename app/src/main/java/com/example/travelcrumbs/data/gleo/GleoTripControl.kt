@@ -23,17 +23,17 @@ class GleoTripControl @Inject constructor(
             return fail(GleoCommandPhase.NO_TRIP, AppConfig.GLEO_NO_TRIP_MESSAGE)
         }
         return when (operation) {
-            OPERATION_PAUSE -> if (progress.status == TripStatus.PAUSED) {
+            AppConfig.GLEO_OP_PAUSE -> if (progress.status == TripStatus.PAUSED) {
                 ok(GleoCommandPhase.ALREADY_PAUSED, AppConfig.GLEO_ALREADY_PAUSED_MESSAGE)
             } else {
                 toggleTo(TripStatus.PAUSED, GleoCommandPhase.TRIP_PAUSED, AppConfig.GLEO_PAUSED_MESSAGE)
             }
-            OPERATION_RESUME -> if (progress.status == TripStatus.RECORDING) {
+            AppConfig.GLEO_OP_RESUME -> if (progress.status == TripStatus.RECORDING) {
                 ok(GleoCommandPhase.ALREADY_RUNNING, AppConfig.GLEO_ALREADY_RUNNING_MESSAGE)
             } else {
                 toggleTo(TripStatus.RECORDING, GleoCommandPhase.TRIP_RESUMED, AppConfig.GLEO_RESUMED_MESSAGE)
             }
-            OPERATION_END -> GleoOutcome(
+            AppConfig.GLEO_OP_END -> GleoOutcome(
                 phase = GleoCommandPhase.END_CONFIRM,
                 status = GleoStatus.SUCCESS,
                 message = AppConfig.GLEO_END_CONFIRM_MESSAGE,
@@ -53,9 +53,4 @@ class GleoTripControl @Inject constructor(
     private fun ok(phase: GleoCommandPhase, message: String) = GleoOutcome(phase, GleoStatus.SUCCESS, message)
     private fun fail(phase: GleoCommandPhase, message: String) = GleoOutcome(phase, GleoStatus.FAIL, message)
 
-    companion object {
-        const val OPERATION_PAUSE = "PAUSE"
-        const val OPERATION_RESUME = "RESUME"
-        const val OPERATION_END = "END"
-    }
 }

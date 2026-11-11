@@ -15,8 +15,8 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 object GleoActionParser {
 
-    val OPERATIONS: Set<String> = setOf("PAUSE", "RESUME", "END")
-    val INFO_TYPES: Set<String> = setOf("TODAY_RECORDS", "RECOMMENDED_ROADMAPS")
+    val OPERATIONS: Set<String> = setOf(AppConfig.GLEO_OP_PAUSE, AppConfig.GLEO_OP_RESUME, AppConfig.GLEO_OP_END)
+    val INFO_TYPES: Set<String> = setOf(AppConfig.GLEO_INFO_TODAY_RECORDS, AppConfig.GLEO_INFO_RECOMMENDED_ROADMAPS)
 
     fun parse(action: String?, actionParam: String?): Result<GleoAction> = runCatching {
         val functionName = action?.takeIf { it.isNotBlank() } ?: error("intent action is missing")

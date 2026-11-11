@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -56,11 +55,6 @@ fun AppShellScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val gleoState by gleoViewModel.uiState.collectAsStateWithLifecycle()
-    // Gleo 명령의 화면 요청(#69) — 명령마다 한 번 · 주행 중이면 ViewModel 이 무시.
-    val gleoCommand = gleoState.command
-    LaunchedEffect(gleoCommand.noticeId, gleoCommand.screen) {
-        gleoCommand.screen?.let { viewModel.onGleoScreenRequest(gleoCommand.noticeId, it) }
-    }
 
     Surface(
         modifier = modifier.fillMaxSize(),

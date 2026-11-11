@@ -422,6 +422,8 @@ class GleoCommandProcessorTest {
             { records++; ActionResult.DONE },
             { callbacks++; error("broadcast failed") },
             writeEnabled = true,
+            tripControl = { error("not used") },
+            travelInfo = { _, _ -> error("not used") },
         )
         processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_RECORD, null))
         advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS)

@@ -3,6 +3,8 @@ package com.example.travelcrumbs.ui.shell
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.gleo.freshScreenRequests
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
@@ -30,6 +32,7 @@ class AppShellViewModel @Inject constructor(
     drivingSignalRepository: DrivingSignalRepository,
     private val unfinishedInputRepository: UnfinishedInputRepository,
     private val savedStateHandle: SavedStateHandle,
+    gleoActionRepository: GleoActionRepository,
 ) : ViewModel() {
 
     /** 칸 진입 값 — 추천 칸 처음부터(#37) · 내 여행 칸에서 열 여행(#51 U2 · U6). combine 인자 수를 줄이려고 하나로. */
@@ -86,6 +89,12 @@ class AppShellViewModel @Inject constructor(
                     savedStateHandle[KEY_WAS_DRIVING_MODE] = nowDriving
                     drivingState.value = state
                 }
+        }
+        // Gleo 화면 요청(#69) — 지금 따를 것만(늦게 만들어진 화면은 지난 명령을 따르지 않음).
+        viewModelScope.launch {
+            gleoActionRepository.freshScreenRequests().collect { command ->
+                command.screen?.let { onGleoScreenRequest(command.noticeId, it) }
+            }
         }
     }
 

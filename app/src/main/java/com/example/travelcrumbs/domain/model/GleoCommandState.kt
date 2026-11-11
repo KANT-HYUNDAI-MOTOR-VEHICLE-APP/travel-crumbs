@@ -9,6 +9,8 @@ data class GleoCommandState(
     val phase: GleoCommandPhase = GleoCommandPhase.IDLE,
     val detail: String? = null,
     val screen: GleoScreenRequest? = null,
+    /** 명령 결과가 나온 시각(밀리초) — 화면 요청이 오래됐으면 따르지 않음(늦게 만들어진 화면 · Pleos 리뷰). */
+    val issuedAtMillis: Long = 0L,
 )
 
 enum class GleoCommandPhase(val inProgress: Boolean = false) {

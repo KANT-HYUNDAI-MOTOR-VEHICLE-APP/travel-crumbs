@@ -2,6 +2,7 @@ package com.example.travelcrumbs.data.gleo
 
 import android.content.Intent
 import com.example.travelcrumbs.BuildConfig
+import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.GleoCommandState
 import javax.inject.Inject
@@ -9,7 +10,10 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -24,6 +28,15 @@ interface GleoActionRepository {
     fun handleActionIntent(intent: Intent?)
     fun clearCommandNotice(noticeId: Long)
 }
+
+/**
+ * 지금 따를 Gleo 화면 요청 — 결과가 나온 지 [AppConfig.GLEO_SCREEN_REQUEST_FRESH_MILLIS] 안의 것만, 명령마다 한 번.
+ * 늦게 만들어진 화면(예: 주행 중 「여행 끝낼게」 → 한참 뒤 정차 화면)이 지난 명령을 다시 따르지 않게(#69 리뷰).
+ */
+fun GleoActionRepository.freshScreenRequests(now: () -> Long = System::currentTimeMillis): Flow<GleoCommandState> =
+    commandState
+        .filter { it.screen != null && now() - it.issuedAtMillis <= AppConfig.GLEO_SCREEN_REQUEST_FRESH_MILLIS }
+        .distinctUntilChangedBy { it.noticeId }
 
 @Singleton
 class DefaultGleoActionRepository @Inject constructor(

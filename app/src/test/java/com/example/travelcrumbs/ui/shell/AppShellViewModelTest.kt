@@ -6,6 +6,7 @@ import com.example.travelcrumbs.domain.model.DrivingState
 import com.example.travelcrumbs.domain.model.GleoScreenRequest
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
+import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeTimeSource
 import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
 import com.example.travelcrumbs.ui.navigation.AppDestination
@@ -33,6 +34,7 @@ class AppShellViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val driving = FakeDrivingSignalRepository(DrivingState.PARKED)
     private val inputs: UnfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource(now = 7L))
+    private val gleo = FakeGleoActionRepository()
 
     @Before
     fun setUp() {
@@ -45,7 +47,7 @@ class AppShellViewModelTest {
     }
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()) =
-        AppShellViewModel(driving, inputs, handle)
+        AppShellViewModel(driving, inputs, handle, gleo)
 
     private val AppShellViewModel.state get() = uiState.value
 

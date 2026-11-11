@@ -35,8 +35,8 @@ class GleoTravelInfo @Inject constructor(
     private val timeSource: TimeSource,
 ) {
     suspend fun show(infoType: String, region: String?): GleoOutcome = when (infoType) {
-        INFO_TODAY_RECORDS -> todayRecords()
-        INFO_RECOMMENDED_ROADMAPS -> recommended(region)
+        AppConfig.GLEO_INFO_TODAY_RECORDS -> todayRecords()
+        AppConfig.GLEO_INFO_RECOMMENDED_ROADMAPS -> recommended(region)
         else -> GleoOutcome(GleoCommandPhase.INVALID_REQUEST, GleoStatus.FAIL, AppConfig.GLEO_INPUT_FAIL_MESSAGE)
     }
 
@@ -46,8 +46,8 @@ class GleoTravelInfo @Inject constructor(
         val current = if (progress.tripNo != null && progress.status.inProgress) progress.status.name else NO_TRIP
         val currentCount = if (current == NO_TRIP) 0 else progress.placeCount
         val tripSentence = when (current) {
-            NO_TRIP -> "There is no trip in progress."
-            else -> "The current trip is ${current.lowercase()} with $currentCount ${places(currentCount)}."
+            NO_TRIP -> AppConfig.GLEO_NO_TRIP_MESSAGE
+            else -> AppConfig.GLEO_CURRENT_TRIP_MESSAGE.format(current.lowercase(), currentCount, places(currentCount))
         }
         val data = buildJsonArray {
             add(
@@ -61,7 +61,7 @@ class GleoTravelInfo @Inject constructor(
         return GleoOutcome(
             phase = GleoCommandPhase.TODAY_RECORDS,
             status = GleoStatus.SUCCESS,
-            message = "You recorded $count ${places(count)} today. $tripSentence",
+            message = AppConfig.GLEO_TODAY_MESSAGE.format(count, places(count), tripSentence),
             data = data,
             detail = count.toString(),
             screen = GleoScreenRequest.OpenTrips,
@@ -72,11 +72,13 @@ class GleoTravelInfo @Inject constructor(
         val all = recommendations.sidoRegions().flatMap { recommendations.publicTrips(it.sidoNm) }.distinctBy { it.tripNo }
         val regions: List<Region>? = if (spoken != null) {
             GleoTravelRules.matchRegions(spoken, all).ifEmpty {
+                // 사용자 말을 응답에 다시 쓸 때는 글자 · 숫자 · 공백만 · 길이 제한(Pleos 리뷰 #69).
+                val echo = spoken.filter { it.isLetterOrDigit() || it == ' ' }.trim().take(AppConfig.GLEO_REGION_ECHO_CHARS)
                 return GleoOutcome(
                     phase = GleoCommandPhase.NO_RECOMMENDATION,
                     status = GleoStatus.FAIL,
-                    message = "There are no recommended roadmaps for ${spoken.trim()} yet.",
-                    detail = spoken.trim(),
+                    message = if (echo.isEmpty()) AppConfig.GLEO_NO_ROADMAPS_MESSAGE else AppConfig.GLEO_NO_REGION_ROADMAPS_MESSAGE.format(echo),
+                    detail = echo.ifEmpty { null },
                 )
             }
         } else {
@@ -86,17 +88,14 @@ class GleoTravelInfo @Inject constructor(
         val pool = if (regions == null) all else GleoTravelRules.inAny(all, regions)
         val top = RecommendationRules.rank(pool, RankingSort.RATING, companion = null).take(AppConfig.GLEO_RECOMMENDATION_COUNT)
         if (top.isEmpty()) {
-            return GleoOutcome(GleoCommandPhase.NO_RECOMMENDATION, GleoStatus.FAIL, "There are no recommended roadmaps yet.")
+            return GleoOutcome(GleoCommandPhase.NO_RECOMMENDATION, GleoStatus.FAIL, AppConfig.GLEO_NO_ROADMAPS_MESSAGE)
         }
         val label = regions?.let { list -> list.joinToString(", ") { GleoTravelRules.label(it) } }
         return GleoOutcome(
             phase = GleoCommandPhase.RECOMMENDED,
             status = GleoStatus.SUCCESS,
-            message = buildString {
-                append(if (label == null) "Top recommended roadmaps" else "Top recommended roadmaps in $label")
-                append(": ")
-                append(top.joinToString(", ") { it.tripNm })
-                append(".")
+            message = top.joinToString(", ") { it.tripNm }.let { names ->
+                if (label == null) AppConfig.GLEO_TOP_ROADMAPS_MESSAGE.format(names) else AppConfig.GLEO_TOP_REGION_ROADMAPS_MESSAGE.format(label, names)
             },
             data = top.toData(),
             detail = label ?: top.first().let { GleoTravelRules.label(it.region) },
@@ -119,9 +118,7 @@ class GleoTravelInfo @Inject constructor(
 
     private fun places(count: Int) = if (count == 1) "place" else "places"
 
-    companion object {
-        const val INFO_TODAY_RECORDS = "TODAY_RECORDS"
-        const val INFO_RECOMMENDED_ROADMAPS = "RECOMMENDED_ROADMAPS"
-        private const val NO_TRIP = "NONE"
+    private companion object {
+        const val NO_TRIP = "NONE"
     }
 }
