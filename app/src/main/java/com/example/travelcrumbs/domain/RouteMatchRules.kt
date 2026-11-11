@@ -15,8 +15,14 @@ import kotlin.math.sqrt
 fun NaviActiveRoute.isHeadingTo(place: Place): Boolean =
     routing &&
         destinationName.trim() == place.name.trim() &&
-        distanceMeters(destinationLatitude, destinationLongitude, place.latitude, place.longitude) <=
-        AppConfig.ROUTE_MATCH_RADIUS_METERS
+        withinMatchRadius(destinationLatitude, destinationLongitude, place.latitude, place.longitude)
+
+/**
+ * 두 좌표가 「같은 곳」인가 — [AppConfig.ROUTE_MATCH_RADIUS_METERS] 안(경계 포함). 길안내 목적지 대조([isHeadingTo]) ·
+ * 자동 기록(#66)의 지나침 · 중복 · 수동 기록 정리가 모두 이 한 곳을 거침.
+ */
+fun withinMatchRadius(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Boolean =
+    distanceMeters(lat1, lng1, lat2, lng2) <= AppConfig.ROUTE_MATCH_RADIUS_METERS
 
 /** 하버사인 거리(미터). */
 fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

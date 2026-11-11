@@ -86,6 +86,7 @@ class HomeViewModelTest {
         tagRepository = FakeTagRepository(),
         unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
         offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
+        endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
     )
 
     @Test

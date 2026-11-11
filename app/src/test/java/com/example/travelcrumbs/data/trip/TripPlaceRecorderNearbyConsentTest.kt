@@ -47,13 +47,19 @@ class TripPlaceRecorderNearbyConsentTest {
             ),
             time = time,
         )
+        val recording = recordingRepositoryOf(time, FakeRecordingLocalDataSource(CurrentTrip.start(time.now).copy(tripNo = 7L)))
+        val navi = FakeNaviRepository()
+        val driving = FakeDrivingSignalRepository(DrivingState.PARKED)
+        val inputs = unfinishedInputRepositoryOf(time)
+        val guide = com.example.travelcrumbs.testing.guideTrackerOf(navi, com.example.travelcrumbs.testing.FakePinRepository(), time)
         val recorder = TripPlaceRecorder(
-            recordingRepositoryOf(time, FakeRecordingLocalDataSource(CurrentTrip.start(time.now).copy(tripNo = 7L))),
+            recording,
             trips,
             users,
-            FakeNaviRepository(),
-            FakeDrivingSignalRepository(DrivingState.PARKED),
-            unfinishedInputRepositoryOf(time),
+            navi,
+            driving,
+            inputs,
+            com.example.travelcrumbs.testing.autoRecorderOf(navi, driving, recording, users, trips, inputs, guide, time = time),
         )
 
         assertEquals(ActionResult.DONE, recorder())

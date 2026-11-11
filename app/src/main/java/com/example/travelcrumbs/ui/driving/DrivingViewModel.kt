@@ -8,6 +8,7 @@ import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.EndTripUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -38,6 +39,7 @@ class DrivingViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val ratingRepository: RatingRepository,
     private val naviRepository: NaviRepository,
+    private val endTrip: EndTripUseCase,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -110,7 +112,8 @@ class DrivingViewModel @Inject constructor(
         viewModelScope.launch {
             // 별점(#41) — 안내받은 추천 로드맵이 있으면 정차 뒤 기록 화면에서 「따라간 코스 어땠나요?」(주행 중엔 안 띄움).
             // 종료 시각은 기록 저장소가 정한 값 하나 · 이미 끝난 여행이면 null(아무 일 없음)
-            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+            // 기록 대기 확정 → 종료(#66 N3 · 정차 홈과 같은 동작 하나)
+            endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
         }
     }
 

@@ -135,6 +135,7 @@ class HomeNearbyViewModelTest {
             tagRepository = tags,
             unfinishedInputRepository = unfinishedInputRepositoryOf(time),
             offlineMap = FakeOfflineMapRepository(),
+            endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
         )
 
         val section: NearbyRoadmapsSection get() = vm.uiState.value.nearby

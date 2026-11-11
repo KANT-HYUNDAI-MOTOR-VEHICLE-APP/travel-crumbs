@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.PlaceRecordCleanup
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentState
 import com.example.travelcrumbs.domain.model.ConsentType
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val timeSource: TimeSource,
     private val savedStateHandle: SavedStateHandle,
+    private val placeCleanup: PlaceRecordCleanup,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -90,7 +92,8 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.recordConsent(ConsentType.LOCATION_COLLECT, agreed = false)
             // 철회 = 저장된 위치도 지움(심사 개인정보 · #51 리뷰 P1) — 좌표 · 주소 칸을 물리적으로 비움
-            tripRepository.clearLocations()
+            // + 자동 기록(#66 3.9)의 기록 대기 · 진행 중 직접 안내 삭제 · 사람이 안 고친 자동 이름 비움
+            placeCleanup.withdrawLocation()
             message.value = UiMessage.LOCATION_WITHDRAWN
         }
     }
@@ -144,7 +147,7 @@ class SettingsViewModel @Inject constructor(
     fun onConfirmClearAll() {
         savedStateHandle[KEY_CLEAR_ASK] = false
         viewModelScope.launch {
-            tripRepository.deleteAll()
+            placeCleanup.deleteAll()
             message.value = UiMessage.DATA_CLEARED
         }
     }

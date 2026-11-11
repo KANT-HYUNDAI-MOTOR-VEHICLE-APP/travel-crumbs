@@ -108,6 +108,7 @@ class HomeRouteFallbackViewModelTest {
             tagRepository = FakeTagRepository(),
             unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
             offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
+            endTrip = { null },
         )
     }
 
