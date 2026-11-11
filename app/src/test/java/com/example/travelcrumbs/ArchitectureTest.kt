@@ -119,4 +119,27 @@ class ArchitectureTest {
             moduleOk && retrofitOk
         }
     }
+
+    @Test
+    fun `규칙 3-1 N16 지도 렌더러 MapLibre import 는 추천 화면 부품에만(#59)`() {
+        files.assertTrue { file ->
+            !file.hasImport { import -> import.name.startsWith("org.maplibre") } ||
+                file.packagee?.name.orEmpty().startsWith("com.example.travelcrumbs.ui.recommendations.components")
+        }
+    }
+
+    @Test
+    fun `규칙 3-1 M41 ui 의 ViewModel UiState 는 좌표 모델 · 지도 자산 저장소를 import 하지 않음(#59)`() {
+        val forbidden = setOf(
+            "com.example.travelcrumbs.domain.model.MapCoord",
+            "com.example.travelcrumbs.domain.model.MapPlace",
+            "com.example.travelcrumbs.domain.model.KoreaMapAsset",
+            "com.example.travelcrumbs.domain.model.MapBounds",
+            "com.example.travelcrumbs.data.map.KoreaMapRepository",
+        )
+        files.filter { file ->
+            file.packagee?.name.orEmpty().startsWith("com.example.travelcrumbs.ui") &&
+                (file.name.endsWith("ViewModel") || file.name.endsWith("UiState"))
+        }.assertFalse { file -> file.hasImport { import -> import.name in forbidden } }
+    }
 }

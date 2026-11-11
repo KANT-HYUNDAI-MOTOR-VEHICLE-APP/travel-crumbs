@@ -50,6 +50,8 @@ class LocalRecommendationRepository @Inject constructor(
     override suspend fun publicTrips(sidoNm: String): List<RecommendedTrip> =
         RecommendationSeed.trips.filter { it.region.sidoNm == sidoNm } + localTrips().filter { it.region.sidoNm == sidoNm }
 
+    override suspend fun allPublicTrips(): List<RecommendedTrip> = RecommendationSeed.trips + localTrips()
+
     override suspend fun tags(): List<Tag> = tagRepository.tags.first()
 
     private suspend fun localTrips(): List<RecommendedTrip> {

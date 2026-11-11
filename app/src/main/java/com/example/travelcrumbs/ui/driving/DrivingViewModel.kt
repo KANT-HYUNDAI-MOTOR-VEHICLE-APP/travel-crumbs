@@ -84,7 +84,7 @@ class DrivingViewModel @Inject constructor(
         viewModelScope.launch {
             message.value = when (recordPlace()) {
                 ActionResult.DONE -> UiMessage.PLACE_DRAFT_SAVED
-                ActionResult.NOT_READY, ActionResult.FAILED -> UiMessage.NOT_READY
+                ActionResult.NOT_READY, ActionResult.FAILED, ActionResult.UNCONFIRMED -> UiMessage.NOT_READY
             }
         }
     }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="RECORD_CURRENT_PLACE" />
+                <!-- 실제 Gleo 는 「패키지명.함수명」으로 보냄(main 매니페스트 주석 참고) -->
+                <action android:name="com.example.travelcrumbs.RECORD_CURRENT_PLACE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
