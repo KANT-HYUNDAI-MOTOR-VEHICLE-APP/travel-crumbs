@@ -7,6 +7,7 @@ import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.GuideRequestTracker
 import com.example.travelcrumbs.domain.GuidanceStartRecorder
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoCommandState
 import com.example.travelcrumbs.domain.model.NaviActiveRoute
 import com.example.travelcrumbs.domain.model.NaviDestination
 import com.example.travelcrumbs.domain.model.NaviEvent
@@ -143,6 +144,7 @@ class FakeGleoActionRepository(
     private val state = MutableStateFlow(opened)
 
     override val openedByGleoAction: StateFlow<Boolean> = state
+    override val commandState = MutableStateFlow(GleoCommandState())
 
     var handledCount: Int = 0
         private set
@@ -150,6 +152,10 @@ class FakeGleoActionRepository(
     /** 단위 테스트에서는 Intent 를 만들 수 없어 호출만 세어 둠. */
     override fun handleActionIntent(intent: Intent?) {
         handledCount++
+    }
+
+    override fun clearCommandNotice(noticeId: Long) {
+        if (commandState.value.noticeId == noticeId) commandState.value = GleoCommandState()
     }
 }
 

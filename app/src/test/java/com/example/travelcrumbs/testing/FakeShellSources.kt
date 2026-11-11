@@ -7,6 +7,7 @@ import com.example.travelcrumbs.data.unfinishedinput.DefaultUnfinishedInputRepos
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputLocalDataSource
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
+import java.util.UUID
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ActionResult
@@ -63,7 +64,7 @@ class FakeRecordPlaceUseCase(private val result: ActionResult = ActionResult.NOT
     var calls: Int = 0
         private set
 
-    override suspend fun invoke(): ActionResult {
+    override suspend fun invoke(idempotencyKey: UUID?): ActionResult {
         calls++
         return result
     }
@@ -87,3 +88,7 @@ fun unfinishedInputRepositoryOf(
     timeSource: TimeSource,
     local: UnfinishedInputLocalDataSource = FakeUnfinishedInputLocalDataSource(),
 ): UnfinishedInputRepository = DefaultUnfinishedInputRepository(local, timeSource)
+
+/** 진행 중 여행이 없는 기록 저장소(v6 첫 화면 · #55 홈 근처 로드맵 시험) — 화면 시험이 자료원 대역을 직접 들지 않게. */
+fun idleRecordingRepositoryOf(timeSource: TimeSource): RecordingRepository =
+    recordingRepositoryOf(timeSource, FakeRecordingLocalDataSource())

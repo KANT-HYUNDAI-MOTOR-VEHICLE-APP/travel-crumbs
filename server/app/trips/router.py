@@ -1,0 +1,176 @@
+"""여행 — 기록 중인 여행 조회 · 여행 시작(A-04) · 경로점 · 장소 기록(A-05) · 장소 경험 입력(A-06) · 여행 종료 · 상세(A-08)."""
+
+from typing import Annotated, Literal
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Header, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.errors import ErrorCode
+from app.db.session import get_session
+from app.trips import service
+from app.trips.schemas import (
+    TripRouteResponse,
+    CurrentTripResponse,
+    RoutePointsCreateRequest,
+    RoutePointsCreateResponse,
+    TripCreateRequest,
+    TripDetailResponse,
+    TripListItem,
+    TripPlaceCreateRequest,
+    TripPlaceItem,
+    TripPlaceResponse,
+    TripPlaceUpdateRequest,
+    TripResponse,
+    TripUpdateRequest,
+)
+from app.users.models import UserMst
+from app.users.service import current_user
+
+router = APIRouter(prefix="/trips", tags=["trips"])
+
+
+@router.get("", response_model=list[TripListItem])
+async def read_my_trips(
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[TripListItem]:
+    return await service.my_trips(session, user.user_no)
+
+
+@router.get("/current", response_model=CurrentTripResponse)
+async def read_current(
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentTripResponse:
+    return await service.current(session, user.user_no)
+
+
+@router.post("", response_model=TripResponse, status_code=status.HTTP_201_CREATED)
+async def create(
+    req: TripCreateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripResponse:
+    return await service.start(session, user.user_no, req)
+
+
+@router.post(
+    "/{trip_uuid}/route-points",
+    response_model=RoutePointsCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_route_points(
+    trip_uuid: str,
+    req: RoutePointsCreateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> RoutePointsCreateResponse:
+    return await service.add_route_points(session, user.user_no, trip_uuid, req)
+
+
+@router.post(
+    "/{trip_uuid}/places",
+    response_model=TripPlaceResponse,
+    status_code=status.HTTP_201_CREATED,
+    response_description="Draft place saved or the same committed place replayed",
+    responses={
+        404: {"description": "TRIP_NOT_FOUND or TRIP_PLACE_NOT_FOUND"},
+        409: {
+            "description": f"TRIP_NOT_RECORDING or {ErrorCode.IDEMPOTENCY_KEY_CONFLICT}"
+        },
+    },
+)
+async def create_place(
+    trip_uuid: str,
+    req: TripPlaceCreateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+    idempotency_key: Annotated[
+        UUID | None,
+        Header(alias="Idempotency-Key", description="Required on Gleo recording requests"),
+    ] = None,
+) -> TripPlaceResponse:
+    return await service.record_place(
+        session, user.user_no, trip_uuid, req, idempotency_key
+    )
+
+
+@router.get("/{trip_uuid}/places", response_model=list[TripPlaceItem])
+async def read_places(
+    trip_uuid: str,
+    draft_yn: Literal["Y", "N"] | None = Query(
+        default=None, description="Y = 입력 안 한 임시 기록만"
+    ),
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[TripPlaceItem]:
+    return await service.list_places(session, user.user_no, trip_uuid, draft_yn)
+
+
+@router.put("/{trip_uuid}/places/{trip_place_no}", response_model=TripPlaceItem)
+async def update_place(
+    trip_uuid: str,
+    trip_place_no: int,
+    req: TripPlaceUpdateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripPlaceItem:
+    return await service.complete_place(
+        session, user.user_no, trip_uuid, trip_place_no, req
+    )
+
+
+@router.post("/{trip_uuid}/end", response_model=TripDetailResponse)
+async def end(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.end_trip(session, user.user_no, trip_uuid)
+
+
+@router.get("/{trip_uuid}/route", response_model=TripRouteResponse)
+async def read_route(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripRouteResponse:
+    return await service.route(session, user.user_no, trip_uuid)
+
+
+@router.get("/{trip_uuid}", response_model=TripDetailResponse)
+async def read_detail(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.detail(session, user.user_no, trip_uuid)
+
+
+@router.put("/{trip_uuid}", response_model=TripDetailResponse)
+async def update(
+    trip_uuid: str,
+    req: TripUpdateRequest,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripDetailResponse:
+    return await service.rename(session, user.user_no, trip_uuid, req)
+
+
+@router.post("/{trip_uuid}/pause", response_model=TripResponse)
+async def pause(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripResponse:
+    return await service.pause(session, user.user_no, trip_uuid)
+
+
+@router.post("/{trip_uuid}/resume", response_model=TripResponse)
+async def resume(
+    trip_uuid: str,
+    user: UserMst = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> TripResponse:
+    return await service.resume(session, user.user_no, trip_uuid)

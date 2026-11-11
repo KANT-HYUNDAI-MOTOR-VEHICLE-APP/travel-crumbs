@@ -8,6 +8,7 @@ import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.PlaceRecordCleanup
 import com.example.travelcrumbs.domain.TimeSource
+import com.example.travelcrumbs.domain.model.ConsentState
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +23,7 @@ import kotlinx.coroutines.launch
 
 /**
  * C-03 설정(와이어프레임 v6 · #51 U2) — 닉네임 수정(저장하면 공개 로드맵 이름도 바로 바뀜 · 추천은 닉네임을 사용자 표에서 읽음) ·
- * 동의 유형별 최신 상태 · 철회(추천 공개 철회 → 내 공개 여행 모두 비공개). 로그아웃은 로그인 담당 몫(보고서 남은 결정).
+ * 동의 유형별 최신 상태 · 철회(추천 공개 철회 → 내 공개 여행 모두 비공개) · 근처 로드맵 위치 이용 철회 · 다시 동의(#55). 로그아웃은 로그인 담당 몫(보고서 남은 결정).
  * 닉네임 입력 중 값은 SavedStateHandle 에 둬 프로세스 재생성 뒤에도 그대로.
  */
 @HiltViewModel
@@ -40,19 +41,21 @@ class SettingsViewModel @Inject constructor(
         userRepository.user,
         userRepository.consents,
         savedStateHandle.getStateFlow<String?>(KEY_NICKNAME_DRAFT, null),
-        combine(message, savedStateHandle.getStateFlow(KEY_CLEAR_ASK, false)) { shown, ask -> shown to ask },
-    ) { user, consents, draft, (shown, clearAsk) ->
-        val location = consents[ConsentType.LOCATION_COLLECT]?.takeIf { it.agreed }
+        combine(
+            message,
+            savedStateHandle.getStateFlow(KEY_CLEAR_ASK, false),
+            savedStateHandle.getStateFlow(KEY_NEARBY_ASK, false),
+        ) { shown, ask, nearbyAsk -> Asks(shown, ask, nearbyAsk) },
+    ) { user, consents, draft, asks ->
         SettingsUiState(
             nicknameNm = user.nicknameNm,
-            locationAgreedOn = location?.let {
-                val date = Instant.ofEpochMilli(it.at).atZone(timeSource.zoneId()).toLocalDate()
-                ConsentDate(date.year, date.monthValue, date.dayOfMonth)
-            },
+            locationAgreedOn = consents[ConsentType.LOCATION_COLLECT]?.agreedOn(),
+            nearbyLocationAgreedOn = consents[ConsentType.LOCATION_RECO]?.agreedOn(),
+            nearbyConsentAsk = asks.nearbyConsent,
             recoAgreed = consents[ConsentType.RECO_PUBLIC]?.agreed == true,
             nicknameDraft = draft,
-            clearAllAsk = clearAsk,
-            message = shown,
+            clearAllAsk = asks.clearAll,
+            message = asks.message,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -104,6 +107,33 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 근처 로드맵 위치 이용 「철회」(#55 · 2-9) — 철회 행 · 알림. 홈 구역은 다음에 보일 때 동의 안 함(메모리 거리는 홈 도우미가 지움) ·
+     * 지울 저장 위치 없음 · LOCATION_COLLECT 와 여행 기록 위치는 그대로(독립).
+     */
+    fun onWithdrawNearbyLocation() {
+        viewModelScope.launch {
+            userRepository.recordConsent(ConsentType.LOCATION_RECO, agreed = false)
+            message.value = UiMessage.NEARBY_LOCATION_WITHDRAWN
+        }
+    }
+
+    /** 근처 로드맵 위치 이용 「동의」 — 동의 팝업만 엶(N21). */
+    fun onAskNearbyConsent() {
+        savedStateHandle[KEY_NEARBY_ASK] = true
+    }
+
+    /** 팝업 「닫기」 · 시스템 뒤로 — 이력 행 0. */
+    fun onDismissNearbyConsent() {
+        savedStateHandle[KEY_NEARBY_ASK] = false
+    }
+
+    /** 팝업 「동의」 — 동의 행 · 팝업 닫힘 · 알림 없음. */
+    fun onAgreeNearbyConsent() {
+        savedStateHandle[KEY_NEARBY_ASK] = false
+        viewModelScope.launch { userRepository.recordConsent(ConsentType.LOCATION_RECO, agreed = true) }
+    }
+
     /** 「모두 지우기」 — 확인 팝업만 엶. */
     fun onAskClearAll() {
         savedStateHandle[KEY_CLEAR_ASK] = true
@@ -126,8 +156,17 @@ class SettingsViewModel @Inject constructor(
         message.value = null
     }
 
+    /** 동의한 날(동의 중일 때만). */
+    private fun ConsentState.agreedOn(): ConsentDate? = takeIf { it.agreed }?.let {
+        val date = Instant.ofEpochMilli(it.at).atZone(timeSource.zoneId()).toLocalDate()
+        ConsentDate(date.year, date.monthValue, date.dayOfMonth)
+    }
+
+    private data class Asks(val message: UiMessage?, val clearAll: Boolean, val nearbyConsent: Boolean)
+
     private companion object {
         const val KEY_NICKNAME_DRAFT = "settings_nickname_draft"
         const val KEY_CLEAR_ASK = "settings_clear_all_ask"
+        const val KEY_NEARBY_ASK = "settings_nearby_consent_ask"
     }
 }

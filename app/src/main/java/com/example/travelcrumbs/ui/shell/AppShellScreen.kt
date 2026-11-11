@@ -11,9 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.driving.DrivingScreen
+import com.example.travelcrumbs.ui.components.GleoNoticeLine
+import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.ui.gleo.GleoCommandViewModel
 import com.example.travelcrumbs.ui.home.HomeScreen
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.recommendations.RecommendationsScreen
@@ -34,24 +38,32 @@ import com.example.travelcrumbs.ui.trips.TripsScreen
 fun AppShellScreen(
     modifier: Modifier = Modifier,
     viewModel: AppShellViewModel = viewModel(),
+    gleoViewModel: GleoCommandViewModel = viewModel(),
     destinationContent: @Composable (AppDestination) -> Unit = { destination ->
         val shell = viewModel.uiState.collectAsStateWithLifecycle().value
         ParkedDestinationContent(
             destination = destination,
             onOpenRecommendations = viewModel::openRecommendations,
             onOpenTrip = viewModel::openTrip,
+            onOpenRoadmap = viewModel::openRecommendationTrip,
+            onLeaveRecommendations = viewModel::onBack,
             recommendationsEntry = shell.recommendationsEntry,
+            recommendationsOpenTripNo = shell.recommendationsOpenTripNo,
+            recommendationsOpenSidoNm = shell.recommendationsOpenSidoNm,
             tripsEntry = shell.tripsEntry,
             tripsOpenTripNo = shell.tripsOpenTripNo,
         )
     },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val gleoState by gleoViewModel.uiState.collectAsStateWithLifecycle()
 
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
+      // Gleo 명령 결과 한 줄을 화면 맨 아래에 겹쳐 띄우려고 Box 로 감쌈(#25 U3).
+      Box(modifier = Modifier.fillMaxSize()) {
         if (!uiState.isDrivingMode) {
             BackHandler(enabled = uiState.selectedDestination != AppDestination.START) {
                 viewModel.onBack()
@@ -79,6 +91,15 @@ fun AppShellScreen(
                 }
             }
         }
+        if (gleoState.command.phase != GleoCommandPhase.IDLE) {
+            GleoNoticeLine(
+                state = gleoState.command,
+                parked = !uiState.isDrivingMode,
+                onShown = gleoViewModel::onNoticeShown,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+      }
     }
 }
 
@@ -98,15 +119,28 @@ private fun ParkedDestinationContent(
     destination: AppDestination,
     onOpenRecommendations: () -> Unit,
     onOpenTrip: (Long?) -> Unit,
+    onOpenRoadmap: (Long, String) -> Unit,
+    onLeaveRecommendations: () -> Unit,
     recommendationsEntry: Int,
+    recommendationsOpenTripNo: Long?,
+    recommendationsOpenSidoNm: String?,
     tripsEntry: Int,
     tripsOpenTripNo: Long?,
 ) {
     when (destination) {
         // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
-        AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations, onOpenTrip = onOpenTrip)
+        AppDestination.RECORDS -> HomeScreen(
+            onOpenRecommendations = onOpenRecommendations,
+            onOpenTrip = onOpenTrip,
+            onOpenRoadmap = onOpenRoadmap,
+        )
         AppDestination.TRIPS -> TripsScreen(entry = tripsEntry, openTripNo = tripsOpenTripNo)
-        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry)
+        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(
+            entryKey = recommendationsEntry,
+            openTripNo = recommendationsOpenTripNo,
+            openSidoNm = recommendationsOpenSidoNm,
+            onLeave = onLeaveRecommendations,
+        )
         AppDestination.SETTINGS -> SettingsScreen()
     }
 }

@@ -55,6 +55,7 @@ private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.GUIDANCE_REQUESTED -> R.string.guidance_requested
     UiMessage.GUIDANCE_FAILED -> R.string.guidance_failed
     UiMessage.RATING_SAVED -> R.string.rating_saved
+    UiMessage.RATING_GUIDANCE_REQUIRED -> R.string.rating_guidance_required
     UiMessage.PLACE_DRAFT_SAVED -> R.string.notice_place_draft_saved
     UiMessage.PLACE_SAVED -> R.string.notice_place_saved
     UiMessage.LOCATION_UNAVAILABLE -> R.string.notice_location_unavailable
@@ -64,4 +65,5 @@ private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.LOCATION_WITHDRAWN -> R.string.notice_location_withdrawn
     UiMessage.RECO_WITHDRAWN -> R.string.notice_reco_withdrawn
     UiMessage.DATA_CLEARED -> R.string.notice_data_cleared
+    UiMessage.NEARBY_LOCATION_WITHDRAWN -> R.string.notice_nearby_location_withdrawn
 }
