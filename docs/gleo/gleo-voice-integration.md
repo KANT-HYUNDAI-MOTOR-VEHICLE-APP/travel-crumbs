@@ -57,15 +57,16 @@
 | 콜드 3회 | 앱이 꺼져 있을 때 속도 | 3회 모두 성공 · 약 3초 |
 | 앱 열기 시험 | OPEN 함수를 빼도 열리는지 | 「트래블 크럼스 앱 열어 줘」로 성공 |
 
-## 5. DB 참고 — Gleo 기능이 쓰는 데이터(데이터 표준정의서 v0.4 기준)
+## 5. DB 참고 — Gleo 기능이 쓰는 데이터(데이터 표준정의서 v0.55 기준)
 
 | Gleo 기능 | 테이블 · 칸 | 읽기 · 쓰기 |
 |---|---|---|
-| 장소 기록 | `trip_place_dtl`(`trip_no` · `lat` · `lng` · `recorded_at` · `draft_yn`='Y') · `trip_mst.place_cnt` | 쓰기 |
-| 기록 멈춤 · 재개 | `trip_mst.trip_status_cd`(TRIP_STATUS: RECORDING ↔ PAUSED) · `trip_status_hist` | 쓰기 |
-| 여행 종료 | 쓰기 없음(확인 팝업만) — 사람이 「종료」를 누르면 `trip_status_cd`=COMPLETED · `end_at` | — |
-| 오늘 기록 보기 | `trip_place_dtl.recorded_at` · `trip_mst.trip_status_cd` · `place_cnt` | 읽기 |
-| 경로 추천 | `route_reco_dtl` · `route_reco_place_dtl` · `place_mst` | 읽기 |
+| 장소 기록 | TRIP_PLACE_DTL(TRIP_NO · LAT · LNG · RECORDED_AT · DRAFT_YN='Y') · TRIP_MST.PLACE_CNT | 쓰기 |
+| 기록 멈춤 · 재개 | TRIP_MST.TRIP_STATUS_CD(RECORDING ↔ PAUSED) · TRIP_STATUS_HIST | 쓰기 |
+| 여행 종료 | 쓰기 없음(확인 팝업만) — 사람이 「종료」를 누르면 TRIP_STATUS_CD=COMPLETED · END_AT | — |
+| 오늘 기록 보기 | TRIP_PLACE_DTL.RECORDED_AT · TRIP_MST.TRIP_STATUS_CD · PLACE_CNT | 읽기 |
+| 경로 추천 | ROUTE_RECO_DTL · ROUTE_RECO_PLACE_DTL · PLACE_MST | 읽기 |
 
+- 표기는 정의서 v0.55(`docs/data/standard.md`) R01 대로 영문 대문자.
 - Gleo 기능은 새 테이블 · 칸을 만들지 않음 — 화면 버튼과 같은 저장 경로를 씀.
 - 좌표는 Gleo 콜백 · 로그에 넣지 않음(추천 응답은 지역 이름 · 로드맵 이름만).
