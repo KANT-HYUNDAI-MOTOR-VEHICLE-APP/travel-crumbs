@@ -49,15 +49,22 @@ class GleoIntentReaderTest {
         val record = GleoIntentReader.read(Intent("com.example.travelcrumbs.RECORD_CURRENT_PLACE"))!!
         assertEquals(AppConfig.GLEO_FUNCTION_RECORD, record.functionName)
         assertTrue(record.readable)
-        val open = GleoIntentReader.read(Intent("com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS"))!!
-        assertEquals(AppConfig.GLEO_FUNCTION_OPEN, open.functionName)
+        val control = GleoIntentReader.read(Intent("com.example.travelcrumbs.CONTROL_CURRENT_TRIP"))!!
+        assertEquals(AppConfig.GLEO_FUNCTION_CONTROL, control.functionName)
+        val info = GleoIntentReader.read(Intent("SHOW_TRAVEL_INFO"))!!
+        assertEquals(AppConfig.GLEO_FUNCTION_INFO, info.functionName)
         assertNull(GleoIntentReader.read(Intent("com.other.app.RECORD_CURRENT_PLACE")))
     }
 
     @Test
-    fun `T1 기존 OPEN은 다른 extras가 있어도 이전 무파라미터 처리를 유지`() {
-        val read = GleoIntentReader.read(Intent(AppConfig.GLEO_FUNCTION_OPEN).putExtra("other", 1))!!
-        assertTrue(read.readable)
-        assertTrue(GleoActionParser.parse(read.functionName, read.actionParam).isSuccess)
+    fun `69-U4 OPEN_TRAVEL_CRUMBS 는 더 이상 Gleo 함수로 읽지 않음`() {
+        assertNull(GleoIntentReader.read(Intent("OPEN_TRAVEL_CRUMBS")))
+        assertNull(GleoIntentReader.read(Intent("com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS")))
+    }
+
+    @Test
+    fun `69 새 함수도 ACTION_PARAM 밖 extra 는 거절`() {
+        val read = GleoIntentReader.read(Intent(AppConfig.GLEO_FUNCTION_CONTROL).putExtra("ACTION_PARAM", "{}").putExtra("other", "x"))!!
+        assertFalse(read.readable)
     }
 }

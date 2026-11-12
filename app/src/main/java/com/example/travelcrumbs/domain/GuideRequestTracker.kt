@@ -1,5 +1,6 @@
 package com.example.travelcrumbs.domain
 
+import com.example.travelcrumbs.domain.model.NaviDestination
 import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RouteFailReason
 import com.example.travelcrumbs.domain.model.RouteRequestResult
@@ -54,6 +55,7 @@ class GuideRequestTracker(
     private val navi: NaviGuidance,
     private val recorder: GuidanceStartRecorder,
     private val scope: CoroutineScope,
+    private val timeSource: TimeSource,
 ) {
     private val _state = MutableStateFlow<GuideRequestState>(GuideRequestState.Idle)
 
@@ -89,6 +91,26 @@ class GuideRequestTracker(
      * 읽는 곳: [guide](요청 중 여부) · [recheck](대조 대상) · [naviIsHeadingTo](기다린 뒤 아직 같은 요청인가).
      */
     private var lastRequest: GuideRequest? = null
+
+    /**
+     * 마지막으로 시작됨으로 바뀐 장소 + 시각 한 칸(#66 스펙 3.8 「이 앱 요청」 분류) — [markStarted] 가 씀 · [isAppRequest] 만 읽음 · 밖에 공개하지 않음.
+     * [state] 의 시작됨(다음 요청까지 남음)과 달리 시각이 있어 짧은 창으로만 씀.
+     */
+    private var lastStartedPlace: Place? = null
+    private var lastStartedAt: Long? = null
+
+    /**
+     * 읽기 전용 질의(#66 스펙 3.6 · 3.8) — [destination] 이 (a) 내부 요청 칸(결과 전 · TIMEOUT 뒤 기억 중)의 장소와 같거나
+     * (b) 마지막 시작됨 장소와 같고 그때부터 [AppConfig.AUTO_RECORD_APP_REQUEST_WINDOW_MILLIS] 안인가. 상태 · 동작은 바꾸지 않음.
+     * 오래 남는 [state] 의 시작됨 · 실패는 보지 않음. 메인 스레드에서만 부름(다른 공개 함수와 같음).
+     */
+    fun isAppRequest(destination: NaviDestination): Boolean = AutoRecordRules.isAppRequest(
+        destination = destination,
+        pendingRequest = lastRequest?.place,
+        lastStarted = lastStartedPlace,
+        lastStartedAt = lastStartedAt,
+        now = timeSource.nowMillis(),
+    )
 
     /** 지금 요청 중인가(결과 전) — TIMEOUT 뒤 기억 중은 요청 중이 아님. */
     private val isRequesting: Boolean get() = lastRequest?.timedOut == false
@@ -188,6 +210,8 @@ class GuideRequestTracker(
     private fun markStarted(request: GuideRequest) {
         if (lastRequest !== request) return
         lastRequest = null
+        lastStartedPlace = request.place
+        lastStartedAt = timeSource.nowMillis()
         publish { GuideRequestState.Started(request.place, it) }
         scope.launch { recordPin(request.place.id) }
         // 기다리던 응답 · 한도 · 늦은 알림 대기를 거둠(내비 리스너 제거) — 같은 요청이 다시 정해지지 않음

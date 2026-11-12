@@ -1,17 +1,33 @@
 {
   "packageName": "com.example.travelcrumbs",
-  "appDescription": "An app that shows travel records left along the route the vehicle has driven.",
+  "appDescription": "Travel Crumbs records the places visited on a car trip and recommends travel routes and courses that other drivers shared.",
+  "invokeWord": "트래블 크럼스",
   "version": "0.1.0",
   "actionCalls": [
     {
       "type": "function",
       "function": {
-        "name": "OPEN_TRAVEL_CRUMBS",
-        "description": "Opens the Travel Crumbs screen so the driver can see their travel records.",
+        "name": "SHOW_TRAVEL_INFO",
+        "description": "Recommends Travel Crumbs travel routes and courses for a region or near the vehicle and shows them on the screen, or tells today's Travel Crumbs trip records.",
         "parameters": {
           "type": "object",
-          "properties": {},
-          "required": []
+          "properties": {
+            "infoType": {
+              "type": "string",
+              "enum": [
+                "TODAY_RECORDS",
+                "RECOMMENDED_ROADMAPS"
+              ],
+              "description": "RECOMMENDED_ROADMAPS for travel route or course recommendations, TODAY_RECORDS for the places recorded today."
+            },
+            "region": {
+              "type": "string",
+              "description": "Korean city, county, district or province the user wants travel route recommendations for; omit when no place is named."
+            }
+          },
+          "required": [
+            "infoType"
+          ]
         },
         "component": "activity"
       }

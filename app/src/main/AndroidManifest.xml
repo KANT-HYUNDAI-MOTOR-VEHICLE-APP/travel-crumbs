@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Android Automotive(Pleos Connect) 전용 앱 -->
     <uses-feature
@@ -8,7 +9,7 @@
 
     <!-- 기어(VehicleGear) 읽기 — data/vehicle/VehicleGearDataSource -->
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
-    <!-- 경로 상태 조회(getRouteStateInfo) — data/navi/NaviInfoDataSource -->
+    <!-- 경로 상태 조회(getRouteStateInfo) · 현재 위치 조회(getCurrentLocationInfo — #51 A-02 장소 기록 · #55 홈 근처 로드맵) — data/navi/NaviInfoDataSource -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <!-- 길안내 요청(requestRoute) — data/navi/NaviInfoDataSource · 스펙 navigation 4.3 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
@@ -16,6 +17,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 연결되면 다시 보내기 — JobScheduler 연결 조건(targetSdk 34 요구) · data/pin(스펙 navigation 4.3 · U30) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 지도 렌더러(MapLibre · #59)가 라이브러리 매니페스트로 넣는 권한 — 이 앱은 쓰지 않음(지도는 앱 자산만 · 위치 조회 없음) -->
+    <uses-permission
+        android:name="android.permission.ACCESS_WIFI_STATE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        tools:node="remove" />
 
     <!-- 「내비 보기」 — 차량 내비 앱의 실행 Intent 를 찾음(패키지 공개 범위 · targetSdk 30+) · data/navi/NaviAppDataSource(#51 U0) -->
     <queries>
@@ -56,10 +68,12 @@
               Gleo AI 가 context.startActivity() 로 부름(component = "activity").
               실제 Gleo(Pleos Connect v2.1.0 에뮬레이터, 2026-11-10 확인)는 「패키지명.함수명」으로 보냄 —
               공식 예제의 접두어 없는 꼴도 함께 받음(#25).
+              release 는 읽기 전용 SHOW_TRAVEL_INFO 만(#69 U1) · 기록 · 여행 제어는 src/debug 매니페스트.
+              OPEN_TRAVEL_CRUMBS 는 뺌(#69 · 앱 열기는 Gleo 기본 앱 실행).
             -->
             <intent-filter>
-                <action android:name="OPEN_TRAVEL_CRUMBS" />
-                <action android:name="com.example.travelcrumbs.OPEN_TRAVEL_CRUMBS" />
+                <action android:name="SHOW_TRAVEL_INFO" />
+                <action android:name="com.example.travelcrumbs.SHOW_TRAVEL_INFO" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

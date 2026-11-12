@@ -3,7 +3,10 @@ package com.example.travelcrumbs.ui.shell
 import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
+import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
+import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeTimeSource
 import com.example.travelcrumbs.testing.unfinishedInputRepositoryOf
 import com.example.travelcrumbs.ui.navigation.AppDestination
@@ -31,6 +34,7 @@ class AppShellViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val driving = FakeDrivingSignalRepository(DrivingState.PARKED)
     private val inputs: UnfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource(now = 7L))
+    private val gleo = FakeGleoActionRepository()
 
     @Before
     fun setUp() {
@@ -43,7 +47,7 @@ class AppShellViewModelTest {
     }
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()) =
-        AppShellViewModel(driving, inputs, handle)
+        AppShellViewModel(driving, inputs, handle, gleo)
 
     private val AppShellViewModel.state get() = uiState.value
 
@@ -344,6 +348,55 @@ class AppShellViewModelTest {
 
     private fun copyOf(handle: SavedStateHandle) =
         SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
+
+    @Test
+    fun `69-T13 정차 중 Gleo 화면 요청 — 내 여행 · 지역 추천 · 종료 확인은 기록 칸 · 명령마다 한 번`() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val vm = viewModel(handle)
+        subscribe(vm)
+
+        vm.onGleoScreenRequest(1L, GleoScreenRequest.OpenTrips)
+        advanceUntilIdle()
+        assertEquals(AppDestination.TRIPS, vm.state.selectedDestination)
+
+        val gyeongju = Region("경북", "경주시")
+        vm.onGleoScreenRequest(2L, GleoScreenRequest.OpenRecommendations(gyeongju))
+        advanceUntilIdle()
+        assertEquals(AppDestination.RECOMMENDATIONS, vm.state.selectedDestination)
+        assertEquals(gyeongju, vm.state.recommendationsRegion)
+        val entry = vm.state.recommendationsEntry
+
+        // 같은 명령을 다시 받아도(화면 재구성) 진입 값이 또 오르지 않음
+        vm.onGleoScreenRequest(2L, GleoScreenRequest.OpenRecommendations(gyeongju))
+        advanceUntilIdle()
+        assertEquals(entry, vm.state.recommendationsEntry)
+
+        vm.onGleoScreenRequest(3L, GleoScreenRequest.ConfirmEndTrip)
+        advanceUntilIdle()
+        assertEquals(AppDestination.RECORDS, vm.state.selectedDestination)
+
+        // 레일로 추천에 들어가면 Gleo 지역을 지우고 B-01 부터
+        vm.selectDestination(AppDestination.RECOMMENDATIONS)
+        advanceUntilIdle()
+        assertNull(vm.state.recommendationsRegion)
+    }
+
+    @Test
+    fun `69-T12 주행 · 모름에서는 Gleo 화면 요청으로 칸을 옮기지 않음`() = runTest(dispatcher) {
+        val vm = viewModel()
+        subscribe(vm)
+        driving.emit(DrivingState.DRIVING)
+        advanceUntilIdle()
+        val before = vm.state.drivingDestination
+
+        vm.onGleoScreenRequest(1L, GleoScreenRequest.OpenRecommendations(Region("경북", "경주시")))
+        vm.onGleoScreenRequest(2L, GleoScreenRequest.OpenTrips)
+        advanceUntilIdle()
+
+        assertEquals(before, vm.state.drivingDestination)
+        assertEquals(AppDestination.RECORDS, vm.state.selectedDestination)
+        assertNull(vm.state.recommendationsRegion)
+    }
 
     private fun TestScope.subscribe(vm: AppShellViewModel) {
         backgroundScope.launch { vm.uiState.collect { } }

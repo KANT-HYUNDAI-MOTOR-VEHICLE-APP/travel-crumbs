@@ -15,17 +15,20 @@ object GleoIntentReader {
     private const val EXTRA_ACTION_PARAM = "ACTION_PARAM"
     private const val TAG = "GleoIntent"
 
+    /** 이 앱이 schema.json 에 선언한 Gleo 함수(#69 — OPEN 은 뺌). */
+    val FUNCTIONS: Set<String> = setOf(
+        AppConfig.GLEO_FUNCTION_RECORD,
+        AppConfig.GLEO_FUNCTION_CONTROL,
+        AppConfig.GLEO_FUNCTION_INFO,
+    )
+
     @Suppress("DEPRECATION") // minSdk 28에서 Bundle.get의 실제 타입을 확인하기 위한 경계.
     fun read(intent: Intent?): GleoIntentRequest? {
         // 실제 Gleo 는 「패키지명.함수명」, 공식 예제는 「함수명」 — 함수명으로 맞춰 읽음.
         val action = intent?.action?.removePrefix(AppConfig.GLEO_ACTION_PREFIX) ?: return null
-        if (action != AppConfig.GLEO_FUNCTION_OPEN && action != AppConfig.GLEO_FUNCTION_RECORD) return null
+        if (action !in FUNCTIONS) return null
         // 실기에서 Gleo 가 넣는 extras 꼴을 확인하기 위한 키 이름만 기록(값은 남기지 않음).
         runCatching { Log.i(TAG, "action=${intent.action} extraKeys=${intent.extras?.keySet()?.sorted()}") }
-        if (action == AppConfig.GLEO_FUNCTION_OPEN) {
-            // 기존 OPEN의 파라미터 호환 동작 유지.
-            return GleoIntentRequest(action, runCatching { intent.extras?.getString(EXTRA_ACTION_PARAM) }.getOrNull())
-        }
         return runCatching {
             val extras = intent.extras
             require(extras?.keySet().orEmpty().all { it == EXTRA_ACTION_PARAM })

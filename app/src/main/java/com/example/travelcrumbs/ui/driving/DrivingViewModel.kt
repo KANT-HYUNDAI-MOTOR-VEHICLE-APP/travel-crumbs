@@ -3,20 +3,25 @@ package com.example.travelcrumbs.ui.driving
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.gleo.freshScreenRequests
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.EndTripUseCase
 import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +43,8 @@ class DrivingViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val ratingRepository: RatingRepository,
     private val naviRepository: NaviRepository,
+    gleoActionRepository: GleoActionRepository,
+    private val endTrip: EndTripUseCase,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
@@ -75,6 +82,15 @@ class DrivingViewModel @Inject constructor(
                 if (state == DrivingState.PARKED) savedStateHandle[KEY_END_CONFIRM] = false
             }
         }
+        // Gleo 「여행 끝낼게」(#69 U2) — 저장소는 바꾸지 않고 기존 확인 팝업만 엶 · 명령마다 한 번.
+        viewModelScope.launch {
+            gleoActionRepository.freshScreenRequests()
+                .filter { it.screen == GleoScreenRequest.ConfirmEndTrip && savedStateHandle.get<Long>(KEY_GLEO_END) != it.noticeId }
+                .collect { command ->
+                    savedStateHandle[KEY_GLEO_END] = command.noticeId
+                    savedStateHandle[KEY_END_CONFIRM] = true
+                }
+        }
     }
 
     /** 「이 장소 기록」 — 위치만 임시저장 · 「위치를 저장했어요 · 태그는 정차 후에」(A-02 · #51 U4). */
@@ -110,7 +126,8 @@ class DrivingViewModel @Inject constructor(
         viewModelScope.launch {
             // 별점(#41) — 안내받은 추천 로드맵이 있으면 정차 뒤 기록 화면에서 「따라간 코스 어땠나요?」(주행 중엔 안 띄움).
             // 종료 시각은 기록 저장소가 정한 값 하나 · 이미 끝난 여행이면 null(아무 일 없음)
-            recordingRepository.endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
+            // 기록 대기 확정 → 종료(#66 N3 · 정차 홈과 같은 동작 하나)
+            endTrip()?.let { endedAt -> ratingRepository.markGuidedTripsEnded(endedAt) }
         }
     }
 
@@ -161,5 +178,6 @@ class DrivingViewModel @Inject constructor(
 
     private companion object {
         const val KEY_END_CONFIRM = "end_confirm_visible"
+        const val KEY_GLEO_END = "gleo_end_confirm_notice"
     }
 }

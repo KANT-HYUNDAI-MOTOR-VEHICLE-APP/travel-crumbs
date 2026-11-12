@@ -9,6 +9,10 @@ import xml.etree.ElementTree as ET
 sys.stdout.reconfigure(encoding="utf-8")
 
 ANDROID = "{http://schemas.android.com/apk/res/android}"
+TOOLS = "{http://schemas.android.com/tools}"
+# 라이브러리가 끌어온 권한을 병합 결과에서 지우는 표시(Android 매니페스트 병합 규칙) — 요청 권한이 아님(#73).
+# merge · replace 같은 다른 값은 권한이 남으므로 요청 권한으로 셈.
+REMOVE_NODES = {"remove", "removeAll"}
 # 허용 권한 → 왜 쓰는지. **이 표가 허용 목록의 원본**이고, 다른 문서는 목록을 베끼지 않고 여기를 가리킴
 # (같은 목록이 여러 곳에 있으면 한 곳만 고쳐져 어긋남). 늘리는 길은 `sensors` 스킬 「권한 허용 목록을 늘리는 길」.
 # 근거는 그 권한이 왜 필요한지 적힌 승인된 스펙(docs/spec/<기능명>/artifacts/) 또는 규칙 문서 — 지울지 말지
@@ -42,7 +46,9 @@ def main() -> int:
         print(f"{a.manifest}:0 · 입력 · 매니페스트를 읽지 못함: {e}")
         return 2
     bad = []
-    perms = [attr(p, "name") for p in root.iter("uses-permission")]
+    declared = list(root.iter("uses-permission"))
+    removed = [attr(p, "name") for p in declared if p.get(TOOLS + "node") in REMOVE_NODES]
+    perms = [attr(p, "name") for p in declared if p.get(TOOLS + "node") not in REMOVE_NODES]
     for p in perms:
         if p not in allowed:
             bad.append(f"{a.manifest}:0 · 권한 · 허용 밖 권한 {p} (원본 목록은 이 스크립트의 ALLOWED · 늘리려면 sensors 스킬 「권한 허용 목록을 늘리는 길」)")
@@ -92,6 +98,8 @@ def main() -> int:
         bad.append(f"{a.manifest}:0 · minSdk · {min_sdk} < {MIN_SDK} (Pleos 요구)")
     for b in bad:
         print(b)
+    if removed:
+        print(f"check_manifest: 제거 선언 {len(removed)}개(tools:node=remove · 요청 권한 아님) — {', '.join(removed)}")
     print(f"check_manifest: 권한 {len(perms)}개 · 위반 {len(bad)}")
     return 1 if bad else 0
 

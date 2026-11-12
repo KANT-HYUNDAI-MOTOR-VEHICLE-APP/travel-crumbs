@@ -6,6 +6,7 @@ import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.GleoCallback
 import com.example.travelcrumbs.domain.model.GleoCommandPhase
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
 import com.example.travelcrumbs.domain.model.GleoStatus
 import com.example.travelcrumbs.domain.model.ConsentType
 import com.example.travelcrumbs.domain.model.RecordingProgress
@@ -29,7 +30,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GleoCommandProcessorTest {
-    private class Fixture(private val scope: TestScope, recordEnabled: Boolean = true) {
+    private class Fixture(private val scope: TestScope, writeEnabled: Boolean = true) {
         var readinessCalls = 0
         val requestIds = mutableListOf<UUID>()
         val recordCalls: Int get() = requestIds.size
@@ -38,12 +39,20 @@ class GleoCommandProcessorTest {
         var ready: suspend ((Boolean) -> Unit) -> GleoReadiness = { GleoReadiness.READY }
         var record: suspend () -> ActionResult = { ActionResult.DONE }
         val callbacks = mutableListOf<GleoCallback>()
+        val controlCalls = mutableListOf<String>()
+        val infoCalls = mutableListOf<Pair<String, String?>>()
+        var control: suspend (String) -> GleoOutcome = { GleoOutcome(GleoCommandPhase.TRIP_PAUSED, GleoStatus.SUCCESS, AppConfig.GLEO_PAUSED_MESSAGE) }
+        var info: suspend (String, String?) -> GleoOutcome = { _, _ ->
+            GleoOutcome(GleoCommandPhase.TODAY_RECORDS, GleoStatus.SUCCESS, "You recorded 1 place today.", "[]", "1", GleoScreenRequest.OpenTrips)
+        }
         val processor = GleoCommandProcessor(
             scope.backgroundScope,
             GleoRecordingReadiness { restoring -> readinessCalls++; ready(restoring) },
             RecordPlaceUseCase { requestId -> requestIds += checkNotNull(requestId); record() },
             callbacks::add,
-            recordEnabled,
+            writeEnabled,
+            tripControl = { operation -> controlCalls += operation; control(operation) },
+            travelInfo = { type, region -> infoCalls += type to region; info(type, region) },
             newRequestId = { issueId().also(issuedIds::add) },
         )
 
@@ -54,14 +63,81 @@ class GleoCommandProcessorTest {
     }
 
     @Test
-    fun `T1 OPEN은 기존 성공 응답만 보내고 기록 준비나 저장을 호출하지 않음`() = runTest {
+    fun `69-T1 여행 제어는 기록 준비 · 저장을 거치지 않고 파라미터를 그대로 넘김`() = runTest {
         val f = Fixture(this)
-        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_OPEN, null))
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"PAUSE"}"""))
+        runCurrent()
 
-        assertEquals(AppConfig.GLEO_OPEN_SUCCESS_MESSAGE, f.callbacks.single().message)
+        assertEquals(listOf("PAUSE"), f.controlCalls)
+        assertEquals(AppConfig.GLEO_PAUSED_MESSAGE, f.callbacks.single().message)
         assertEquals(GleoStatus.SUCCESS, f.callbacks.single().status)
+        assertEquals(GleoCommandPhase.TRIP_PAUSED, f.processor.state.value.phase)
         assertEquals(0, f.readinessCalls)
         assertEquals(0, f.recordCalls)
+    }
+
+    @Test
+    fun `69-T2 여행 제어 파라미터가 없거나 enum 밖이면 입력 실패 · 처리기를 부르지 않음`() = runTest {
+        val f = Fixture(this)
+        for (raw in listOf("{}", """{"operation":"STOP"}""", """{"operation":"PAUSE","x":"1"}""")) {
+            f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_CONTROL, raw))
+            runCurrent()
+        }
+        assertTrue(f.controlCalls.isEmpty())
+        assertEquals(3, f.callbacks.size)
+        assertTrue(f.callbacks.all { it.status == GleoStatus.FAIL && it.message == AppConfig.GLEO_INPUT_FAIL_MESSAGE })
+        assertEquals(GleoCommandPhase.INVALID_REQUEST, f.processor.state.value.phase)
+    }
+
+    @Test
+    fun `69-T13 정보 조회 결과의 data · 화면 요청이 콜백과 상태에 실림`() = runTest {
+        val f = Fixture(this)
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":"경주"}"""))
+        runCurrent()
+
+        assertEquals(listOf("RECOMMENDED_ROADMAPS" to "경주"), f.infoCalls)
+        assertEquals("[]", f.callbacks.single().data)
+        assertEquals(GleoScreenRequest.OpenTrips, f.processor.state.value.screen)
+        assertEquals("1", f.processor.state.value.detail)
+    }
+
+    @Test
+    fun `69-T14 다른 명령 처리 중 들어온 명령은 즉시 BUSY 실패 · 처리 중 명령은 그대로 끝남`() = runTest {
+        val f = Fixture(this)
+        val gate = CompletableDeferred<ActionResult>()
+        f.record = { gate.await() }
+        f.handle()
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"PAUSE"}"""))
+        runCurrent()
+
+        assertTrue(f.controlCalls.isEmpty())
+        assertEquals(AppConfig.GLEO_BUSY_MESSAGE, f.callbacks.single().message)
+        assertEquals(GleoStatus.FAIL, f.callbacks.single().status)
+
+        gate.complete(ActionResult.DONE)
+        runCurrent()
+        assertEquals(GleoCommandPhase.SAVED, f.processor.state.value.phase)
+        assertEquals(2, f.callbacks.size)
+    }
+
+    @Test
+    fun `69 정보 조회가 7초를 넘기면 한 번만 실패로 답하고 늦은 결과는 버림`() = runTest {
+        val f = Fixture(this)
+        val gate = CompletableDeferred<Unit>()
+        f.info = { _, _ ->
+            gate.await()
+            GleoOutcome(GleoCommandPhase.TODAY_RECORDS, GleoStatus.SUCCESS, "late", screen = GleoScreenRequest.OpenTrips)
+        }
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"TODAY_RECORDS"}"""))
+        advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS + 1)
+        runCurrent()
+        assertEquals(AppConfig.GLEO_TIMEOUT_MESSAGE, f.callbacks.single().message)
+
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(1, f.callbacks.size)
+        assertEquals(GleoCommandPhase.REQUEST_FAILED, f.processor.state.value.phase)
+        assertEquals(null, f.processor.state.value.screen)
     }
 
     @Test
@@ -345,7 +421,9 @@ class GleoCommandProcessorTest {
             { GleoReadiness.READY },
             { records++; ActionResult.DONE },
             { callbacks++; error("broadcast failed") },
-            recordEnabled = true,
+            writeEnabled = true,
+            tripControl = { error("not used") },
+            travelInfo = { _, _ -> error("not used") },
         )
         processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_RECORD, null))
         advanceTimeBy(AppConfig.GLEO_RESPONSE_TARGET_MILLIS)
@@ -368,8 +446,8 @@ class GleoCommandProcessorTest {
     }
 
     @Test
-    fun `T37 배포용 설정의 RECORD는 준비 진입 전에 차단하고 OPEN 유지`() = runTest {
-        val f = Fixture(this, recordEnabled = false)
+    fun `T37 69-U1 배포용 설정은 RECORD · CONTROL 을 차단하고 정보 조회만 받음`() = runTest {
+        val f = Fixture(this, writeEnabled = false)
         f.handle()
 
         assertEquals(0, f.readinessCalls)
@@ -378,7 +456,13 @@ class GleoCommandProcessorTest {
         assertTrue(f.callbacks.isEmpty())
         assertEquals(GleoCommandPhase.IDLE, f.processor.state.value.phase)
 
-        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_OPEN, null))
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"PAUSE"}"""))
+        runCurrent()
+        assertTrue(f.controlCalls.isEmpty())
+        assertTrue(f.callbacks.isEmpty())
+
+        f.processor.handle(GleoIntentRequest(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"TODAY_RECORDS"}"""))
+        runCurrent()
         assertEquals(GleoStatus.SUCCESS, f.callbacks.single().status)
     }
 }

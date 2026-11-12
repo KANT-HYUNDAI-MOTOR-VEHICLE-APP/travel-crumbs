@@ -9,6 +9,7 @@ import com.example.travelcrumbs.domain.model.Place
 import com.example.travelcrumbs.domain.model.RatingRecords
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.testing.FakeDrivingSignalRepository
+import com.example.travelcrumbs.testing.FakeGleoActionRepository
 import com.example.travelcrumbs.testing.FakeNaviRepository
 import com.example.travelcrumbs.testing.FakeRecordPlaceUseCase
 import com.example.travelcrumbs.testing.FakeStartVoiceInputUseCase
@@ -56,6 +57,7 @@ class DrivingViewModelTest {
         recording: RecordingRepository = recordingRepositoryOf(FakeTimeSource()),
         handle: SavedStateHandle = SavedStateHandle(),
         navi: FakeNaviRepository = FakeNaviRepository(),
+        gleo: FakeGleoActionRepository = FakeGleoActionRepository(),
     ) = DrivingViewModel(
         recordingRepository = recording,
         recordPlace = FakeRecordPlaceUseCase(recordPlace),
@@ -64,6 +66,8 @@ class DrivingViewModelTest {
         savedStateHandle = handle,
         ratingRepository = ratings,
         naviRepository = navi,
+        gleoActionRepository = gleo,
+        endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
     )
 
     @Test

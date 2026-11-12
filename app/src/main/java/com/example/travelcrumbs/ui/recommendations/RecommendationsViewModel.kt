@@ -8,11 +8,17 @@ import com.example.travelcrumbs.data.map.OfflineMapRepository
 import com.example.travelcrumbs.data.recommendation.RecommendationRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuidanceRequestResult
+import com.example.travelcrumbs.domain.RecommendationMapRules
 import com.example.travelcrumbs.domain.RecommendationRules
 import com.example.travelcrumbs.domain.RequestRouteGuidanceUseCase
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.RoadmapMapRules
 import com.example.travelcrumbs.domain.model.CompanionType
+import com.example.travelcrumbs.domain.model.MapFitBasis
+import com.example.travelcrumbs.domain.model.MapPinResult
+import com.example.travelcrumbs.domain.model.MapStatus
+import com.example.travelcrumbs.domain.model.LocationResultKind
+import com.example.travelcrumbs.domain.model.LocationConsent
 import com.example.travelcrumbs.domain.model.OfflineMapPack
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.domain.model.RatingRecords
@@ -36,12 +42,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 
 /**
  * 「추천」 칸(#37 · 와이어프레임 v6 B-01 ~ B-05) — 목적지 안의 화면 이동 · 필터 · 태그 · 안내 요청.
  * 고른 것(화면 · 지역 · 정렬 · 동행자 · 태그 · 로드맵 · 팝업)은 SavedStateHandle 에 둬 프로세스 재생성 · 주행 뒤에도 그대로.
  * 계산(정렬 · 개수 · 대표 태그 · 경로 그림 · 내 별점 반영)은 도메인 [RecommendationRules] · 자료는 저장소(추천 · 별점).
  * 별점(#41 B-06): 안내 요청이 성공하면 그 로드맵을 별점 저장소에 남김(실패면 남기지 않음) · B-04 「별점 주기」 / 「내 별점 ★n · 고치기」.
+ * B-01 지도(#59): 지도를 그리는 쪽(RecommendationMapHolder · 화면)이 좌표 · 화면 범위 · 묶음을 계산하고 이 ViewModel 엔
+ * 장소 번호 · 개수 · 결과 종류만 넘김 — 좌표는 이 상태 · SavedStateHandle · 로그에 없음(스펙 3-1 · M41).
+ * SavedStateHandle 의 지도 값은 선택 장소 번호 · 고른 로드맵 번호뿐(지도 위치 · 확대는 저장하지 않음).
  */
 @HiltViewModel
 class RecommendationsViewModel @Inject constructor(
@@ -58,6 +69,14 @@ class RecommendationsViewModel @Inject constructor(
 
     private val sidoRegions = MutableStateFlow<List<SidoRegion>>(emptyList())
     private val sidoTrips = MutableStateFlow(SidoTrips(sidoNm = null, trips = emptyList()))
+
+    /** 모든 시도의 공개 로드맵(#59 지도 카드 · 지도에서 연 상세) — null 이면 아직 못 읽음. */
+    private val allTrips = MutableStateFlow<List<MapTripSnapshot>?>(null)
+    private var refreshJob: Job? = null
+    private var refreshGeneration: Long = 0
+
+    /** 지도에서 온 결과 · 묶음 후보 목록 — 메모리만(SavedStateHandle 에 넣지 않음). */
+    private val mapProgress = MutableStateFlow(MapProgress())
 
     /** 태그 마스터 — 태그별 개수에 내 별점 태그 이름을 찾을 때. */
     private val tags = MutableStateFlow<List<Tag>>(emptyList())
@@ -86,11 +105,11 @@ class RecommendationsViewModel @Inject constructor(
         sidoRegions,
         sidoTrips,
         guidance,
-        combine(ratingPart, mapPack, ::Pair),
-    ) { sel, regions, loaded, progress, (ratingInputs, pack) ->
+        combine(ratingPart, mapPack, allTrips, mapProgress, ::Extras),
+    ) { sel, regions, loaded, progress, extras ->
         // 시도를 바꾼 직후 옛 시도 로드맵이 한 번 섞이지 않게 — 불러온 시도가 지금 시도일 때만 씀
         val trips = if (loaded.sidoNm == sel.sidoNm) loaded.trips else emptyList()
-        buildState(sel, regions, trips, progress, ratingInputs, pack)
+        buildState(sel, regions, trips, progress, extras)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(AppConfig.UI_STATE_STOP_TIMEOUT_MILLIS),
@@ -104,9 +123,14 @@ class RecommendationsViewModel @Inject constructor(
         viewModelScope.launch { sidoRegions.value = repository.sidoRegions() }
         viewModelScope.launch { tags.value = repository.tags() }
         viewModelScope.launch { mapPack.value = offlineMap.mapPack() }
+        loadAllTrips()
         viewModelScope.launch {
             selection.map { it.sidoNm }.distinctUntilChanged().collect { sido ->
-                sidoTrips.value = SidoTrips(sido, if (sido == null) emptyList() else repository.publicTrips(sido))
+                val snapshots = if (sido == null) emptyList() else repository.publicTrips(sido).map { trip ->
+                    MapTripSnapshot(trip.toDetail(RatingRecords(), mapPack.value), trip.publishedAt,
+                        trip.places.map { MapPlaceMetadata(it.placeNo, it.placeNm, it.placeOrd, it.addr, it.tags) }).metadataTrip()
+                }
+                sidoTrips.value = SidoTrips(sido, snapshots)
             }
         }
     }
@@ -115,16 +139,104 @@ class RecommendationsViewModel @Inject constructor(
      * 앱 틀의 진입 값(레일 「추천」 · 「추천 보러 가기」마다 오름)이 지난번과 다르면 B-01 부터 · 고른 것 초기화.
      * 같으면(주행 → 정차 · 화면 재구성 · 프로세스 재생성) 보던 화면 그대로.
      */
-    fun onEntry(entryKey: Int) {
+    fun onEntry(entryKey: Int, openTripNo: Long? = null, openSidoNm: String? = null, region: Region? = null) {
+        // 화면에 들어올 때마다 공개 자료를 다시 읽음 — 비공개 · 삭제된 장소의 핀 · 카드를 지움(M26)
+        loadAllTrips()
         if (savedStateHandle.get<Int>(KEY_ENTRY) == entryKey) return
         savedStateHandle[KEY_ENTRY] = entryKey
-        updateSelection { Selection.START }
+        updateSelection {
+            if (openTripNo == null || openSidoNm == null) {
+                Selection.START
+            } else {
+                // 기록 칸 근처 로드맵 카드(#55 · 3-4) — 그 로드맵 B-04 부터 · 못 찾으면 B-01(시도는 골라 둔 채)
+                Selection.START.copy(
+                    page = RecommendationPage.DETAIL,
+                    sidoNm = openSidoNm,
+                    tripNo = openTripNo,
+                    detailFrom = RecommendationPage.REGION,
+                    detailFromHome = true,
+                )
+            }
+        }
         guidance.value = GuidanceProgress()
         rating.clear()
+        // 지도 준비 · 실패는 지도가 알려 준 그대로 두고 첫 맞춤 · 결과 · 후보만 처음부터(지도 위치는 지도 그리는 쪽이 진입 값으로 버림)
+        mapProgress.update { MapProgress(ready = it.ready, failed = it.failed) }
+        // Gleo 「경주 근처 추천」(#69) — 고르기(B-01)를 건너뛰고 그 지역 순위(B-02)부터. 시군구 null = 시도 전체.
+        // 지도 초기화 뒤에 둬야 지도가 그 시도로 이동함(selectSido 의 focus 가 지워지지 않게).
+        if (region != null && openTripNo == null) {
+            selectSido(region.sidoNm)
+            selectRegion(region.sigunguNm)
+        }
     }
 
-    /** B-01 시도 칩. */
-    fun selectSido(sidoNm: String) = updateSelection { it.copy(sidoNm = sidoNm) }
+    /** B-01 시도 칩 — 카드 · 후보 닫고 지도가 그 시도로 이동(N5 · M06 · M15). */
+    fun selectSido(sidoNm: String) {
+        updateSelection { it.copy(sidoNm = sidoNm, mapPlaceNo = null, mapTripNo = null, mapFromCandidates = false) }
+        mapProgress.update {
+            it.copy(candidates = null, firstFitDone = true, focusSidoNm = sidoNm, focusSeq = it.focusSeq + 1)
+        }
+    }
+
+    /** 지도가 스타일까지 그릴 준비가 됨. */
+    fun onMapReady() = mapProgress.update { it.copy(ready = true, failed = false) }
+
+    /** 지도 자산을 못 읽었거나 렌더러를 시작하지 못함(N2 · M30) — 지역 선택 · 랭킹은 그대로. */
+    fun onMapFailed() = mapProgress.update { it.copy(failed = true) }
+
+    /** 첫 맞춤 1회를 마침(지도 그리는 쪽). */
+    fun onMapFirstFitDone() = mapProgress.update { it.copy(firstFitDone = true) }
+
+    /** 사람이 지도를 밀거나 확대 · 축소함 — 첫 맞춤 끝남 = 예(늦은 위치 응답이 지도를 덮지 않게 · M05). */
+    fun onMapMovedByUser() = mapProgress.update { it.copy(firstFitDone = true) }
+
+    /** 화면 범위 핀 결과(장소 번호 · 개수만) — 지도가 멈출 때마다. */
+    fun onMapPins(result: MapPinResult) = mapProgress.update { it.copy(pins = result) }
+
+    fun refreshMapData() = loadAllTrips()
+
+    fun onMapLocation(consent: Boolean, allowed: Boolean, result: LocationResultKind) = mapProgress.update {
+        it.copy(consent = consent, locationAllowed = allowed, locationResult = result)
+    }
+
+    /** 낱개 핀 → 장소 카드(저장 · 안내 요청 없음 · M12 · M14). */
+    fun selectMapPlace(placeNo: Long) {
+        mapProgress.update { it.copy(candidates = null) }
+        updateSelection { it.copy(mapPlaceNo = placeNo, mapTripNo = null, mapFromCandidates = false) }
+    }
+
+    /** 묶음 핀 → 장소 후보 목록(지도 이동 없음 · M35). */
+    fun selectMapCluster(placeNos: List<Long>) {
+        mapProgress.update { it.copy(candidates = placeNos) }
+        updateSelection { it.copy(mapPlaceNo = null, mapTripNo = null, mapFromCandidates = false) }
+    }
+
+    /** 후보 목록에서 장소 하나 → 그 장소 카드(「뒤로」면 후보 목록으로). */
+    fun selectMapCandidate(placeNo: Long) =
+        updateSelection { it.copy(mapPlaceNo = placeNo, mapTripNo = null, mapFromCandidates = true) }
+
+    /** 카드의 로드맵 후보 고르기 — 두 행동 대상이 바뀜(M17). */
+    fun selectCardRoadmap(tripNo: Long) = updateSelection { it.copy(mapTripNo = tripNo) }
+
+    /** 카드 · 후보 목록 닫기 — 지도는 그대로. */
+    fun closeMapCard() {
+        mapProgress.update { it.copy(candidates = null) }
+        updateSelection { it.copy(mapPlaceNo = null, mapTripNo = null, mapFromCandidates = false) }
+    }
+
+    /** 카드 「로드맵 보기」 → 고른 로드맵 B-04(M18) · 뒤로는 지도 · 카드로. */
+    fun openCardRoadmap() {
+        val card = uiState.value.map.card ?: return
+        updateSelection {
+            it.copy(page = RecommendationPage.DETAIL, tripNo = card.selectedTripNo, detailFrom = RecommendationPage.REGION, confirmPlaceNo = null)
+        }
+    }
+
+    /** 카드 「여기로 안내」 → 기존 안내 확인 팝업(B-05 · M19) — 고른 로드맵의 그 장소. */
+    fun askCardGuidance() {
+        val card = uiState.value.map.card ?: return
+        updateSelection { it.copy(tripNo = card.selectedTripNo, confirmPlaceNo = card.placeNo) }
+    }
 
     /** B-01 시군구 카드(null = 「전체」) → B-02. 동행자 필터 · 태그는 새 지역에서 처음부터. */
     fun selectRegion(sigunguNm: String?) = updateSelection {
@@ -146,7 +258,7 @@ class RecommendationsViewModel @Inject constructor(
 
     /** B-02 · B-03 로드맵 카드 → B-04. 뒤로는 온 화면으로. */
     fun openTrip(tripNo: Long) = updateSelection {
-        it.copy(page = RecommendationPage.DETAIL, tripNo = tripNo, detailFrom = it.page, confirmPlaceNo = null)
+        it.copy(page = RecommendationPage.DETAIL, tripNo = tripNo, detailFrom = it.page, confirmPlaceNo = null, detailFromHome = false)
     }
 
     /** B-04 「첫 장소부터 안내」 → B-05 팝업. */
@@ -170,7 +282,10 @@ class RecommendationsViewModel @Inject constructor(
         val place = trip.places.firstOrNull { it.placeNo == sel.confirmPlaceNo } ?: return
         guidance.value = GuidanceProgress(requesting = true)
         viewModelScope.launch {
-            val result = requestRouteGuidance(place)
+            // 지도 메타데이터에는 좌표가 없음. 요청 직전에 최신 공개 원본을 읽어 내비로만 전달.
+            val liveTrip = repository.allPublicTrips().firstOrNull { it.tripNo == trip.tripNo }
+            val livePlace = liveTrip?.places?.firstOrNull { it.placeNo == place.placeNo }
+            val result = if (livePlace == null) GuidanceRequestResult.Failed else requestRouteGuidance(livePlace)
             // 별점 자격 — 내비가 안내를 시작했을 때만 남김(실패 · 한도 지남은 남기지 않음 · 사람 결정)
             if (result == GuidanceRequestResult.Started) {
                 ratingRepository.recordGuidance(trip.tripNo, trip.tripNm, trip.nicknameNm)
@@ -190,6 +305,10 @@ class RecommendationsViewModel @Inject constructor(
     /** B-04 「별점 주기」 · 「내 별점 ★n · 고치기」 → B-06 팝업(이미 준 별점이면 그 값으로 채움). 안내 기록이 없으면 아무 일 없음. */
     fun openRating() {
         val tripNo = selection.value.tripNo ?: return
+        if (uiState.value.detail?.canRate != true) {
+            guidance.update { it.copy(message = UiMessage.RATING_GUIDANCE_REQUIRED) }
+            return
+        }
         rating.open(tripNo)
     }
 
@@ -209,13 +328,24 @@ class RecommendationsViewModel @Inject constructor(
             dismissRating()
             return
         }
-        updateSelection { sel -> backFrom(sel) }
+        val sel = selection.value
+        if (sel.confirmPlaceNo == null && sel.page == RecommendationPage.REGION) {
+            val candidates = mapProgress.value.candidates
+            when {
+                // 후보 목록에서 연 카드 → 후보 목록으로 · 아니면 카드 닫기(스펙 2-3 뒤로 순서 · M16 · M35)
+                sel.mapPlaceNo != null && sel.mapFromCandidates && candidates != null ->
+                    updateSelection { it.copy(mapPlaceNo = null, mapTripNo = null, mapFromCandidates = false) }
+                sel.mapPlaceNo != null || candidates != null -> closeMapCard()
+            }
+            return
+        }
+        updateSelection { current -> backFrom(current) }
     }
 
     private fun backFrom(sel: Selection): Selection =
         when {
             sel.confirmPlaceNo != null -> sel.copy(confirmPlaceNo = null)
-            sel.page == RecommendationPage.DETAIL -> sel.copy(page = sel.detailFrom, tripNo = null)
+            sel.page == RecommendationPage.DETAIL -> sel.copy(page = sel.detailFrom, tripNo = null, detailFromHome = false)
             sel.page == RecommendationPage.TAGS -> sel.copy(page = RecommendationPage.RANKING)
             sel.page == RecommendationPage.RANKING -> sel.copy(page = RecommendationPage.REGION)
             else -> sel
@@ -223,9 +353,37 @@ class RecommendationsViewModel @Inject constructor(
 
     private fun currentTrip(): RecommendedTrip? {
         val sel = selection.value
+        val tripNo = sel.tripNo ?: return null
         val loaded = sidoTrips.value
-        if (sel.tripNo == null || loaded.sidoNm != sel.sidoNm) return null
-        return loaded.trips.firstOrNull { it.tripNo == sel.tripNo }
+        val inSido = if (loaded.sidoNm == sel.sidoNm) loaded.trips.firstOrNull { it.tripNo == tripNo } else null
+        // 지도 카드에서 연 로드맵은 고른 시도 밖일 수 있음(#59)
+        return inSido ?: allTrips.value?.firstOrNull { it.tripNo == tripNo }?.metadataTrip()
+    }
+
+    private fun loadAllTrips() {
+        refreshJob?.cancel()
+        val generation = ++refreshGeneration
+        refreshJob = viewModelScope.launch {
+            val loaded = repository.allPublicTrips()
+            ensureActive()
+            if (generation != refreshGeneration) return@launch
+            val pack = mapPack.value
+            allTrips.value = loaded.map { trip ->
+                MapTripSnapshot(trip.toDetail(RatingRecords(), pack), trip.publishedAt,
+                    trip.places.map { MapPlaceMetadata(it.placeNo, it.placeNm, it.placeOrd, it.addr, it.tags) })
+            }
+            val sido = selection.value.sidoNm
+            sidoTrips.value = SidoTrips(sido, allTrips.value.orEmpty().map(MapTripSnapshot::metadataTrip).filter { it.region.sidoNm == sido })
+            // 비공개 · 삭제로 사라진 장소의 카드 · 후보는 복원하지 않음(M26 · M27)
+            val placeNos = loaded.flatMap { trip -> trip.places.map { it.placeNo } }.toSet()
+            val sel = selection.value
+            if (sel.mapPlaceNo != null && sel.mapPlaceNo !in placeNos) {
+                updateSelection { it.copy(mapPlaceNo = null, mapTripNo = null, mapFromCandidates = false) }
+            }
+            mapProgress.update { progress ->
+                progress.copy(candidates = progress.candidates?.filter { it in placeNos }?.takeIf { it.isNotEmpty() })
+            }
+        }
     }
 
     private fun buildState(
@@ -233,9 +391,10 @@ class RecommendationsViewModel @Inject constructor(
         regions: List<SidoRegion>,
         rawTrips: List<RecommendedTrip>,
         progress: GuidanceProgress,
-        ratingInputs: RatingInputs,
-        pack: OfflineMapPack?,
+        extras: Extras,
     ): RecommendationsUiState {
+        val ratingInputs = extras.rating
+        val pack = extras.pack
         val records = ratingInputs.records
         val myRatings = records.ratingsByTrip
         // 내 별점을 평균 · 참여 수에 더한 값으로 모든 계산(정렬 · 카드 · 상세)
@@ -255,16 +414,19 @@ class RecommendationsViewModel @Inject constructor(
         val selectedTagNo = sel.tagNo?.takeIf { no -> tagCounts.any { it.tag.tagNo == no } } ?: tagCounts.firstOrNull()?.tag?.tagNo
         val tagged = selectedTagNo?.let { RecommendationRules.withTag(regionTrips, it, myRatings).toCards() }.orEmpty()
 
-        val trip = trips.firstOrNull { it.tripNo == sel.tripNo }
+        val everyTrip = extras.allTrips?.let { RecommendationRules.withMyRatings(it.map(MapTripSnapshot::metadataTrip), myRatings) }
+        val trip = trips.firstOrNull { it.tripNo == sel.tripNo } ?: everyTrip?.firstOrNull { it.tripNo == sel.tripNo }
         val confirmPlace = trip?.places?.firstOrNull { it.placeNo == sel.confirmPlaceNo }
+        val tripsLoaded = trips.isNotEmpty() || !everyTrip.isNullOrEmpty()
 
         return RecommendationsUiState(
             // 상세를 그릴 로드맵이 없으면(시드가 바뀐 뒤 복원 등) 온 화면으로
-            page = if (sel.page == RecommendationPage.DETAIL && trip == null && trips.isNotEmpty()) sel.detailFrom else sel.page,
+            page = if (sel.page == RecommendationPage.DETAIL && trip == null && tripsLoaded) sel.detailFrom else sel.page,
             demoData = repository.isDemoData,
             sidoNms = regions.map { it.sidoNm },
             selectedSidoNm = sel.sidoNm,
             sigunguCards = sigunguCards,
+            map = mapUi(sel, extras.mapProgress, everyTrip.orEmpty()),
             regionSidoNm = sel.sidoNm.orEmpty(),
             regionSigunguNm = sel.sigunguNm,
             sort = sel.sort,
@@ -274,7 +436,11 @@ class RecommendationsViewModel @Inject constructor(
             tagCounts = tagCounts.map { TagCountItem(it.tag.tagNo, it.tag.tagNm, it.cnt) },
             selectedTagNo = selectedTagNo,
             taggedTrips = tagged,
-            detail = trip?.toDetail(records, pack),
+            detail = trip?.toDetail(records, pack)?.let { detail ->
+                extras.allTrips?.firstOrNull { it.tripNo == trip.tripNo }?.detail?.let { drawn ->
+                    detail.copy(sketch = drawn.sketch, routeMap = drawn.routeMap)
+                } ?: detail
+            },
             rating = ratingInputs.dialog,
             confirm = confirmPlace?.let { place ->
                 GuidanceConfirmItem(
@@ -288,6 +454,57 @@ class RecommendationsViewModel @Inject constructor(
             },
             guidanceRequesting = progress.requesting,
             message = progress.message,
+            detailFromHome = sel.detailFromHome,
+        )
+    }
+
+    /** B-01 지도 표시 정보 — 장소 번호 · 이름 · 개수만(좌표 없음 · 스펙 3-1). */
+    private fun mapUi(sel: Selection, progress: MapProgress, trips: List<RecommendedTrip>): RecommendationMapUi {
+        val pins = progress.pins
+        val reviewCnts = RecommendationMapRules.placeReviewCnts(trips)
+        val placeNms = trips.flatMap { it.places }.associate { it.placeNo to it.placeNm }
+        val candidates = progress.candidates
+            ?.filter { it in placeNms }
+            ?.let { RecommendationMapRules.rankPlaceNos(it, reviewCnts) }
+            ?.map { no -> MapCandidateItem(no, placeNms.getValue(no), RecommendationMapRules.roadmapsOfPlace(trips, no).size) }
+            ?.takeIf { it.isNotEmpty() }
+        return RecommendationMapUi(
+            consent = if (progress.consent) LocationConsent.AGREED else LocationConsent.NOT_AGREED,
+            locationAllowed = progress.locationAllowed,
+            locationResult = progress.locationResult,
+            fitBasis = if (sel.sidoNm != null) MapFitBasis.SIDO else MapFitBasis.COUNTRY,
+            firstFitDone = progress.firstFitDone,
+            status = when {
+                progress.failed -> MapStatus.FAILED
+                !progress.ready -> MapStatus.PREPARING
+                progress.locationResult == LocationResultKind.LOCATING -> MapStatus.LOCATING
+                progress.locationResult == LocationResultKind.FAILED -> MapStatus.NO_LOCATION
+                progress.locationResult == LocationResultKind.ABROAD -> MapStatus.OUTSIDE_KOREA
+                pins != null && pins.inRangeCnt == 0 -> MapStatus.EMPTY_RANGE
+                else -> MapStatus.READY
+            },
+            singlePlaceNos = pins?.singlePlaceNos.orEmpty(),
+            clusters = pins?.clusters.orEmpty(),
+            inRangeCnt = pins?.inRangeCnt ?: 0,
+            focusSidoNm = progress.focusSidoNm,
+            focusSeq = progress.focusSeq,
+            candidates = candidates,
+            card = sel.mapPlaceNo?.let { placeCard(it, sel, trips) },
+        )
+    }
+
+    private fun placeCard(placeNo: Long, sel: Selection, trips: List<RecommendedTrip>): MapPlaceCardItem? {
+        val roadmaps = RecommendationMapRules.roadmapsOfPlace(trips, placeNo)
+        // 처음엔 리뷰 가장 많은 로드맵 · 고른 로드맵이 사라졌으면 다시 첫째
+        val chosen = roadmaps.firstOrNull { it.tripNo == sel.mapTripNo } ?: roadmaps.firstOrNull() ?: return null
+        val place = chosen.places.first { it.placeNo == placeNo }
+        return MapPlaceCardItem(
+            placeNo = placeNo,
+            placeNm = place.placeNm,
+            tagNms = place.tags.map { it.tagNm }.distinct(),
+            roadmaps = roadmaps.map { MapRoadmapItem(it.tripNo, it.tripNm, it.nicknameNm, it.ratingAvg, it.ratingCnt) },
+            selectedTripNo = chosen.tripNo,
+            fromCandidates = sel.mapFromCandidates,
         )
     }
 
@@ -327,11 +544,12 @@ class RecommendationsViewModel @Inject constructor(
     /** 별점 · 팝업 등 상세 화면 상태가 달라져도 같은 지도 묶음과 장소 목록이면 평면 좌표를 다시 계산하지 않음. */
     private fun projectedRouteMap(pack: OfflineMapPack, places: List<RecommendedPlace>): RouteMap? {
         val cached = cachedRouteMap
-        if (cached != null && cached.pack === pack && cached.places == places) return cached.map
-        return RoadmapMapRules.routeMap(pack, places).also { cachedRouteMap = CachedRouteMap(pack, places, it) }
+        val fingerprint = places.hashCode()
+        if (cached != null && cached.pack === pack && cached.fingerprint == fingerprint) return cached.map
+        return RoadmapMapRules.routeMap(pack, places).also { cachedRouteMap = CachedRouteMap(pack, fingerprint, it) }
     }
 
-    private data class CachedRouteMap(val pack: OfflineMapPack, val places: List<RecommendedPlace>, val map: RouteMap?)
+    private data class CachedRouteMap(val pack: OfflineMapPack, val fingerprint: Int, val map: RouteMap?)
 
     private fun updateSelection(change: (Selection) -> Selection) {
         val next = change(selection.value)
@@ -345,6 +563,10 @@ class RecommendationsViewModel @Inject constructor(
         savedStateHandle[KEY_TRIP] = next.tripNo
         savedStateHandle[KEY_DETAIL_FROM] = next.detailFrom.name
         savedStateHandle[KEY_CONFIRM_PLACE] = next.confirmPlaceNo
+        // 지도: 선택 장소 번호 · 고른 로드맵 번호만(지도 위치 · 확대 · 좌표 없음 · M27 · M41)
+        savedStateHandle[KEY_MAP_PLACE] = next.mapPlaceNo
+        savedStateHandle[KEY_MAP_TRIP] = next.mapTripNo
+        savedStateHandle[KEY_DETAIL_FROM_HOME] = next.detailFromHome
     }
 
     private fun restoreSelection(): Selection = Selection(
@@ -357,6 +579,10 @@ class RecommendationsViewModel @Inject constructor(
         tripNo = savedStateHandle[KEY_TRIP],
         detailFrom = enumOrNull<RecommendationPage>(savedStateHandle[KEY_DETAIL_FROM]) ?: RecommendationPage.RANKING,
         confirmPlaceNo = savedStateHandle[KEY_CONFIRM_PLACE],
+        mapPlaceNo = savedStateHandle[KEY_MAP_PLACE],
+        mapTripNo = savedStateHandle[KEY_MAP_TRIP],
+        mapFromCandidates = false,
+        detailFromHome = savedStateHandle[KEY_DETAIL_FROM_HOME] ?: false,
     )
 
     /** 사용자가 고른 것 — 화면 상태의 원본(저장 · 복원 단위). */
@@ -370,6 +596,12 @@ class RecommendationsViewModel @Inject constructor(
         val tripNo: Long?,
         val detailFrom: RecommendationPage,
         val confirmPlaceNo: Long?,
+        /** B-01 지도 카드의 장소 번호 · 고른 로드맵 번호(#59). */
+        val mapPlaceNo: Long?,
+        val mapTripNo: Long?,
+        val mapFromCandidates: Boolean,
+        /** B-04 를 기록 칸 근처 로드맵 카드로 열었나(#55) — 뒤로가 기록 칸으로. */
+        val detailFromHome: Boolean = false,
     ) {
         companion object {
             /** B-01 · 아무것도 고르지 않음. */
@@ -383,6 +615,9 @@ class RecommendationsViewModel @Inject constructor(
                 tripNo = null,
                 detailFrom = RecommendationPage.RANKING,
                 confirmPlaceNo = null,
+                mapPlaceNo = null,
+                mapTripNo = null,
+                mapFromCandidates = false,
             )
         }
     }
@@ -391,6 +626,27 @@ class RecommendationsViewModel @Inject constructor(
         val records: RatingRecords,
         val dialog: RatingDialogItem?,
         val tags: List<Tag>,
+    )
+
+    /** 지도에서 온 것 — 준비 · 실패 · 첫 맞춤 · 핀 결과 · 시도 이동 요청 · 묶음 후보(장소 번호만). */
+    private data class MapProgress(
+        val consent: Boolean = false,
+        val locationAllowed: Boolean = false,
+        val locationResult: LocationResultKind = LocationResultKind.NONE,
+        val ready: Boolean = false,
+        val failed: Boolean = false,
+        val firstFitDone: Boolean = false,
+        val pins: MapPinResult? = null,
+        val focusSidoNm: String? = null,
+        val focusSeq: Int = 0,
+        val candidates: List<Long>? = null,
+    )
+
+    private data class Extras(
+        val rating: RatingInputs,
+        val pack: OfflineMapPack?,
+        val allTrips: List<MapTripSnapshot>?,
+        val mapProgress: MapProgress,
     )
 
     private data class SidoTrips(val sidoNm: String?, val trips: List<RecommendedTrip>)
@@ -411,6 +667,9 @@ class RecommendationsViewModel @Inject constructor(
         const val KEY_DETAIL_FROM = "reco_detail_from"
         const val KEY_CONFIRM_PLACE = "reco_confirm_place_no"
         const val KEY_ENTRY = "reco_entry_key"
+        const val KEY_MAP_PLACE = "reco_map_place_no"
+        const val KEY_MAP_TRIP = "reco_map_trip_no"
+        const val KEY_DETAIL_FROM_HOME = "reco_detail_from_home"
 
         inline fun <reified E : Enum<E>> enumOrNull(name: String?): E? =
             enumValues<E>().firstOrNull { it.name == name }

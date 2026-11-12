@@ -77,8 +77,9 @@ class HomePlacesViewModelTest {
         val pinnedLocal = FakePinnedPlacesStore(pinned, catalog)
         val pins = FakePinRepository()
         val stats = FakePlaceStatsRepository()
+        val recording = recordingRepositoryOf(FakeTimeSource())
         val vm = HomeViewModel(
-            recordingRepository = recordingRepositoryOf(FakeTimeSource()),
+            recordingRepository = recording,
             recordPlace = FakeRecordPlaceUseCase(),
             drivingSignalRepository = this.driving,
             gleoActionRepository = FakeGleoActionRepository(),
@@ -96,6 +97,8 @@ class HomePlacesViewModelTest {
             tripRepository = FakeTripRepository(),
             tagRepository = FakeTagRepository(),
             unfinishedInputRepository = unfinishedInputRepositoryOf(FakeTimeSource()),
+            offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
+            endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
         )
         val state: HomeUiState get() = vm.uiState.value
     }
