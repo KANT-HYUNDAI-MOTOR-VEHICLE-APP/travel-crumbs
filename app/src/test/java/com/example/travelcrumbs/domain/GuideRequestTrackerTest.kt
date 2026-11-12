@@ -28,7 +28,7 @@ class GuideRequestTrackerTest {
     private class Fixture(scope: TestScope, naviReady: Boolean = true) {
         val navi = FakeNaviRepository(ready = naviReady)
         val pins = FakePinRepository()
-        val tracker = GuideRequestTracker(navi, pins, scope.backgroundScope)
+        val tracker = GuideRequestTracker(navi, pins, scope.backgroundScope, com.example.travelcrumbs.testing.FakeTimeSource())
     }
 
     @Test

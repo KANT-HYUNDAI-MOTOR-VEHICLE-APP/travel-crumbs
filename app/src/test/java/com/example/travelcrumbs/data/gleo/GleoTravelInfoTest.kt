@@ -40,6 +40,7 @@ class GleoTravelInfoTest {
         override suspend fun sidoRegions(): List<SidoRegion> = RecommendationSeed.sidoRegions
         override suspend fun publicTrips(sidoNm: String): List<RecommendedTrip> =
             RecommendationSeed.trips.filter { it.region.sidoNm == sidoNm }
+        override suspend fun allPublicTrips(): List<RecommendedTrip> = RecommendationSeed.trips
         override suspend fun tags(): List<Tag> = RecommendationSeed.tags
     }
 

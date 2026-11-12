@@ -40,13 +40,27 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
         savedStateHandle.getStateFlow(KEY_TRIPS_ENTRY, 0),
         savedStateHandle.getStateFlow<Long?>(KEY_TRIPS_OPEN, null),
-        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIDO, null),
-        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIGUNGU, null),
-    ) { recommendations, trips, openTripNo, sido, sigungu ->
-        Entries(recommendations, trips, openTripNo, sido?.let { Region(it, sigungu) })
+        recommendationsOpen(),
+    ) { recommendations, trips, openTripNo, reco ->
+        Entries(recommendations, trips, openTripNo, reco)
     }
 
-    private data class Entries(val recommendations: Int, val trips: Int, val openTripNo: Long?, val recoRegion: Region?)
+    /** 추천 칸 진입 값 — 홈 카드로 열 로드맵(#55) · Gleo 가 고른 지역(#69). 둘 중 하나만 차 있음([enterRecommendations]). */
+    private fun recommendationsOpen() = combine(
+        savedStateHandle.getStateFlow<Long?>(KEY_RECOMMENDATIONS_OPEN_TRIP, null),
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_OPEN_SIDO, null),
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIDO, null),
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIGUNGU, null),
+    ) { tripNo, tripSidoNm, sido, sigungu -> RecommendationsOpen(tripNo, tripSidoNm, sido?.let { Region(it, sigungu) }) }
+
+    private data class RecommendationsOpen(val tripNo: Long?, val tripSidoNm: String?, val region: Region?)
+
+    private data class Entries(
+        val recommendations: Int,
+        val trips: Int,
+        val openTripNo: Long?,
+        val reco: RecommendationsOpen,
+    )
 
     /** 판정 — 아래 init 이 목적지를 먼저 고친 뒤 이 값을 바꿈(전환 순간 옛 목적지가 한 번 보이지 않게). null = 첫 값 전. */
     private val drivingState = MutableStateFlow<DrivingState?>(null)
@@ -67,7 +81,9 @@ class AppShellViewModel @Inject constructor(
             recommendationsEntry = entry.recommendations,
             tripsEntry = entry.trips,
             tripsOpenTripNo = entry.openTripNo,
-            recommendationsRegion = entry.recoRegion,
+            recommendationsOpenTripNo = entry.reco.tripNo,
+            recommendationsOpenSidoNm = entry.reco.tripSidoNm,
+            recommendationsRegion = entry.reco.region,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -115,9 +131,7 @@ class AppShellViewModel @Inject constructor(
         val parked = drivingState.value == DrivingState.PARKED
         savedStateHandle[if (parked) KEY_DESTINATION else KEY_DRIVING_DESTINATION] = destination.id
         if (parked && destination == AppDestination.RECOMMENDATIONS) {
-            // 레일로 들어오면 Gleo 가 남긴 지역을 쓰지 않고 B-01 부터.
-            savedStateHandle[KEY_RECOMMENDATIONS_SIDO] = null
-            savedStateHandle[KEY_RECOMMENDATIONS_SIGUNGU] = null
+            // 레일로 들어오면 홈 카드 · Gleo 가 남긴 값을 쓰지 않고 B-01 부터.
             enterRecommendations()
         }
         if (parked && destination == AppDestination.TRIPS) {
@@ -132,9 +146,7 @@ class AppShellViewModel @Inject constructor(
      */
     fun openRecommendations(region: Region? = null) {
         savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
-        savedStateHandle[KEY_RECOMMENDATIONS_SIDO] = region?.sidoNm
-        savedStateHandle[KEY_RECOMMENDATIONS_SIGUNGU] = region?.sigunguNm
-        enterRecommendations()
+        enterRecommendations(region = region)
     }
 
     /**
@@ -163,8 +175,25 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle[KEY_TRIPS_ENTRY] = (savedStateHandle.get<Int>(KEY_TRIPS_ENTRY) ?: 0) + 1
     }
 
-    /** 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정). 주행 → 정차 복원은 이 값을 바꾸지 않음. */
-    private fun enterRecommendations() {
+    /**
+     * 기록 칸 「내 근처 리뷰 많은 로드맵」 카드(#55 · 스펙 home-nearby 3-4) — 「추천」 칸으로 · 그 칸이 [tripNo] 로드맵 B-04 상세부터
+     * (B-01 · B-02 를 거치지 않음 · [sidoNm] = 그 로드맵 시도 · 상세 뒤로는 기록 칸).
+     */
+    fun openRecommendationTrip(tripNo: Long, sidoNm: String) {
+        savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
+        enterRecommendations(tripNo, sidoNm)
+    }
+
+    /**
+     * 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정) · 홈 카드면 그 로드맵 B-04 부터(#55) ·
+     * Gleo 면 그 지역 순위 B-02 부터(#69). 진입 값을 한 번에 모두 덮어써 지난 진입의 값이 남지 않음.
+     * 주행 → 정차 복원은 이 값을 바꾸지 않음.
+     */
+    private fun enterRecommendations(openTripNo: Long? = null, openSidoNm: String? = null, region: Region? = null) {
+        savedStateHandle[KEY_RECOMMENDATIONS_OPEN_TRIP] = openTripNo
+        savedStateHandle[KEY_RECOMMENDATIONS_OPEN_SIDO] = openSidoNm
+        savedStateHandle[KEY_RECOMMENDATIONS_SIDO] = region?.sidoNm
+        savedStateHandle[KEY_RECOMMENDATIONS_SIGUNGU] = region?.sigunguNm
         savedStateHandle[KEY_RECOMMENDATIONS_ENTRY] = (savedStateHandle.get<Int>(KEY_RECOMMENDATIONS_ENTRY) ?: 0) + 1
     }
 
@@ -191,5 +220,7 @@ class AppShellViewModel @Inject constructor(
         const val KEY_RECOMMENDATIONS_SIDO = "recommendations_sido"
         const val KEY_RECOMMENDATIONS_SIGUNGU = "recommendations_sigungu"
         const val KEY_GLEO_HANDLED = "gleo_handled_notice"
+        const val KEY_RECOMMENDATIONS_OPEN_TRIP = "recommendations_open_trip_no"
+        const val KEY_RECOMMENDATIONS_OPEN_SIDO = "recommendations_open_sido_nm"
     }
 }

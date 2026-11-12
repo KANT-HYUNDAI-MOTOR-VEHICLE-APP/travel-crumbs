@@ -58,7 +58,7 @@ class TripsViewModelTest {
     }
 
     private fun TestScope.detail(tripNo: Long): TripDetailViewModel {
-        val vm = TripDetailViewModel(trips, FakeTagRepository(), users, ratingRepositoryOf(), FakeTimeSource(), SavedStateHandle())
+        val vm = TripDetailViewModel(trips, FakeTagRepository(), users, ratingRepositoryOf(), FakeTimeSource(), SavedStateHandle(), com.example.travelcrumbs.testing.TripOnlyCleanup(trips))
         backgroundScope.launch { vm.uiState.collect {} }
         vm.load(tripNo)
         runCurrent()

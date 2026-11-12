@@ -12,10 +12,15 @@ enum class Visibility {
     ANONYMOUS_PUBLIC,
 }
 
-/** 동의 유형 — 표준 CONSENT_TYPE 코드값 그대로. */
+/**
+ * 동의 유형 — 표준 CONSENT_TYPE 코드값 그대로.
+ * [LOCATION_RECO] = 홈 근처 로드맵 위치 이용(#55 · 스펙 home-nearby 3-5) — 표준 미등록 제안 코드(N17 · 등록 결정 대기) ·
+ * [LOCATION_COLLECT] 와 독립(서로 상태 · 동작에 영향 없음).
+ */
 enum class ConsentType {
     LOCATION_COLLECT,
     RECO_PUBLIC,
+    LOCATION_RECO,
 }
 
 /** 동의 유형 하나의 최신 상태 — [agreed] = 동의(Y) · 철회(N) · [at] = 그 행의 시각. */

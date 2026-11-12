@@ -46,7 +46,7 @@ data class SidoRegion(
 
 /**
  * 공개 로드맵의 장소 하나(trip_place_dtl + place_mst).
- * 좌표는 안내 요청(내비)과 경로 그림의 상대 위치 계산에만 씀 — 화면 상태 · 로그에 넣지 않음.
+ * 좌표는 안내 요청(내비)과 경로 그림의 상대 위치 계산 · 지도 핀 그리기(지도 그리는 쪽 · #59)에만 씀 — 화면 상태 · 로그에 넣지 않음.
  */
 data class RecommendedPlace(
     val placeNo: Long,

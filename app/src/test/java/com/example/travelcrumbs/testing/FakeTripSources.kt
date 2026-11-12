@@ -4,6 +4,8 @@ import com.example.travelcrumbs.data.recommendation.RecommendationSeed
 import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
+import com.example.travelcrumbs.data.trip.isUntouchedName
+import com.example.travelcrumbs.domain.model.AutoPlace
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.ConsentState
 import com.example.travelcrumbs.domain.model.ConsentType
@@ -96,6 +98,32 @@ class FakeTripRepository(
         return no
     }
 
+    /** 자동 기록 확정(#66) 으로 넣은 장소 번호들 — 순서대로. */
+    val autoPlaceNos = mutableListOf<Long>()
+
+    override suspend fun addAutoPlace(tripNo: Long, place: AutoPlace): Long {
+        val no = ++lastPlaceNo
+        autoPlaceNos += no
+        edit(tripNo) { trip ->
+            trip.copy(
+                places = trip.places + TripPlace(
+                    tripPlaceNo = no,
+                    tripNo = tripNo,
+                    placeOrd = (trip.places.maxOfOrNull { it.placeOrd } ?: 0) + 1,
+                    userPlaceNm = place.userPlaceNm,
+                    memo = null,
+                    draft = true,
+                    lat = place.lat,
+                    lng = place.lng,
+                    addr = place.addr,
+                    recordedAt = place.recordedAt,
+                    tagNos = emptyList(),
+                ),
+            )
+        }
+        return no
+    }
+
     override suspend fun savePlace(tripPlaceNo: Long, userPlaceNm: String?, memo: String?, tagNos: Set<Long>) {
         state.value = state.value.map { trip ->
             trip.copy(
@@ -118,9 +146,22 @@ class FakeTripRepository(
         state.value = state.value.map { it.copy(visibility = Visibility.PRIVATE) }
     }
 
-    override suspend fun clearLocations() {
+    /** 철회 때 받은 자동 이름 원본(#66 3.9). */
+    var lastAutoNames: Map<Long, String>? = null
+
+    /** 철회 처리가 던질 예외(#66 리뷰 심사 2) — null 이면 정상. */
+    var clearLocationsError: Throwable? = null
+
+    override suspend fun clearLocations(autoNames: Map<Long, String>) {
+        lastAutoNames = autoNames
+        clearLocationsError?.let { throw it }
         state.value = state.value.map { trip ->
-            trip.copy(places = trip.places.map { it.copy(lat = null, lng = null, addr = null) })
+            trip.copy(
+                places = trip.places.map {
+                    val name = it.userPlaceNm?.takeUnless { nm -> isUntouchedName(nm, it.addr, autoNames[it.tripPlaceNo]) }
+                    it.copy(lat = null, lng = null, addr = null, userPlaceNm = name)
+                },
+            )
         }
     }
 

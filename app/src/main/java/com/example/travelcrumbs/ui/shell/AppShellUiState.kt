@@ -19,6 +19,9 @@ data class AppShellUiState(
     val tripsEntry: Int = 0,
     /** 내 여행 칸이 바로 열 여행(A-08) — null 이면 보관함(A-07). */
     val tripsOpenTripNo: Long? = null,
+    /** 추천 칸이 바로 열 로드맵(B-04 · 기록 칸 근처 로드맵 카드 · #55) — null 이면 B-01 부터. [recommendationsOpenSidoNm] = 그 로드맵 시도. */
+    val recommendationsOpenTripNo: Long? = null,
+    val recommendationsOpenSidoNm: String? = null,
     /** 추천 칸이 진입하자마자 고를 지역(Gleo 「경주 근처 추천」 · #69) — null 이면 B-01 부터. */
     val recommendationsRegion: Region? = null,
 ) {

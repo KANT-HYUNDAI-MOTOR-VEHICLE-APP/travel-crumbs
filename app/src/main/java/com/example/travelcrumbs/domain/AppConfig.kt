@@ -34,8 +34,20 @@ object AppConfig {
      */
     const val TIMED_OUT_REQUEST_MEMORY_MILLIS: Long = 5 * 60_000L
 
-    /** 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소를 같다고 보는 거리(미터 · R1). */
+    /**
+     * 두 좌표를 「같은 곳」으로 보는 거리(미터 · withinMatchRadius 한 곳에서만 씀) — 시작 알림을 놓쳤을 때 내비 목적지와 요청 장소 대조(R1) ·
+     * 「이 앱 요청」 판정 · 자동 기록(#66)의 지나침 · 확정 중복(현재 여행 장소 · 앞선 확정) · 수동 기록 직전 대기 정리.
+     */
     const val ROUTE_MATCH_RADIUS_METERS: Double = 100.0
+
+    /**
+     * 내비 목적지 자동 장소 기록(#66 스펙 3.8 「수치」) — 기록 대기 최대 건수 · 「PARKED 아직」 대기의 기한(도착 뒤 이 안에 PARKED 를 못 보면 지나친 것) ·
+     * 모든 대기의 절대 만료(도착 시각 + 이 값) · 「이 앱 요청」 판정의 시작됨 뒤 창(3.6 (b) · N17). 값은 스펙 추천(N16 · N17) — 사람 확인.
+     */
+    const val AUTO_RECORD_PENDING_MAX_COUNT: Int = 5
+    const val AUTO_RECORD_PARK_WAIT_MILLIS: Long = 10 * 60_000L
+    const val AUTO_RECORD_PENDING_MAX_AGE_MILLIS: Long = 24 * 60 * 60_000L
+    const val AUTO_RECORD_APP_REQUEST_WINDOW_MILLIS: Long = 60_000L
 
     /** 「가 볼 장소」 고정 최대 개수(스펙 navigation 결정 기록 U16). */
     const val PINNED_PLACES_MAX: Int = 3
@@ -74,6 +86,16 @@ object AppConfig {
      * 별점 기록(기기 안)도 이 번호로 남음. 서버 추천 API 가 생기면 서버 번호로 바뀜.
      */
     const val LOCAL_TRIP_RECO_NO_OFFSET: Long = 1_000_000L
+
+    /**
+     * 홈 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 3-3 · N1 · N8) — 근처 반경(km · 경계 포함) · 카드 최대 장수.
+     * 반경 안 로드맵이 없으면 같은 정렬로 전국 대체(N2).
+     */
+    const val NEARBY_ROADMAP_RADIUS_KM: Int = 10
+    const val NEARBY_ROADMAP_MAX_CNT: Int = 10
+
+    /** 홈 근처 로드맵 — 마지막 위치 성공 뒤 이 시간 안의 재진입은 위치를 다시 묻지 않음(N7 · PR #64 리뷰 · 동의 · 묶음 변화 · 내비 재연결은 바로). */
+    const val NEARBY_RELOOKUP_MIN_INTERVAL_MILLIS: Long = 5 * 60_000L
 
     /** 네트워크 타임아웃(초). */
     const val NETWORK_TIMEOUT_SECONDS: Long = 20L
@@ -159,4 +181,23 @@ object AppConfig {
     const val GLEO_RECORD_UNCONFIRMED_MESSAGE: String = "The app could not confirm that the place was recorded."
     const val GLEO_RECORD_TIMEOUT_MESSAGE: String =
         "The recording result could not be confirmed in time. Check the trip before trying again."
+
+    /** 추천 지도(#59) 첫 맞춤 반경(킬로미터 · N3) — 내 위치 중심 이 반경이 화면에 다 들어오게. 위치 사용(#55 문구 반영 뒤) 때 씀. */
+    const val RECO_MAP_FIRST_FIT_RADIUS_KM: Double = 10.0
+
+    /** 위도 1도의 거리(킬로미터 · 지구 평균 반지름 6371.0 km 기준) — 반경 → 지도 범위 계산. */
+    const val KM_PER_DEGREE_LAT: Double = 111.195
+
+    /** 추천 지도 위치 조회 시간 제한(밀리초) — 넘으면 「위치 없음」. 위치 사용(#55 문구 반영 뒤) 때 씀. */
+    const val RECO_MAP_LOCATION_TIMEOUT_MILLIS: Long = 10_000L
+
+    /** 추천 지도 한 화면 표시(낱개 핀 + 묶음 핀) 최대 수(N6). */
+    const val RECO_MAP_MARKER_LIMIT: Int = 50
+
+    /** 화면에서 이 거리(dp) 안에 겹치는 핀은 숫자 묶음 핀 하나로(N6). */
+    const val RECO_MAP_CLUSTER_RADIUS_DP: Float = 40f
+
+    /** 지도 확대 범위 — 자산은 확대 단계 12까지 · 화면은 15까지 늘려 보임(N8 결정 2026-11-10). */
+    const val RECO_MAP_MIN_ZOOM: Double = 5.0
+    const val RECO_MAP_MAX_ZOOM: Double = 15.0
 }

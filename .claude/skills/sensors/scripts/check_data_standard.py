@@ -72,16 +72,16 @@ def load_standard(path):
                 std["status"][cells[0]] = cells[-1]
 
     for _, cells in rows(section(text, "표준 단어 사전")):
-        if len(cells) >= 3 and SNAKE.match(cells[2]):
-            std["words"].add(cells[2])
+        if len(cells) >= 3 and SNAKE.match(cells[2].lower()):
+            std["words"].add(cells[2].lower())
 
     for _, cells in rows(section(text, "표준 용어 사전")):
-        if len(cells) >= 2 and SNAKE.match(cells[1]):
-            std["terms"].add(cells[1])
+        if len(cells) >= 2 and SNAKE.match(cells[1].lower()):
+            std["terms"].add(cells[1].lower())
 
     for _, cells in rows(section(text, "테이블 유형 정의")):
-        if len(cells) >= 2 and SNAKE.match(cells[1]):
-            std["types"].append(cells[1])
+        if len(cells) >= 2 and SNAKE.match(cells[1].lower()):
+            std["types"].append(cells[1].lower())
 
     missing = [k for k in ("words", "terms", "types") if not std[k]]
     if missing:

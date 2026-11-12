@@ -67,6 +67,7 @@ class DrivingViewModelTest {
         ratingRepository = ratings,
         naviRepository = navi,
         gleoActionRepository = gleo,
+        endTrip = com.example.travelcrumbs.testing.endTripOf(recording),
     )
 
     @Test

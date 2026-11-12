@@ -46,7 +46,11 @@ fun AppShellScreen(
             destination = destination,
             onOpenRecommendations = { viewModel.openRecommendations() },
             onOpenTrip = viewModel::openTrip,
+            onOpenRoadmap = viewModel::openRecommendationTrip,
+            onLeaveRecommendations = viewModel::onBack,
             recommendationsEntry = shell.recommendationsEntry,
+            recommendationsOpenTripNo = shell.recommendationsOpenTripNo,
+            recommendationsOpenSidoNm = shell.recommendationsOpenSidoNm,
             recommendationsRegion = shell.recommendationsRegion,
             tripsEntry = shell.tripsEntry,
             tripsOpenTripNo = shell.tripsOpenTripNo,
@@ -117,16 +121,30 @@ private fun ParkedDestinationContent(
     destination: AppDestination,
     onOpenRecommendations: () -> Unit,
     onOpenTrip: (Long?) -> Unit,
+    onOpenRoadmap: (Long, String) -> Unit,
+    onLeaveRecommendations: () -> Unit,
     recommendationsEntry: Int,
+    recommendationsOpenTripNo: Long?,
+    recommendationsOpenSidoNm: String?,
     recommendationsRegion: Region?,
     tripsEntry: Int,
     tripsOpenTripNo: Long?,
 ) {
     when (destination) {
         // 기록 칸 정차 화면 = 지금 ui/home 파일(N28 — 이웃 브랜치가 고치는 파일을 옮기지 않음)
-        AppDestination.RECORDS -> HomeScreen(onOpenRecommendations = onOpenRecommendations, onOpenTrip = onOpenTrip)
+        AppDestination.RECORDS -> HomeScreen(
+            onOpenRecommendations = onOpenRecommendations,
+            onOpenTrip = onOpenTrip,
+            onOpenRoadmap = onOpenRoadmap,
+        )
         AppDestination.TRIPS -> TripsScreen(entry = tripsEntry, openTripNo = tripsOpenTripNo)
-        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(entryKey = recommendationsEntry, entryRegion = recommendationsRegion)
+        AppDestination.RECOMMENDATIONS -> RecommendationsScreen(
+            entryKey = recommendationsEntry,
+            entryRegion = recommendationsRegion,
+            openTripNo = recommendationsOpenTripNo,
+            openSidoNm = recommendationsOpenSidoNm,
+            onLeave = onLeaveRecommendations,
+        )
         AppDestination.SETTINGS -> SettingsScreen()
     }
 }

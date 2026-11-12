@@ -54,11 +54,14 @@ class ShellTestGraph(
     val users = FakeCurrentUserRepository(time = time)
     val trips = FakeTripRepository(time = time)
     val tags = FakeTagRepository()
-    val guide = guideTrackerOf(navi, pins)
+    val guide = guideTrackerOf(navi, pins, time)
+    val autoStore = FakeAutoRecordLocalDataSource()
+    val autoRecorder = autoRecorderOf(navi, driving, recording, users, trips, inputs, guide, autoStore, time)
+    val endTrip = com.example.travelcrumbs.data.autorecord.AutoRecordEndTrip(autoRecorder, recording)
 
     val recordPlace: com.example.travelcrumbs.domain.RecordPlaceUseCase by lazy {
         if (realRecordPlace) {
-            com.example.travelcrumbs.data.trip.TripPlaceRecorder(recording, trips, users, navi, driving, inputs)
+            com.example.travelcrumbs.data.trip.TripPlaceRecorder(recording, trips, users, navi, driving, inputs, autoRecorder)
         } else {
             FakeRecordPlaceUseCase()
         }
@@ -89,6 +92,7 @@ class ShellTestGraph(
             ratingRepository = ratings,
             naviRepository = navi,
             gleoActionRepository = gleo,
+            endTrip = endTrip,
         )
         HomeViewModel::class.java -> HomeViewModel(
             recordingRepository = recording,
@@ -109,6 +113,8 @@ class ShellTestGraph(
             tripRepository = trips,
             tagRepository = tags,
             unfinishedInputRepository = inputs,
+            offlineMap = com.example.travelcrumbs.testing.FakeOfflineMapRepository(),
+            endTrip = endTrip,
         )
         TripStartViewModel::class.java -> TripStartViewModel(recording, users, catalog, guide, navi, time, SavedStateHandle())
         com.example.travelcrumbs.ui.roadmap.RoadmapReviewViewModel::class.java ->
@@ -116,8 +122,8 @@ class ShellTestGraph(
         com.example.travelcrumbs.ui.trips.TripsViewModel::class.java ->
             com.example.travelcrumbs.ui.trips.TripsViewModel(trips, users, ratings, time, SavedStateHandle())
         com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel::class.java ->
-            com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel(trips, tags, users, ratings, time, SavedStateHandle())
-        SettingsViewModel::class.java -> SettingsViewModel(users, trips, time, SavedStateHandle())
+            com.example.travelcrumbs.ui.tripdetail.TripDetailViewModel(trips, tags, users, ratings, time, SavedStateHandle(), autoRecorder)
+        SettingsViewModel::class.java -> SettingsViewModel(users, trips, time, SavedStateHandle(), autoRecorder)
         RecommendationsViewModel::class.java -> RecommendationsViewModel(
             repository = SeedRecommendationRepository(),
             requestRouteGuidance = RequestRouteGuidanceUseCase(guidance),
