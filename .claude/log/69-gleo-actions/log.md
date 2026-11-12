@@ -59,3 +59,10 @@
 - 리뷰 지적: 구조 위반 5 · 확인 3 / Pleos 반려 1(중) · 확인 1(중) · 하 3 → 고침 9 · 안 고침 3(이유: domain 이 data 를 못 부르는 현 규칙 · 시도 별칭 위치 · 시험 위치)
   - 콜백 받는 앱을 Gleo(ai.umos.ambientai)로 고정 · 늦게 만들어진 화면이 지난 명령(종료 팝업 · 화면 이동)을 따르지 않게 결과 시각 + 10초 유효 · 앱 틀 ViewModel 이 저장소에서 직접 받음 · enum · 문장 AppConfig 한 곳 · 처리기 기본값 제거 · %1$s 노출 수정 · 지역 원문 정리
 - 센서: 단위 455(새 3) · lint 오류 0 · debug/release 빌드 · manifest · secrets · hygiene · guard 녹색 · 에뮬레이터: 콜백 Gleo 수신 확인 · 「대구!!@@」 → 「대구」
+
+## 5 develop 동기화 — 2026-11-12 · errorn
+- develop(#79 내비 자동 기록 · #76 추천 지도 · #81 표준 v0.55) 받음 · 충돌 9곳 → develop 기능 먼저, Gleo 연결만 다시 얹음
+- 추천 칸 진입 값(홈 카드 로드맵 · Gleo 지역)을 enterRecommendations 한 곳에서 한 번에 덮어씀 · Gleo 지역 선택은 지도 초기화 뒤
+- 장소 기록기는 자동 병합(withManualRecord 경유) 확인 · 음성 종료는 EndTripUseCase 팝업 · 시험 대역에 allPublicTrips 추가
+- 센서: 단위 631 실패 0 · lint 오류 0 · debug/release 빌드 · manifest · secrets · hygiene · frontmatter · data_standard(위반 0) · guard 녹색
+- 에뮬레이터: 「경주」 → 경북 경주시 순위 · 「제주」(접두어 없는 action) → 제주 순위 3개 · 레일 「추천」 → 전국 지도 B-01(Gleo 지역 안 남음) · 앱 비정상 종료 없음
