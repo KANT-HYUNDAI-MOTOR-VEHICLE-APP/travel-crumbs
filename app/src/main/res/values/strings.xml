@@ -73,9 +73,9 @@
     <string name="navi_route_state">안내 중 %1$s · 모드 %2$s · 경로 선택 %3$s</string>
     <string name="navi_refresh">경로 상태 다시 조회</string>
 
-    <string name="gleo_function">function · OPEN_TRAVEL_CRUMBS</string>
-    <string name="gleo_opened">Gleo Action 으로 열림 · callback 보냄</string>
-    <string name="gleo_not_opened">런처로 열림 · Gleo Action 아님</string>
+    <string name="gleo_function">function · RECORD_CURRENT_PLACE · CONTROL_CURRENT_TRIP · SHOW_TRAVEL_INFO</string>
+    <string name="gleo_opened">Gleo Action 받음 · callback 보냄</string>
+    <string name="gleo_not_opened">이번 실행에 Gleo Action 없음</string>
 
     <!-- debug 카드 「안내 건수」 한 줄(스펙 navigation 4.6 · U41 · debug 전용 · 사용자 문구 아님) -->
     <string name="home_stats_label">안내 건수 · 서버 조회</string>
@@ -200,6 +200,23 @@
     <string name="gleo_consent_required">정차 후 위치 동의를 확인해 주세요</string>
     <string name="gleo_failed">장소 기록에 실패했어요</string>
     <string name="gleo_unconfirmed">기록 여부를 확인하지 못했어요. 정차 후 확인해 주세요</string>
+    <!-- Gleo 여행 제어 · 정보 조회(#69) — 한 줄만 · 상세 입력 없음 -->
+    <string name="gleo_trip_paused">기록을 잠시 멈췄어요</string>
+    <string name="gleo_trip_resumed">기록을 다시 시작했어요</string>
+    <string name="gleo_already_paused">이미 기록을 멈춘 상태예요</string>
+    <string name="gleo_already_running">이미 기록 중이에요</string>
+    <string name="gleo_end_confirm">화면에서 여행 종료를 확인해 주세요</string>
+    <string name="gleo_no_trip">진행 중인 여행이 없어요</string>
+    <string name="gleo_today_records">오늘 %1$s곳 기록했어요</string>
+    <string name="gleo_recommended_parked">%1$s 추천 코스를 열었어요</string>
+    <string name="gleo_recommended_driving">%1$s 추천 코스는 정차 후 볼 수 있어요</string>
+    <string name="gleo_no_recommendation">%1$s 추천 코스가 아직 없어요</string>
+    <string name="gleo_no_recommendation_plain">추천 코스가 아직 없어요</string>
+    <string name="gleo_recommended_parked_plain">추천 코스를 열었어요</string>
+    <string name="gleo_recommended_driving_plain">추천 코스는 정차 후 볼 수 있어요</string>
+    <string name="gleo_today_records_plain">오늘 기록을 확인했어요</string>
+    <string name="gleo_request_failed">요청을 처리하지 못했어요</string>
+    <string name="gleo_busy">다른 요청을 처리하고 있어요</string>
 
     <string name="yes">예</string>
     <string name="no">아니요</string>

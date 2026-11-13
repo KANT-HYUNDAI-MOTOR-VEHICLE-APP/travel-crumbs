@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.gleo.freshScreenRequests
 import com.example.travelcrumbs.data.map.OfflineMapRepository
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.place.PinnedPlacesRepository
@@ -27,6 +28,7 @@ import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DemoFeatures
 import com.example.travelcrumbs.domain.model.DraftPlaceInput
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
 import com.example.travelcrumbs.domain.model.NearbySectionState
 import com.example.travelcrumbs.domain.model.NaviRouteState
 import com.example.travelcrumbs.domain.model.Place
@@ -40,6 +42,7 @@ import com.example.travelcrumbs.ui.components.toSummary
 import com.example.travelcrumbs.domain.model.TripStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -267,6 +270,16 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { candidates.value = placeCatalogRepository.candidates() }
+        // Gleo 「여행 끝낼게」(#69 U2) — 저장소는 바꾸지 않고 기존 확인 팝업만 엶 · 명령마다 한 번.
+        viewModelScope.launch {
+            gleoActionRepository.freshScreenRequests()
+                .filter { it.screen == GleoScreenRequest.ConfirmEndTrip && savedStateHandle.get<Long>(KEY_GLEO_END) != it.noticeId }
+                .collect { command ->
+                    savedStateHandle[KEY_GLEO_END] = command.noticeId
+                    savedStateHandle[KEY_END_CONFIRM] = true
+                }
+        }
+
         // 「이어서 쓰기」 띠(주행 중 기록한 임시저장 장소 · #51 U4) — 그 장소로 A-03 시트를 엶
         viewModelScope.launch {
             unfinishedInputRepository.pendingRestore.collect { restore ->
@@ -471,6 +484,7 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val KEY_END_CONFIRM = "home_end_confirm_visible"
+        const val KEY_GLEO_END = "home_gleo_end_confirm_notice"
         const val KEY_TRIP_START = "home_trip_start_open"
     }
 

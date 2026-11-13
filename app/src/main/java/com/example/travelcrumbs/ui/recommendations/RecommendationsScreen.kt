@@ -20,6 +20,7 @@ import com.example.travelcrumbs.ui.components.BackButton
 import com.example.travelcrumbs.ui.components.DemoDataLine
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.RatingDialog
+import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationMapCallbacks
@@ -37,6 +38,7 @@ import com.example.travelcrumbs.ui.theme.Dimens
 @Composable
 fun RecommendationsScreen(
     entryKey: Int,
+    entryRegion: Region? = null,
     modifier: Modifier = Modifier,
     openTripNo: Long? = null,
     openSidoNm: String? = null,
@@ -45,7 +47,7 @@ fun RecommendationsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(entryKey) { viewModel.onEntry(entryKey, openTripNo, openSidoNm) }
+    LaunchedEffect(entryKey) { viewModel.onEntry(entryKey, openTripNo, openSidoNm, entryRegion) }
     // 기록 칸 카드로 연 B-04(#55)는 뒤로가 이 칸을 떠나 기록 칸으로(팝업이 떠 있으면 팝업부터 · N13)
     val onBack = { if (uiState.backLeavesTab) onLeave() else viewModel.onBack() }
     BackHandler(enabled = uiState.handlesBack) { onBack() }

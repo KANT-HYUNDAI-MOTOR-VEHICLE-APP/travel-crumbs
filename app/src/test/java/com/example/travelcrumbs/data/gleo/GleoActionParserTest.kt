@@ -7,49 +7,68 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** #25 · #69 스펙 4.2 — 함수마다 schema.json 에 선언한 키 · enum 만 받음. */
 class GleoActionParserTest {
 
     @Test
-    fun `T6 ACTION_PARAM 이 없어도 성공하고 파라미터는 비어 있음`() {
-        val parsed = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_OPEN, null)
-
-        assertTrue(parsed.isSuccess)
-        assertEquals(AppConfig.GLEO_FUNCTION_OPEN, parsed.getOrThrow().functionName)
-        assertEquals(emptyMap<String, String>(), parsed.getOrThrow().parameters)
+    fun `RECORD 는 파라미터 없음만 받음`() {
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_RECORD, null).isSuccess)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_RECORD, "{}").isSuccess)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_RECORD, """{"x":"1"}""").isFailure)
     }
 
     @Test
-    fun `T7 ACTION_PARAM 이 깨져 있으면 예외 없이 실패로 돌아옴`() {
-        val parsed = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_OPEN, "{this is not json")
-
-        assertTrue(parsed.isFailure)
+    fun `69-T1 T2 CONTROL 은 operation 하나 · PAUSE RESUME END 만`() {
+        for (op in listOf("PAUSE", "RESUME", "END")) {
+            val parsed = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"$op"}""").getOrThrow()
+            assertEquals(mapOf("operation" to op), parsed.parameters)
+        }
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_CONTROL, null).isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"STOP"}""").isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":"PAUSE","tripNo":"1"}""").isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_CONTROL, """{"operation":1}""").isFailure)
     }
 
     @Test
-    fun `T8 action 이 없으면 실패`() {
+    fun `69 INFO 는 infoType 필수 · region 선택 · 그 밖 키 거절`() {
+        val reco = GleoActionParser.parse(
+            AppConfig.GLEO_FUNCTION_INFO,
+            """{"infoType":"RECOMMENDED_ROADMAPS","region":"경주"}""",
+        ).getOrThrow()
+        assertEquals("경주", reco.parameters["region"])
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"TODAY_RECORDS"}""").isSuccess)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"region":"경주"}""").isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"WEATHER"}""").isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"TODAY_RECORDS","lat":"37"}""").isFailure)
+        // 실제 Gleo: 지역을 안 말하면 region 이 빈 문자열 → 키가 없는 것과 같게
+        val blank = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":""}""").getOrThrow()
+        assertEquals(null, blank.parameters["region"])
+        val spaces = GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":"  "}""").getOrThrow()
+        assertEquals(null, spaces.parameters["region"])
+        val tooLong = "가".repeat(AppConfig.GLEO_MAX_REGION_CHARS + 1)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, """{"infoType":"RECOMMENDED_ROADMAPS","region":"$tooLong"}""").isFailure)
+    }
+
+    @Test
+    fun `깨진 JSON · 배열 · 모르는 함수 · action 없음은 예외 없이 실패`() {
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, "{this is not json").isFailure)
+        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_INFO, "[1,2,3]").isFailure)
+        assertTrue(GleoActionParser.parse("OPEN_TRAVEL_CRUMBS", "{}").isFailure)
         assertTrue(GleoActionParser.parse(null, "{}").isFailure)
         assertTrue(GleoActionParser.parse("  ", "{}").isFailure)
     }
 
     @Test
-    fun `T10 JSON 객체가 아니면 실패`() {
-        assertTrue(GleoActionParser.parse(AppConfig.GLEO_FUNCTION_OPEN, "[1,2,3]").isFailure)
-    }
-
-    @Test
-    fun `T11 callback JSON 은 functionName status message 세 칸`() {
-        val json = GleoCallbackFormat.toJson(
-            GleoCallback(
-                functionName = AppConfig.GLEO_FUNCTION_OPEN,
-                status = GleoStatus.SUCCESS,
-                message = AppConfig.GLEO_OPEN_SUCCESS_MESSAGE,
-            ),
-        )
-
+    fun `callback JSON 은 data 가 있을 때만 data 칸을 넣음`() {
+        val plain = GleoCallbackFormat.toJson(GleoCallback(AppConfig.GLEO_FUNCTION_CONTROL, GleoStatus.SUCCESS, AppConfig.GLEO_PAUSED_MESSAGE))
         assertEquals(
-            """{"functionName":"OPEN_TRAVEL_CRUMBS","status":"success",""" +
-                """"message":"Travel Crumbs is now open on the screen."}""",
-            json,
+            """{"functionName":"CONTROL_CURRENT_TRIP","status":"success","message":"The trip recording is paused."}""",
+            plain,
+        )
+        val withData = GleoCallbackFormat.toJson(GleoCallback(AppConfig.GLEO_FUNCTION_INFO, GleoStatus.SUCCESS, "m", """[{"a":1}]"""))
+        assertEquals(
+            """{"functionName":"SHOW_TRAVEL_INFO","status":"success","message":"m","data":"[{\"a\":1}]"}""",
+            withData,
         )
     }
 }

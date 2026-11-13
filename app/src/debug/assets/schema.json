@@ -1,13 +1,14 @@
 {
   "packageName": "com.example.travelcrumbs",
-  "appDescription": "An app that shows travel records left along the route the vehicle has driven.",
+  "appDescription": "Travel Crumbs records the places visited on a car trip and recommends travel routes and courses that other drivers shared.",
+  "invokeWord": "트래블 크럼스",
   "version": "0.1.0",
   "actionCalls": [
     {
       "type": "function",
       "function": {
-        "name": "OPEN_TRAVEL_CRUMBS",
-        "description": "Opens the Travel Crumbs screen so the driver can see their travel records.",
+        "name": "RECORD_CURRENT_PLACE",
+        "description": "Records the vehicle's current location as a draft place in the active Travel Crumbs trip.",
         "parameters": {
           "type": "object",
           "properties": {},
@@ -19,12 +20,52 @@
     {
       "type": "function",
       "function": {
-        "name": "RECORD_CURRENT_PLACE",
-        "description": "Records the vehicle's current location as a draft place in the active trip after location consent and navigation readiness have been confirmed. Place details are completed later while parked.",
+        "name": "CONTROL_CURRENT_TRIP",
+        "description": "Pauses, resumes, or asks to end the trip that Travel Crumbs is currently recording.",
         "parameters": {
           "type": "object",
-          "properties": {},
-          "required": []
+          "properties": {
+            "operation": {
+              "type": "string",
+              "enum": [
+                "PAUSE",
+                "RESUME",
+                "END"
+              ],
+              "description": "What to do with the current Travel Crumbs trip recording."
+            }
+          },
+          "required": [
+            "operation"
+          ]
+        },
+        "component": "activity"
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "SHOW_TRAVEL_INFO",
+        "description": "Recommends Travel Crumbs travel routes and courses for a region or near the vehicle and shows them on the screen, or tells today's Travel Crumbs trip records.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "infoType": {
+              "type": "string",
+              "enum": [
+                "TODAY_RECORDS",
+                "RECOMMENDED_ROADMAPS"
+              ],
+              "description": "RECOMMENDED_ROADMAPS for travel route or course recommendations, TODAY_RECORDS for the places recorded today."
+            },
+            "region": {
+              "type": "string",
+              "description": "Korean city, county, district or province the user wants travel route recommendations for; omit when no place is named."
+            }
+          },
+          "required": [
+            "infoType"
+          ]
         },
         "component": "activity"
       }

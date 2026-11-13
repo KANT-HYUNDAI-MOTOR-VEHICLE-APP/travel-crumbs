@@ -3,6 +3,7 @@ package com.example.travelcrumbs.data.gleo
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.GleoCallback
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -16,6 +17,8 @@ class GleoCallbackDataSource @Inject constructor(
     fun send(callback: GleoCallback) {
         val payload = GleoCallbackFormat.toJson(callback)
         val intent = Intent(ACTION_APP_ACTION_RESPONSE).apply {
+            // 다른 앱이 같은 action 으로 여행 정보를 받지 않도록 Gleo 앱으로만 보냄(#69 Pleos 리뷰).
+            setPackage(AppConfig.GLEO_PACKAGE)
             putExtra(EXTRA_PACKAGE_NAME, context.packageName)
             putExtra(EXTRA_RESPONSE, payload)
         }

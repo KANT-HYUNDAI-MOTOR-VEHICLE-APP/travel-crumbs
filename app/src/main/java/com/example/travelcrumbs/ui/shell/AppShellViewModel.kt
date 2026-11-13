@@ -3,10 +3,14 @@ package com.example.travelcrumbs.ui.shell
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.gleo.freshScreenRequests
 import com.example.travelcrumbs.data.unfinishedinput.UnfinishedInputRepository
 import com.example.travelcrumbs.data.vehicle.DrivingSignalRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
+import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -28,6 +32,7 @@ class AppShellViewModel @Inject constructor(
     drivingSignalRepository: DrivingSignalRepository,
     private val unfinishedInputRepository: UnfinishedInputRepository,
     private val savedStateHandle: SavedStateHandle,
+    gleoActionRepository: GleoActionRepository,
 ) : ViewModel() {
 
     /** 칸 진입 값 — 추천 칸 처음부터(#37) · 내 여행 칸에서 열 여행(#51 U2 · U6). combine 인자 수를 줄이려고 하나로. */
@@ -35,18 +40,26 @@ class AppShellViewModel @Inject constructor(
         savedStateHandle.getStateFlow(KEY_RECOMMENDATIONS_ENTRY, 0),
         savedStateHandle.getStateFlow(KEY_TRIPS_ENTRY, 0),
         savedStateHandle.getStateFlow<Long?>(KEY_TRIPS_OPEN, null),
+        recommendationsOpen(),
+    ) { recommendations, trips, openTripNo, reco ->
+        Entries(recommendations, trips, openTripNo, reco)
+    }
+
+    /** 추천 칸 진입 값 — 홈 카드로 열 로드맵(#55) · Gleo 가 고른 지역(#69). 둘 중 하나만 차 있음([enterRecommendations]). */
+    private fun recommendationsOpen() = combine(
         savedStateHandle.getStateFlow<Long?>(KEY_RECOMMENDATIONS_OPEN_TRIP, null),
         savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_OPEN_SIDO, null),
-    ) { recommendations, trips, openTripNo, recoTripNo, recoSidoNm ->
-        Entries(recommendations, trips, openTripNo, recoTripNo, recoSidoNm)
-    }
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIDO, null),
+        savedStateHandle.getStateFlow<String?>(KEY_RECOMMENDATIONS_SIGUNGU, null),
+    ) { tripNo, tripSidoNm, sido, sigungu -> RecommendationsOpen(tripNo, tripSidoNm, sido?.let { Region(it, sigungu) }) }
+
+    private data class RecommendationsOpen(val tripNo: Long?, val tripSidoNm: String?, val region: Region?)
 
     private data class Entries(
         val recommendations: Int,
         val trips: Int,
         val openTripNo: Long?,
-        val recoTripNo: Long?,
-        val recoSidoNm: String?,
+        val reco: RecommendationsOpen,
     )
 
     /** 판정 — 아래 init 이 목적지를 먼저 고친 뒤 이 값을 바꿈(전환 순간 옛 목적지가 한 번 보이지 않게). null = 첫 값 전. */
@@ -68,8 +81,9 @@ class AppShellViewModel @Inject constructor(
             recommendationsEntry = entry.recommendations,
             tripsEntry = entry.trips,
             tripsOpenTripNo = entry.openTripNo,
-            recommendationsOpenTripNo = entry.recoTripNo,
-            recommendationsOpenSidoNm = entry.recoSidoNm,
+            recommendationsOpenTripNo = entry.reco.tripNo,
+            recommendationsOpenSidoNm = entry.reco.tripSidoNm,
+            recommendationsRegion = entry.reco.region,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -92,6 +106,12 @@ class AppShellViewModel @Inject constructor(
                     drivingState.value = state
                 }
         }
+        // Gleo 화면 요청(#69) — 지금 따를 것만(늦게 만들어진 화면은 지난 명령을 따르지 않음).
+        viewModelScope.launch {
+            gleoActionRepository.freshScreenRequests().collect { command ->
+                command.screen?.let { onGleoScreenRequest(command.noticeId, it) }
+            }
+        }
     }
 
     /** 정차 → 주행 · 모름: 「기록」 칸(주행 전용 화면) · 정차 목적지는 그대로 기억 · 입력 중 내용 보존. */
@@ -110,17 +130,39 @@ class AppShellViewModel @Inject constructor(
     fun selectDestination(destination: AppDestination) {
         val parked = drivingState.value == DrivingState.PARKED
         savedStateHandle[if (parked) KEY_DESTINATION else KEY_DRIVING_DESTINATION] = destination.id
-        if (parked && destination == AppDestination.RECOMMENDATIONS) enterRecommendations()
+        if (parked && destination == AppDestination.RECOMMENDATIONS) {
+            // 레일로 들어오면 홈 카드 · Gleo 가 남긴 값을 쓰지 않고 B-01 부터.
+            enterRecommendations()
+        }
         if (parked && destination == AppDestination.TRIPS) {
             savedStateHandle[KEY_TRIPS_OPEN] = null
             savedStateHandle[KEY_TRIPS_ENTRY] = (savedStateHandle.get<Int>(KEY_TRIPS_ENTRY) ?: 0) + 1
         }
     }
 
-    /** 기록 칸 「추천 보러 가기」(진행 중 여행이 아닐 때만 보임 · D34) → 「추천」 칸. */
-    fun openRecommendations() {
+    /**
+     * 기록 칸 「추천 보러 가기」(진행 중 여행이 아닐 때만 보임 · D34) → 「추천」 칸.
+     * [region] = Gleo 가 고른 지역(#69) — 추천 칸이 진입하자마자 그 지역 순위(B-02)를 엶. null 이면 B-01 부터.
+     */
+    fun openRecommendations(region: Region? = null) {
         savedStateHandle[KEY_DESTINATION] = AppDestination.RECOMMENDATIONS.id
-        enterRecommendations()
+        enterRecommendations(region = region)
+    }
+
+    /**
+     * Gleo 명령 뒤 화면 요청(#69 2절) — 명령마다 한 번만(화면 재구성 · 프로세스 재생성 뒤 다시 따르지 않음).
+     * 주행 · 모름에서는 화면을 옮기지 않음(주행 중 허용 칸은 「기록」뿐 · 종료 확인은 주행 화면 ViewModel 이 받음).
+     * 종료 확인은 정차 중 「기록」 칸으로 옮겨 그 칸의 기존 팝업이 보이게 함.
+     */
+    fun onGleoScreenRequest(noticeId: Long, request: GleoScreenRequest) {
+        if (savedStateHandle.get<Long>(KEY_GLEO_HANDLED) == noticeId) return
+        savedStateHandle[KEY_GLEO_HANDLED] = noticeId
+        if (drivingState.value != DrivingState.PARKED) return
+        when (request) {
+            GleoScreenRequest.OpenTrips -> openTrip(null)
+            is GleoScreenRequest.OpenRecommendations -> openRecommendations(request.region)
+            GleoScreenRequest.ConfirmEndTrip -> savedStateHandle[KEY_DESTINATION] = AppDestination.RECORDS.id
+        }
     }
 
     /**
@@ -143,12 +185,15 @@ class AppShellViewModel @Inject constructor(
     }
 
     /**
-     * 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정) · 홈 카드면 그 로드맵 B-04 부터(#55).
+     * 사용자가 「추천」을 새로 고름 → 추천 칸이 B-01 부터(#37 사람 결정) · 홈 카드면 그 로드맵 B-04 부터(#55) ·
+     * Gleo 면 그 지역 순위 B-02 부터(#69). 진입 값을 한 번에 모두 덮어써 지난 진입의 값이 남지 않음.
      * 주행 → 정차 복원은 이 값을 바꾸지 않음.
      */
-    private fun enterRecommendations(openTripNo: Long? = null, openSidoNm: String? = null) {
+    private fun enterRecommendations(openTripNo: Long? = null, openSidoNm: String? = null, region: Region? = null) {
         savedStateHandle[KEY_RECOMMENDATIONS_OPEN_TRIP] = openTripNo
         savedStateHandle[KEY_RECOMMENDATIONS_OPEN_SIDO] = openSidoNm
+        savedStateHandle[KEY_RECOMMENDATIONS_SIDO] = region?.sidoNm
+        savedStateHandle[KEY_RECOMMENDATIONS_SIGUNGU] = region?.sigunguNm
         savedStateHandle[KEY_RECOMMENDATIONS_ENTRY] = (savedStateHandle.get<Int>(KEY_RECOMMENDATIONS_ENTRY) ?: 0) + 1
     }
 
@@ -172,6 +217,9 @@ class AppShellViewModel @Inject constructor(
         const val KEY_RECOMMENDATIONS_ENTRY = "recommendations_entry"
         const val KEY_TRIPS_ENTRY = "trips_entry"
         const val KEY_TRIPS_OPEN = "trips_open_trip_no"
+        const val KEY_RECOMMENDATIONS_SIDO = "recommendations_sido"
+        const val KEY_RECOMMENDATIONS_SIGUNGU = "recommendations_sigungu"
+        const val KEY_GLEO_HANDLED = "gleo_handled_notice"
         const val KEY_RECOMMENDATIONS_OPEN_TRIP = "recommendations_open_trip_no"
         const val KEY_RECOMMENDATIONS_OPEN_SIDO = "recommendations_open_sido_nm"
     }

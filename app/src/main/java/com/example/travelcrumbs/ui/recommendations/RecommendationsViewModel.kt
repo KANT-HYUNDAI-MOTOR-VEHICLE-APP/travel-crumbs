@@ -139,7 +139,7 @@ class RecommendationsViewModel @Inject constructor(
      * 앱 틀의 진입 값(레일 「추천」 · 「추천 보러 가기」마다 오름)이 지난번과 다르면 B-01 부터 · 고른 것 초기화.
      * 같으면(주행 → 정차 · 화면 재구성 · 프로세스 재생성) 보던 화면 그대로.
      */
-    fun onEntry(entryKey: Int, openTripNo: Long? = null, openSidoNm: String? = null) {
+    fun onEntry(entryKey: Int, openTripNo: Long? = null, openSidoNm: String? = null, region: Region? = null) {
         // 화면에 들어올 때마다 공개 자료를 다시 읽음 — 비공개 · 삭제된 장소의 핀 · 카드를 지움(M26)
         loadAllTrips()
         if (savedStateHandle.get<Int>(KEY_ENTRY) == entryKey) return
@@ -162,6 +162,12 @@ class RecommendationsViewModel @Inject constructor(
         rating.clear()
         // 지도 준비 · 실패는 지도가 알려 준 그대로 두고 첫 맞춤 · 결과 · 후보만 처음부터(지도 위치는 지도 그리는 쪽이 진입 값으로 버림)
         mapProgress.update { MapProgress(ready = it.ready, failed = it.failed) }
+        // Gleo 「경주 근처 추천」(#69) — 고르기(B-01)를 건너뛰고 그 지역 순위(B-02)부터. 시군구 null = 시도 전체.
+        // 지도 초기화 뒤에 둬야 지도가 그 시도로 이동함(selectSido 의 focus 가 지워지지 않게).
+        if (region != null && openTripNo == null) {
+            selectSido(region.sidoNm)
+            selectRegion(region.sigunguNm)
+        }
     }
 
     /** B-01 시도 칩 — 카드 · 후보 닫고 지도가 그 시도로 이동(N5 · M06 · M15). */

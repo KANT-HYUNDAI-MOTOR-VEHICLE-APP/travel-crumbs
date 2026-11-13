@@ -3,6 +3,8 @@ package com.example.travelcrumbs.ui.driving
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.travelcrumbs.data.gleo.GleoActionRepository
+import com.example.travelcrumbs.data.gleo.freshScreenRequests
 import com.example.travelcrumbs.data.navi.NaviRepository
 import com.example.travelcrumbs.data.rating.RatingRepository
 import com.example.travelcrumbs.data.recording.RecordingRepository
@@ -13,11 +15,13 @@ import com.example.travelcrumbs.domain.RecordPlaceUseCase
 import com.example.travelcrumbs.domain.StartVoiceInputUseCase
 import com.example.travelcrumbs.domain.model.ActionResult
 import com.example.travelcrumbs.domain.model.DrivingState
+import com.example.travelcrumbs.domain.model.GleoScreenRequest
 import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +43,7 @@ class DrivingViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val ratingRepository: RatingRepository,
     private val naviRepository: NaviRepository,
+    gleoActionRepository: GleoActionRepository,
     private val endTrip: EndTripUseCase,
 ) : ViewModel() {
 
@@ -76,6 +81,15 @@ class DrivingViewModel @Inject constructor(
             drivingSignalRepository.drivingState.collect { state ->
                 if (state == DrivingState.PARKED) savedStateHandle[KEY_END_CONFIRM] = false
             }
+        }
+        // Gleo 「여행 끝낼게」(#69 U2) — 저장소는 바꾸지 않고 기존 확인 팝업만 엶 · 명령마다 한 번.
+        viewModelScope.launch {
+            gleoActionRepository.freshScreenRequests()
+                .filter { it.screen == GleoScreenRequest.ConfirmEndTrip && savedStateHandle.get<Long>(KEY_GLEO_END) != it.noticeId }
+                .collect { command ->
+                    savedStateHandle[KEY_GLEO_END] = command.noticeId
+                    savedStateHandle[KEY_END_CONFIRM] = true
+                }
         }
     }
 
@@ -164,5 +178,6 @@ class DrivingViewModel @Inject constructor(
 
     private companion object {
         const val KEY_END_CONFIRM = "end_confirm_visible"
+        const val KEY_GLEO_END = "gleo_end_confirm_notice"
     }
 }

@@ -11,5 +11,7 @@ object GleoCallbackFormat {
         put("functionName", callback.functionName)
         put("status", callback.status.wireName)
         put("message", callback.message)
+        // 공식 Callback 계약: data 는 JSON 배열을 담은 문자열(선택 칸).
+        callback.data?.let { put("data", it) }
     }.toString()
 }

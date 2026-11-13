@@ -48,6 +48,18 @@ fun GleoNoticeLine(
         GleoCommandPhase.CONSENT_REQUIRED -> R.string.gleo_consent_required
         GleoCommandPhase.FAILED -> R.string.gleo_failed
         GleoCommandPhase.UNCONFIRMED -> R.string.gleo_unconfirmed
+        GleoCommandPhase.TRIP_PAUSED -> R.string.gleo_trip_paused
+        GleoCommandPhase.TRIP_RESUMED -> R.string.gleo_trip_resumed
+        GleoCommandPhase.ALREADY_PAUSED -> R.string.gleo_already_paused
+        GleoCommandPhase.ALREADY_RUNNING -> R.string.gleo_already_running
+        GleoCommandPhase.END_CONFIRM -> R.string.gleo_end_confirm
+        GleoCommandPhase.NO_TRIP -> R.string.gleo_no_trip
+        GleoCommandPhase.TODAY_RECORDS -> R.string.gleo_today_records
+        // 주행 중에는 화면을 옮기지 않으므로 「정차 후」 문구(#69 2절).
+        GleoCommandPhase.RECOMMENDED -> if (parked) R.string.gleo_recommended_parked else R.string.gleo_recommended_driving
+        GleoCommandPhase.NO_RECOMMENDATION -> R.string.gleo_no_recommendation
+        GleoCommandPhase.REQUEST_FAILED -> R.string.gleo_request_failed
+        GleoCommandPhase.BUSY -> R.string.gleo_busy
     }
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
         Row(
@@ -57,11 +69,21 @@ fun GleoNoticeLine(
         ) {
             if (showProgress) CircularProgressIndicator(modifier = Modifier.size(Dimens.RailIconSize))
             Text(
-                text = stringResource(text),
+                // 장소 수 · 지역 이름이 있는 문구만 [GleoCommandState.detail] 을 끼움(좌표 없음).
+                text = state.detail?.let { stringResource(text, it) } ?: stringResource(plainTextFor(text)),
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
     }
+}
+
+/** 지역 · 장소 수 자리가 있는 문구에 넣을 값이 없을 때 쓰는 자리표시자 없는 문구(화면에 %1$s 가 보이지 않게). */
+private fun plainTextFor(res: Int): Int = when (res) {
+    R.string.gleo_recommended_parked -> R.string.gleo_recommended_parked_plain
+    R.string.gleo_recommended_driving -> R.string.gleo_recommended_driving_plain
+    R.string.gleo_no_recommendation -> R.string.gleo_no_recommendation_plain
+    R.string.gleo_today_records -> R.string.gleo_today_records_plain
+    else -> res
 }

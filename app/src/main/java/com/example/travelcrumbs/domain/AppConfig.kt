@@ -105,8 +105,38 @@ object AppConfig {
      * 빌드 타입별 `assets/schema.json` 의 `actionCalls[].function.name` · `AndroidManifest.xml` 의
      * `<action>` 과 **글자가 같아야 함** — 셋 다 문자열이라 빌드가 잡아 주지 않음.
      */
-    const val GLEO_FUNCTION_OPEN: String = "OPEN_TRAVEL_CRUMBS"
     const val GLEO_FUNCTION_RECORD: String = "RECORD_CURRENT_PLACE"
+    const val GLEO_FUNCTION_CONTROL: String = "CONTROL_CURRENT_TRIP"
+    const val GLEO_FUNCTION_INFO: String = "SHOW_TRAVEL_INFO"
+
+    /** Gleo 함수 파라미터(#69 스펙 4.1) — schema.json 의 properties 이름 · enum 값과 글자가 같아야 함. */
+    const val GLEO_PARAM_OPERATION: String = "operation"
+    const val GLEO_PARAM_INFO_TYPE: String = "infoType"
+    const val GLEO_PARAM_REGION: String = "region"
+    const val GLEO_MAX_REGION_CHARS: Int = 50
+
+    /** CONTROL_CURRENT_TRIP 의 operation · SHOW_TRAVEL_INFO 의 infoType enum 값(schema.json 과 같은 글자). */
+    const val GLEO_OP_PAUSE: String = "PAUSE"
+    const val GLEO_OP_RESUME: String = "RESUME"
+    const val GLEO_OP_END: String = "END"
+    const val GLEO_INFO_TODAY_RECORDS: String = "TODAY_RECORDS"
+    const val GLEO_INFO_RECOMMENDED_ROADMAPS: String = "RECOMMENDED_ROADMAPS"
+
+    /** 응답 문장에 다시 쓰는 사용자 지역 말의 최대 글자(글자 · 숫자 · 공백만 남긴 뒤). */
+    const val GLEO_REGION_ECHO_CHARS: Int = 20
+
+    /**
+     * 콜백을 받는 Gleo 앱 패키지 — 암묵적 broadcast 로 다른 앱이 여행 정보를 받지 않도록 고정(Pleos 리뷰 #69).
+     * 에뮬레이터 Pleos Connect v2.1.0 로그로 확인(processAppActionResponse · ai.umos.ambientai). 실기에서 다시 확인.
+     */
+    const val GLEO_PACKAGE: String = "ai.umos.ambientai"
+
+    /** Gleo 화면 요청(추천 · 내 여행 · 종료 확인)을 따를 유효 시간 — 늦게 만들어진 화면이 지난 명령을 다시 따르지 않게(밀리초). */
+    const val GLEO_SCREEN_REQUEST_FRESH_MILLIS: Long = 10_000L
+
+    /** 추천 로드맵을 말해 줄 개수 · 현재 위치를 기다리는 앱 안 한도(밀리초 · 7초 응답 예산 안). */
+    const val GLEO_RECOMMENDATION_COUNT: Int = 3
+    const val GLEO_LOCATION_WAIT_MILLIS: Long = 3_000L
 
     /**
      * 실제 Gleo 가 Intent action 앞에 붙이는 접두어(schema.json 의 packageName + ".").
@@ -121,8 +151,28 @@ object AppConfig {
     const val GLEO_MAX_ACTION_PARAM_CHARS: Int = 1_024
 
     /** Gleo 에 돌려줄 문장(영어 완전한 문장) — 화면 문구가 아니라 프로토콜 값이라 strings.xml 이 아님. */
-    const val GLEO_OPEN_SUCCESS_MESSAGE: String = "Travel Crumbs is now open on the screen."
-    const val GLEO_OPEN_FAIL_MESSAGE: String = "Travel Crumbs could not read the request."
+    const val GLEO_INPUT_FAIL_MESSAGE: String = "Travel Crumbs could not read the request."
+    const val GLEO_BUSY_MESSAGE: String = "Another Travel Crumbs request is still being processed."
+    const val GLEO_TIMEOUT_MESSAGE: String = "Travel Crumbs could not answer in time."
+    const val GLEO_NO_TRIP_MESSAGE: String = "There is no trip in progress."
+    const val GLEO_PAUSED_MESSAGE: String = "The trip recording is paused."
+    const val GLEO_ALREADY_PAUSED_MESSAGE: String = "The trip recording is already paused."
+    const val GLEO_RESUMED_MESSAGE: String = "The trip recording has resumed."
+    const val GLEO_ALREADY_RUNNING_MESSAGE: String = "The trip recording is already running."
+    const val GLEO_END_CONFIRM_MESSAGE: String = "Please confirm ending the trip on the screen."
+    const val GLEO_CONTROL_FAIL_MESSAGE: String = "The trip could not be changed."
+    const val GLEO_INFO_FAIL_MESSAGE: String = "Travel Crumbs could not read the travel information."
+    const val GLEO_NO_ROADMAPS_MESSAGE: String = "There are no recommended roadmaps yet."
+    /** %s = 사용자가 말한 지역(정리한 것). */
+    const val GLEO_NO_REGION_ROADMAPS_MESSAGE: String = "There are no recommended roadmaps for %s yet."
+    /** %1$d = 오늘 장소 수 · %2$s = place/places · %3$s = 지금 여행 문장. */
+    const val GLEO_TODAY_MESSAGE: String = "You recorded %1${'$'}d %2${'$'}s today. %3${'$'}s"
+    /** %1$s = recording/paused · %2$d = 장소 수 · %3$s = place/places. */
+    const val GLEO_CURRENT_TRIP_MESSAGE: String = "The current trip is %1${'$'}s with %2${'$'}d %3${'$'}s."
+    /** %s = 로드맵 이름들. */
+    const val GLEO_TOP_ROADMAPS_MESSAGE: String = "Top recommended roadmaps: %s."
+    /** %1$s = 지역 · %2$s = 로드맵 이름들. */
+    const val GLEO_TOP_REGION_ROADMAPS_MESSAGE: String = "Top recommended roadmaps in %1${'$'}s: %2${'$'}s."
     const val GLEO_RECORD_SUCCESS_MESSAGE: String = "The current place has been recorded in the active trip."
     const val GLEO_RECORD_INPUT_FAIL_MESSAGE: String = "The recording request could not be read."
     const val GLEO_RECORD_NOT_READY_MESSAGE: String = "Travel Crumbs is not ready to record a place yet."
