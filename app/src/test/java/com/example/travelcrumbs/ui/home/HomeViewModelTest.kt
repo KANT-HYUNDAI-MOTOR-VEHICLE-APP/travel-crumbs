@@ -97,7 +97,7 @@ class HomeViewModelTest {
         runCurrent()
         assertNull(vm.uiState.value.ratingPrompt)
 
-        ratings.recordGuidance(101, "속초 가족여행", "민지네")
+        ratings.recordGuidance(101, "아이와 편한 속초 여행", "민지네")
         runCurrent()
         assertNull(vm.uiState.value.ratingPrompt)
 
@@ -106,11 +106,11 @@ class HomeViewModelTest {
 
         val prompt = vm.uiState.value.ratingPrompt!!
         assertEquals(101L, prompt.tripNo)
-        assertEquals("속초 가족여행", prompt.tripNm)
+        assertEquals("아이와 편한 속초 여행", prompt.tripNm)
         assertEquals("민지네", prompt.nicknameNm)
         assertNull(prompt.ratingScore)
         assertFalse(prompt.canSubmit)
-        assertEquals(5, prompt.tags.size)
+        assertEquals(8, prompt.tags.size)
     }
 
     @Test

@@ -1,35 +1,28 @@
 package com.example.travelcrumbs.ui.home.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.NearbyRoadmapRules
@@ -37,10 +30,10 @@ import com.example.travelcrumbs.ui.home.NearbyRoadmapCardItem
 import com.example.travelcrumbs.ui.home.NearbyRoadmapsSection
 import com.example.travelcrumbs.domain.model.NearbySectionState
 import com.example.travelcrumbs.ui.components.AppCard
-import com.example.travelcrumbs.ui.components.DemoDataLine
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 import com.example.travelcrumbs.ui.components.PrimaryButton
-import com.example.travelcrumbs.ui.components.RoadmapMap
-import com.example.travelcrumbs.ui.components.RouteSketch
+import com.example.travelcrumbs.ui.components.NeutralFilledButton
 import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -63,11 +56,10 @@ fun NearbyRoadmapsArea(
         NearbyConsentCard(onAgree = onAgree, onDecline = onDecline, modifier = modifier.testTag(NEARBY_SECTION_TAG))
         return
     }
-    Column(
+    AppCard(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .testTag(NEARBY_SECTION_TAG),
-        verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
@@ -78,34 +70,35 @@ fun NearbyRoadmapsArea(
                     if (section.state == NearbySectionState.NATIONWIDE) R.string.home_nearby_title_nationwide else R.string.home_nearby_title,
                 ),
                 modifier = Modifier.weight(1f, fill = false),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (section.demoData) DemoDataLine()
         }
         when (section.state) {
             NearbySectionState.NEARBY -> SectionDescription(stringResource(R.string.home_nearby_desc, section.radiusKm))
             NearbySectionState.NATIONWIDE -> SectionDescription(stringResource(R.string.home_nearby_desc_nationwide, section.radiusKm))
             else -> Unit
         }
-        if (section.state == NearbySectionState.LOCATING) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(Dimens.NearbyCardHeight),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Text(
-                    text = stringResource(R.string.home_nearby_locating),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
+        when (section.state) {
+            NearbySectionState.LOCATING -> AppStatePanel(
+                title = stringResource(R.string.home_nearby_locating),
+                kind = AppStateKind.Loading,
+            )
+            NearbySectionState.NO_ROADMAP -> AppStatePanel(
+                title = stringResource(R.string.home_nearby_empty),
+                kind = AppStateKind.Empty,
+            )
+            NearbySectionState.LOCATION_UNAVAILABLE -> AppStatePanel(
+                title = stringResource(R.string.home_nearby_unavailable),
+                kind = AppStateKind.Error,
+            )
+            else ->
+            Column(modifier = Modifier.fillMaxWidth().testTag(NEARBY_LIST_TAG)) {
+                section.cards.take(NEARBY_COMPACT_LIMIT).forEach { card -> NearbyRoadmapCard(card = card, onClick = { onOpen(card.tripNo, card.sidoNm) }) }
             }
-        } else {
-            CardRow(cards = section.cards, onOpen = onOpen)
         }
     }
 }
@@ -116,11 +109,11 @@ fun NearbyRoadmapsArea(
  */
 @Composable
 private fun NearbyConsentCard(onAgree: () -> Unit, onDecline: () -> Unit, modifier: Modifier = Modifier) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    AppCard(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
             Text(
                 text = stringResource(R.string.nearby_consent_title),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary,
                 maxLines = 2,
@@ -128,16 +121,17 @@ private fun NearbyConsentCard(onAgree: () -> Unit, onDecline: () -> Unit, modifi
             )
             Text(
                 text = stringResource(R.string.nearby_consent_body),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-            PrimaryButton(onClick = onAgree, modifier = Modifier.heightIn(min = Dimens.PrimaryButtonHeight)) {
-                Text(text = stringResource(R.string.nearby_consent_agree), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Spacer(Modifier.weight(1f))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+            SecondaryButton(onClick = onDecline, modifier = Modifier.weight(1f).heightIn(min = Dimens.BasicButtonHeight)) {
+                Text(text = stringResource(R.string.nearby_consent_decline), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            SecondaryButton(onClick = onDecline, modifier = Modifier.heightIn(min = Dimens.PrimaryButtonHeight)) {
-                Text(text = stringResource(R.string.nearby_consent_decline), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            NeutralFilledButton(onClick = onAgree, modifier = Modifier.weight(1f).heightIn(min = Dimens.BasicButtonHeight)) {
+                Text(text = stringResource(R.string.nearby_consent_agree), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }
@@ -156,20 +150,8 @@ private fun SectionDescription(text: String) {
 
 @Composable
 private fun CardRow(cards: List<NearbyRoadmapCardItem>, onOpen: (Long, String) -> Unit) {
-    val listState = rememberLazyListState()
-    // 목록이 새로 계산되면(순서 · 구성이 바뀜) 첫 카드부터 · 같으면 밀어 둔 위치 그대로(E7)
-    val order = cards.map { it.tripNo }
-    LaunchedEffect(order) { listState.scrollToItem(0) }
-    LazyRow(
-        state = listState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimens.NearbyCardHeight)
-            .testTag(NEARBY_LIST_TAG),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
-        flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Start),
-    ) {
-        items(cards, key = { it.tripNo }) { card ->
+    AppCard(modifier = Modifier.fillMaxWidth().testTag(NEARBY_LIST_TAG)) {
+        cards.take(NEARBY_COMPACT_LIMIT).forEach { card ->
             NearbyRoadmapCard(card = card, onClick = { onOpen(card.tripNo, card.sidoNm) })
         }
     }
@@ -194,68 +176,48 @@ private fun NearbyRoadmapCard(card: NearbyRoadmapCardItem, onClick: () -> Unit) 
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(Dimens.NearbyCardWidth)
-            .height(Dimens.NearbyCardHeight)
+            .fillMaxWidth()
             .testTag(nearbyCardTag(card.tripNo))
             .semantics { contentDescription = description },
         shape = MaterialTheme.shapes.medium,
-        color = colors.surface,
+        color = colors.surfaceVariant,
         border = BorderStroke(
             if (top) Dimens.SelectedBorderWidth else Dimens.CardBorderWidth,
             if (top) colors.secondary else colors.outlineVariant,
         ),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .clearAndSetSemantics { }
-                .padding(Dimens.ItemSpacing),
-            verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),
+        Row(
+            modifier = Modifier.padding(Dimens.ItemSpacing),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            val previewModifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-            // B-04 와 같은 규칙 — 앱에 묶은 도로 지도가 장소 전부를 덮으면 도로 지도 · 아니면 경로 그림(점선)
-            val routeMap = card.routeMap
-            if (routeMap != null) RoadmapMap(map = routeMap, modifier = previewModifier, showSampleNote = false) else RouteSketch(points = card.sketch, modifier = previewModifier)
-            // 순위는 이름 줄 맨 앞(B-02 순위 숫자 꼴) — 아래 두 줄은 카드 폭 전체를 써 거리가 잘리지 않게
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = card.rank.toString(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = colors.primary,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
+            Text(
+                text = card.rank.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.primary,
+                maxLines = 1,
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing)) {
                 Text(
                     text = card.tripNm,
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = listOf(
+                        region,
+                        stringResource(R.string.home_nearby_rating, card.ratingAvg),
+                        stringResource(R.string.home_nearby_review_cnt, card.ratingCnt),
+                        distance,
+                    ).joinToString(stringResource(R.string.reco_meta_separator)),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = region,
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = listOf(
-                    stringResource(R.string.home_nearby_rating, card.ratingAvg),
-                    stringResource(R.string.home_nearby_review_cnt, card.ratingCnt),
-                    distance,
-                ).joinToString(stringResource(R.string.reco_meta_separator)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -274,5 +236,7 @@ private fun distanceText(distM: Int): String {
 /** 시험이 구역 · 목록 · 카드를 찾는 이름표. */
 const val NEARBY_SECTION_TAG = "home_nearby_section"
 const val NEARBY_LIST_TAG = "home_nearby_list"
+
+private const val NEARBY_COMPACT_LIMIT = 3
 
 fun nearbyCardTag(tripNo: Long): String = "home_nearby_card_$tripNo"

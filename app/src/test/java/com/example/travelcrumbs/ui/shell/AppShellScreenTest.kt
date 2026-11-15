@@ -153,11 +153,11 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
         rail(AppDestination.RECORDS).performClick()
 
-        button(R.string.action_open_recommendations).performClick()
+        button(R.string.home_recommend_roadmap).performClick()
         compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
         compose.onNode(hasText("강원") and hasClickAction()).performClick()
         compose.onNode(hasText("속초시") and hasClickAction()).performClick()
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText("아이와 편한 속초 여행").assertIsDisplayed()
         compose.onNodeWithText(text(R.string.reco_open_tags)).assertIsDisplayed()
 
         pressBack()
@@ -171,13 +171,13 @@ class AppShellScreenTest {
     fun `R17 시연용 데이터 한 줄 — 빌드와 상관없이 · 안내 팝업에 시연용 안내 없음(실제 내비 연결)`() {
         show()
         rail(AppDestination.RECOMMENDATIONS).performClick()
-        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
+        compose.onAllNodes(hasText(text(R.string.reco_demo_data))).assertCountEquals(0)
 
         compose.onNode(hasText("강원") and hasClickAction()).performClick()
         compose.onNode(hasText("속초시") and hasClickAction()).performClick()
-        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
-        compose.onNodeWithText("속초 가족여행").performClick()
-        compose.onNodeWithText(text(R.string.reco_demo_data)).assertIsDisplayed()
+        compose.onAllNodes(hasText(text(R.string.reco_demo_data))).assertCountEquals(0)
+        compose.onNodeWithText("아이와 편한 속초 여행").performClick()
+        compose.onAllNodes(hasText(text(R.string.reco_demo_data))).assertCountEquals(0)
         button(R.string.reco_guide_from_first).performClick()
         compose.onNodeWithText(text(R.string.guidance_start)).assertIsDisplayed()
     }
@@ -188,7 +188,7 @@ class AppShellScreenTest {
         rail(AppDestination.RECOMMENDATIONS).performClick()
         compose.onNode(hasText("강원") and hasClickAction()).performClick()
         compose.onNode(hasText("속초시") and hasClickAction()).performClick()
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText("아이와 편한 속초 여행").assertIsDisplayed()
 
         // 같은 칸 레일을 다시 누름 → B-01 · 고른 시도 없음
         rail(AppDestination.RECOMMENDATIONS).performClick()
@@ -207,7 +207,7 @@ class AppShellScreenTest {
         compose.onNode(hasText("속초시") and hasClickAction()).performClick()
         drive(DrivingState.DRIVING)
         drive(DrivingState.PARKED)
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText("아이와 편한 속초 여행").assertIsDisplayed()
 
         // 기록 칸 「추천 보러 가기」 → B-01(진행 중 여행을 끝내 버튼이 보이게)
         drive(DrivingState.DRIVING)
@@ -215,7 +215,7 @@ class AppShellScreenTest {
         button(R.string.end_trip_confirm_end).performClick()
         drive(DrivingState.PARKED)
         rail(AppDestination.RECORDS).performClick()
-        button(R.string.action_open_recommendations).performClick()
+        button(R.string.home_recommend_roadmap).performClick()
         compose.onNodeWithText(text(R.string.reco_pick_sido)).assertIsDisplayed()
     }
 
@@ -229,10 +229,10 @@ class AppShellScreenTest {
         drive(DrivingState.DRIVING)
         rail(AppDestination.RECOMMENDATIONS).performClick()
         compose.onNodeWithText(text(R.string.driving_restricted)).assertIsDisplayed()
-        compose.onAllNodes(hasText("속초 가족여행")).assertCountEquals(0)
+        compose.onAllNodes(hasText("아이와 편한 속초 여행")).assertCountEquals(0)
 
         drive(DrivingState.PARKED)
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText("아이와 편한 속초 여행").assertIsDisplayed()
     }
 
     @Test
@@ -324,13 +324,12 @@ class AppShellScreenTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.driving_navi_card_title)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_voice).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_pause_recording).assertIsDisplayed().assertIsEnabled()
         button(R.string.action_end_trip).assertIsDisplayed().assertIsEnabled()
-        // 눌리는 것 = 레일 4칸 + 버튼 4개 + 넓은 칸 「내비 안내」 카드의 「내비 보기」(#51 U0 · 보조 버튼)뿐
-        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4 + 1)
+        // 눌리는 것 = 레일 4칸 + 큰 기록 타일과 오른쪽 행동 3개
+        compose.onAllNodes(hasClickAction()).assertCountEquals(AppDestination.railItems.size + 4)
         compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
         compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.unfinished_input_banner_text))).assertCountEquals(0)
@@ -375,8 +374,7 @@ class AppShellScreenTest {
     /** 기록 칸 진행 중 아님 모양 — 「여행 시작」 · 「최근 여행이 없어요」 · 「추천 보러 가기」만 · 진행 중 요소 없음(D34). */
     private fun assertNoTripTop() {
         button(R.string.action_start_trip).assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
-        button(R.string.action_open_recommendations).assertIsDisplayed().assertIsEnabled()
+        button(R.string.home_recommend_roadmap).assertIsDisplayed().assertIsEnabled()
         listOf(
             R.string.trip_status_recording,
             R.string.recording_status_paused,
@@ -390,7 +388,7 @@ class AppShellScreenTest {
     private fun assertNoStartTripElements() {
         compose.onAllNodes(hasText(text(R.string.action_start_trip))).assertCountEquals(0)
         compose.onAllNodes(hasText(text(R.string.recent_trip_empty))).assertCountEquals(0)
-        compose.onAllNodes(hasText(text(R.string.action_open_recommendations))).assertCountEquals(0)
+        compose.onAllNodes(hasText(text(R.string.home_recommend_roadmap))).assertCountEquals(0)
     }
 
     @Test
@@ -401,7 +399,7 @@ class AppShellScreenTest {
         button(R.string.end_trip_confirm_end).performClick()
         drive(DrivingState.PARKED)
 
-        button(R.string.action_open_recommendations).performClick()
+        button(R.string.home_recommend_roadmap).performClick()
         assertHighlighted(AppDestination.RECOMMENDATIONS)
         // #37 — 「준비 중」 대신 B-01 지역 고르기
         compose.onNodeWithText(text(R.string.reco_region_title)).assertIsDisplayed()
@@ -645,8 +643,10 @@ class AppShellScreenTest {
         drive(DrivingState.PARKED)
 
         button(R.string.action_start_trip).performClick()
-        // A-01(#51 U3) — 이름 · 동행자 · 목적지 없이 바로 「동의하고 기록 시작」
-        button(R.string.action_consent_and_start).performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("서윤이와 속초 여행")
+        // A-01(#51 U3) — 필수 여행 이름을 입력하고 기록 시작
+        button(R.string.action_start_recording).performClick()
+        button(R.string.trip_start_consent_confirm).performClick()
         compose.waitForIdle()
 
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
@@ -828,7 +828,15 @@ class AppShellScreenTest {
 
         drive(DrivingState.PARKED)
         compose.onNodeWithText(text(R.string.rating_title)).assertIsDisplayed()
-        compose.onNodeWithText("민지네").assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.rating_trip_line, "민지네", 1, 1)).assertIsDisplayed()
+        compose.onNodeWithText("아이와 함께 가기 좋아요").assertIsDisplayed()
+        compose.onNodeWithText("아이도 잘 먹어요").assertDoesNotExist()
+        button(R.string.rating_more_tags).performClick()
+        compose.onAllNodes(hasText(text(R.string.experience_more_title))).assertCountEquals(2)
+        compose.onNodeWithText("아이도 잘 먹어요").assertIsDisplayed()
+        compose.onNodeWithText("아이가 좋아해요").assertIsDisplayed()
+        button(R.string.action_cancel).performClick()
+        compose.onAllNodes(hasText(text(R.string.experience_more_title))).assertCountEquals(1)
         button(R.string.rating_submit).assertIsNotEnabled()
 
         button(R.string.rating_later).performClick()

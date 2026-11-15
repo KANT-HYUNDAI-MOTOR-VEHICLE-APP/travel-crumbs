@@ -5,6 +5,12 @@ import androidx.compose.ui.unit.dp
 /** 화면 크기 수치 한 곳(색은 [TravelCrumbsColors] · 글자는 [TravelCrumbsTypography]). */
 object Dimens {
     val ScreenPadding = 24.dp
+    val ScreenContentStart = 22.dp
+    val ScreenContentEnd = 48.dp
+    val ScreenTop = 48.dp
+    val ScreenHeaderHeight = 92.dp
+    val ScreenHeaderToBody = 60.dp
+    val ScreenBodyHeight = 960.dp
     val ItemSpacing = 16.dp
 
     /** 섹션 사이 간격(디자인 시스템 7절 24) — 기록 칸의 맨 위 영역 · 「가 볼 장소」 · 「장소 고르기」 사이. */
@@ -12,6 +18,7 @@ object Dimens {
 
     /** 주행 화면 버튼 — 크게 · 한 번 터치(디자인 시스템 7절 주요 버튼 높이 72 이상). */
     val DrivingButtonHeight = 96.dp
+    val DrivingNaviCompactHeight = 160.dp
 
     /** 주행 화면 버튼 사이 간격(디자인 시스템 7절 인접 간격 12 이상). */
     val DrivingButtonSpacing = 16.dp
@@ -25,6 +32,10 @@ object Dimens {
     /** C-02 「여행 시작」 · 「추천 보러 가기」 카드 — 이 폭보다 좁으면(나눈 칸) 위아래로 · 카드 최소 높이(#51 U2). */
     val HomeChoiceRowMinWidth = 900.dp
     val HomeChoiceCardHeight = 160.dp
+    /** Figma v1.8 본문 960px를 에뮬레이터 밀도에 맞춘 차량 앱 영역 높이. */
+    val HomeActionAreaHeight = 960.dp
+    val ActionTileIconSize = 96.dp
+    val ActionTilePadding = 32.dp
 
     /** 설정 카드 오른쪽 버튼(「수정」 · 「철회」) 최소 폭(#51 U2). */
     val SettingsActionMinWidth = 160.dp
@@ -34,7 +45,8 @@ object Dimens {
     val RoadmapSketchHeight = 320.dp
 
     /** 주요 버튼 높이(디자인 시스템 7절 「주요 버튼 높이 72 이상」 · 주요 터치 영역 72) — 홈 근처 로드맵 동의 카드 버튼(#55 · PR #64 리뷰). */
-    val PrimaryButtonHeight = 72.dp
+    val PrimaryButtonHeight = 112.dp
+    val BasicButtonHeight = 100.dp
 
     /** 기록 칸(정차) 맨 위 영역 버튼. */
     val HomeButtonHeight = 72.dp
@@ -47,17 +59,21 @@ object Dimens {
      * 160 dpi 에서 1dp = 1px = 0.159 mm → 5 mm ≈ 31.5dp. 글자는 본문 단계(Type.kt Body · 24 / 줄 높이 34).
      * 칸 높이 × 4 가 창 2개 영역 높이(1210dp) · 창 1개 영역 높이 안에 스크롤 없이 들어감.
      */
-    val RailWidth = 120.dp
-    val RailItemHeight = 96.dp
+    val RailWidth = 248.dp
+    val RailItemWidth = 200.dp
+    val RailItemHeight = 192.dp
+    val RailTopPadding = 48.dp
+    val RailItemSpacing = 32.dp
 
     /** 레일 아이콘 — 디자인 시스템 10절 32 이상(D38). */
-    val RailIconSize = 32.dp
+    val RailIconSize = 64.dp
 
     /** 레일 가장자리와 칸 배경 사이 여백(선택 칸 배경 모서리는 [Corner]). */
-    val RailItemInset = 8.dp
+    val RailItemInset = 24.dp
 
     /** 버튼 · 카드 · 팝업 · 레일 선택 칸 모서리(디자인 시스템 7절 16 · Theme 의 Shapes). */
-    val Corner = 16.dp
+    val Corner = 24.dp
+    val BottomActionCorner = 32.dp
 
     /** 보조 · 위험 버튼 테두리. */
     val ButtonBorderWidth = 2.dp
@@ -79,10 +95,12 @@ object Dimens {
     val GuideMapTextPadding = 160.dp
 
     /** 「준비 중」 안내 한 줄 자리 — 늘 비워 두어 안내가 떠도 화면이 밀리지 않음. */
-    val NoticeLineHeight = 40.dp
+    val NoticeLineHeight = 88.dp
+    val StatusMessageMaxWidth = 1120.dp
 
     /** 추천(#37) 칩 · 작은 버튼 높이 — 터치 48 이상 + 본문 글자 한 줄. */
-    val ChipHeight = 56.dp
+    val ChipHeight = 88.dp
+    val ChipVerticalPadding = 8.dp
 
     /** 추천 시군구 카드 높이(이름 + 로드맵 수 두 줄). */
     val RegionCardHeight = 120.dp
@@ -141,8 +159,8 @@ object Dimens {
     val CardBorderWidth = 1.dp
 
     /** 카드(AppCard) 안 여백 · 안 요소 간격(디자인 시스템 7절 카드 내부 여백 20). */
-    val CardPadding = 20.dp
-    val CardContentSpacing = 8.dp
+    val CardPadding = 32.dp
+    val CardContentSpacing = 16.dp
 
     /** 추천 지도(#59 B-01) — 낱개 핀 · 숫자 묶음 핀 지름(터치 칸 48dp 이상) · 테두리. */
     val RecoMapPinSize = 48.dp

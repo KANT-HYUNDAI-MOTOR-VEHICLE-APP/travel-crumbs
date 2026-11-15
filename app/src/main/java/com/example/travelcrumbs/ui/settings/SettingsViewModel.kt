@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.PlaceRecordCleanup
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentState
@@ -54,6 +55,7 @@ class SettingsViewModel @Inject constructor(
             nearbyConsentAsk = asks.nearbyConsent,
             recoAgreed = consents[ConsentType.RECO_PUBLIC]?.agreed == true,
             nicknameDraft = draft,
+            nicknameError = draft != null && !InputValidation.nickname(draft),
             clearAllAsk = asks.clearAll,
             message = asks.message,
         )
@@ -69,7 +71,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun onNicknameChange(value: String) {
-        savedStateHandle[KEY_NICKNAME_DRAFT] = value.take(AppConfig.NICKNAME_MAX_LENGTH)
+        savedStateHandle[KEY_NICKNAME_DRAFT] = value.take(AppConfig.NICKNAME_MAX_LENGTH + 1)
     }
 
     fun onDismissNickname() {
@@ -80,10 +82,14 @@ class SettingsViewModel @Inject constructor(
     fun onSaveNickname() {
         val draft = savedStateHandle.get<String>(KEY_NICKNAME_DRAFT) ?: return
         viewModelScope.launch {
-            if (userRepository.updateNickname(draft)) {
-                savedStateHandle[KEY_NICKNAME_DRAFT] = null
-                message.value = UiMessage.NICKNAME_SAVED
-            }
+            runCatching { userRepository.updateNickname(draft) }
+                .onSuccess { saved ->
+                    if (saved) {
+                        savedStateHandle[KEY_NICKNAME_DRAFT] = null
+                        message.value = UiMessage.NICKNAME_SAVED
+                    }
+                }
+                .onFailure { message.value = UiMessage.SAVE_FAILED }
         }
     }
 

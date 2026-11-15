@@ -1,26 +1,33 @@
 package com.example.travelcrumbs.ui.shell.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.example.travelcrumbs.ui.navigation.AppDestination
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.theme.TravelCrumbsColors
 
 /**
  * 좌측 레일 — 목적지 목록 4칸 그대로(스펙 app-shell-v5 2-1 · D33). 정차 · 주행 · 모름 모두 보이고 눌림(D29 · D37).
@@ -35,51 +42,55 @@ fun AppNavigationRail(
     onSelect: (AppDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationRail(
-        modifier = modifier.fillMaxHeight().width(Dimens.RailWidth),
-        containerColor = MaterialTheme.colorScheme.background,
-    ) {
-        AppDestination.railItems.forEach { destination ->
-            val selected = destination == highlighted
-            NavigationRailItem(
-                selected = selected,
-                onClick = { onSelect(destination) },
-                icon = {
-                    Icon(
-                        painter = painterResource(destination.iconRes),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(Dimens.RailIconSize)
-                            .testTag(railIconTag(destination)),
-                    )
-                },
-                label = {
-                    Text(
-                        text = stringResource(destination.labelRes),
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier.testTag(railLabelTag(destination)),
-                    )
-                },
-                colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.secondary,
-                    selectedTextColor = MaterialTheme.colorScheme.secondary,
-                    // 선택 배경은 알약 모양이 아니라 칸 전체(아래 background) — 알약은 투명
-                    indicatorColor = Color.Transparent,
-                    unselectedIconColor = MaterialTheme.colorScheme.onBackground,
-                    unselectedTextColor = MaterialTheme.colorScheme.onBackground,
-                ),
-                modifier = Modifier
-                    .testTag(railItemTag(destination))
-                    .padding(horizontal = Dimens.RailItemInset)
-                    .background(
-                        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                        shape = MaterialTheme.shapes.medium,
-                    )
-                    .widthIn(min = Dimens.MinTouchTarget)
-                    .heightIn(min = Dimens.RailItemHeight),
-            )
+    BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
+        val compact = maxHeight < 1000.dp
+        val railWidth = if (compact) 120.dp else Dimens.RailWidth
+        val itemHeight = if (compact) 96.dp else Dimens.RailItemHeight
+        val itemSpacing = if (compact) 4.dp else Dimens.RailItemSpacing
+        val topPadding = if (compact) 4.dp else Dimens.RailTopPadding
+        val sidePadding = if (compact) 20.dp else Dimens.RailItemInset
+        val iconSize = if (compact) 32.dp else Dimens.RailIconSize
+        val labelSize = if (compact) 20.sp else 48.sp
+        val labelLine = if (compact) 28.sp else 64.sp
+        Column(
+            modifier = Modifier.fillMaxHeight().width(railWidth).padding(start = sidePadding, end = sidePadding, top = topPadding),
+            verticalArrangement = Arrangement.spacedBy(itemSpacing),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AppDestination.railItems.forEach { destination ->
+                val selected = destination == highlighted
+                Surface(
+                    onClick = { onSelect(destination) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight)
+                        .semantics { this.selected = selected }
+                        .testTag(railItemTag(destination)),
+                    shape = MaterialTheme.shapes.large,
+                    color = if (selected) TravelCrumbsColors.NavigationSelected else MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(
+                            painter = painterResource(destination.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(iconSize).testTag(railIconTag(destination)),
+                        )
+                        Spacer(Modifier.height(if (compact) 2.dp else 8.dp))
+                        Text(
+                            text = stringResource(destination.labelRes),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = labelSize,
+                                lineHeight = labelLine,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                            ),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.testTag(railLabelTag(destination)),
+                        )
+                    }
+                }
+            }
         }
     }
 }

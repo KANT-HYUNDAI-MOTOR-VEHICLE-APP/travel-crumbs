@@ -87,9 +87,9 @@ class RecommendationsRoadmapMapTest {
         assertNotNull(detail.routeMap)
         val map = detail.routeMap!!
         assertEquals("강원 속초시", map.areaLabel)
-        assertEquals(4, map.pins.size)
-        assertEquals(3, map.legs.size)
-        assertEquals(4, detail.sketch.size)
+        assertEquals(3, map.pins.size)
+        assertEquals(2, map.legs.size)
+        assertEquals(3, detail.sketch.size)
         assertEquals(1, maps.loads)
 
         vm.askGuidance(detail.places.first().placeNo)

@@ -20,6 +20,9 @@ enum class UiMessage {
     /** A-03 「저장」 — 장소 이름 · 태그 · 메모 저장(#51 U4). */
     PLACE_SAVED,
 
+    /** 저장 처리 실패 — 입력 상태를 유지하고 다시 저장할 수 있음. */
+    SAVE_FAILED,
+
     /** 「이 장소 기록」 — 위치를 못 읽음 · 장소는 위치 없이 저장(#51 U4). */
     LOCATION_UNAVAILABLE,
 

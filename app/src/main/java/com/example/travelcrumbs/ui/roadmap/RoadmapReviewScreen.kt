@@ -4,10 +4,14 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.ui.components.PlaceTagSheet
+import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.roadmap.components.PublishContent
 import com.example.travelcrumbs.ui.roadmap.components.ReviewContent
 
@@ -33,21 +37,24 @@ fun RoadmapReviewScreen(
     }
     BackHandler(onBack = viewModel::onBack)
 
-    when (uiState.step) {
-        RoadmapStep.REVIEW -> ReviewContent(
-            state = uiState,
-            onBack = viewModel::onBack,
-            onEditPlace = viewModel::onEditPlace,
-            onSave = viewModel::onSaveRoadmap,
-            modifier = modifier,
-        )
-        RoadmapStep.PUBLISH -> PublishContent(
-            state = uiState,
-            onBack = viewModel::onBack,
-            onChoosePublic = viewModel::onChoosePublic,
-            onSave = viewModel::onPublish,
-            modifier = modifier,
-        )
+    Box(modifier = modifier.fillMaxSize()) {
+        when (uiState.step) {
+            RoadmapStep.REVIEW -> ReviewContent(
+                state = uiState,
+                onBack = viewModel::onBack,
+                onEditPlace = viewModel::onEditPlace,
+                onSave = viewModel::onSaveRoadmap,
+                modifier = Modifier.fillMaxSize(),
+            )
+            RoadmapStep.PUBLISH -> PublishContent(
+                state = uiState,
+                onBack = viewModel::onBack,
+                onChoosePublic = viewModel::onChoosePublic,
+                onSave = viewModel::onPublish,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     uiState.tagSheet?.let { sheet ->

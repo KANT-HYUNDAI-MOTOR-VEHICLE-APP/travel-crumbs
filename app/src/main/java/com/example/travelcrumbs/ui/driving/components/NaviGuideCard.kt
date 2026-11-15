@@ -46,12 +46,5 @@ fun NaviGuideCard(
                 Text(text = stringResource(R.string.action_open_navi), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
         }
-        Text(
-            text = stringResource(R.string.navi_split_hint),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }

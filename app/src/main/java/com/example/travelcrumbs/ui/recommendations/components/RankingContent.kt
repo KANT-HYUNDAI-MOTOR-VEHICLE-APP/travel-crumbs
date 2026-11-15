@@ -18,6 +18,8 @@ import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.ui.components.SecondaryButton
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 import com.example.travelcrumbs.ui.recommendations.TripCardItem
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -86,7 +88,7 @@ fun RankingContent(
             }
         }
         if (trips.isEmpty()) {
-            RecoSectionLabel(stringResource(R.string.reco_ranking_empty))
+            AppStatePanel(title = stringResource(R.string.reco_ranking_empty), kind = AppStateKind.Empty)
         }
         trips.forEach { trip ->
             TripCard(item = trip, onClick = { onOpenTrip(trip.tripNo) })

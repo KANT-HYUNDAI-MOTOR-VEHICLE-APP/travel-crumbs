@@ -31,7 +31,9 @@ enum class NearbySectionState {
     ;
 
     /** 구역을 그리나(2-6). */
-    val visible: Boolean get() = this == CONSENT_NEEDED || this == LOCATING || this == NEARBY || this == NATIONWIDE
+    val visible: Boolean
+        get() = this == CONSENT_NEEDED || this == LOCATING || this == NEARBY || this == NATIONWIDE ||
+            this == NO_ROADMAP || this == LOCATION_UNAVAILABLE
 
     /** 카드 목록을 그리나. */
     val showsCards: Boolean get() = this == NEARBY || this == NATIONWIDE

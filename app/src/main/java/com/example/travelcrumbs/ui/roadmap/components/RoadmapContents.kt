@@ -19,6 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,10 +31,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.AppCard
+import com.example.travelcrumbs.ui.components.AppDialog
+import com.example.travelcrumbs.ui.components.ActionTile
 import com.example.travelcrumbs.ui.components.BackButton
-import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.RoadmapPlaceCard
 import com.example.travelcrumbs.ui.components.RouteSketchBox
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 import com.example.travelcrumbs.ui.components.durationText
 import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.roadmap.RoadmapReviewUiState
@@ -49,7 +55,7 @@ fun ReviewContent(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+    Column(modifier = modifier.fillMaxSize().padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
             BackButton(onBack = onBack)
             Text(
@@ -68,12 +74,29 @@ fun ReviewContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )
+        if (state.tripNo == null) {
+            AppStatePanel(title = stringResource(R.string.state_loading), kind = AppStateKind.Loading)
+            return@Column
+        }
         BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
             val wide = maxWidth >= Dimens.RoadmapWideMinWidth
             if (wide) {
                 Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
                     RouteSketchBox(pins = state.sketch, modifier = Modifier.weight(Dimens.DetailRouteWeight).fillMaxHeight())
-                    PlaceList(state, onEditPlace, Modifier.weight(1f - Dimens.DetailRouteWeight).fillMaxHeight())
+                    Column(
+                        modifier = Modifier.weight(1f - Dimens.DetailRouteWeight).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                    ) {
+                        PlaceList(state, onEditPlace, Modifier.weight(1f).fillMaxWidth())
+                        ActionTile(
+                            title = stringResource(R.string.review_save),
+                            subtitle = null,
+                            iconRes = R.drawable.ic_nav_records,
+                            emphasized = true,
+                            onClick = onSave,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             } else {
                 Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
@@ -81,11 +104,16 @@ fun ReviewContent(
                     state.places.forEach { place ->
                         RoadmapPlaceCard(item = place, onEdit = { onEditPlace(place.tripPlaceNo) })
                     }
+                    ActionTile(
+                        title = stringResource(R.string.review_save),
+                        subtitle = null,
+                        iconRes = R.drawable.ic_nav_records,
+                        emphasized = true,
+                        onClick = onSave,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
-        }
-        PrimaryButton(onClick = onSave, modifier = Modifier.fillMaxWidth().height(Dimens.HomeButtonHeight)) {
-            Text(text = stringResource(R.string.review_save), style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
 }
@@ -93,6 +121,9 @@ fun ReviewContent(
 @Composable
 private fun PlaceList(state: RoadmapReviewUiState, onEditPlace: (Long) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+        if (state.places.isEmpty()) {
+            AppStatePanel(title = stringResource(R.string.empty_visited_places), kind = AppStateKind.Empty)
+        }
         state.places.forEach { place ->
             RoadmapPlaceCard(item = place, onEdit = { onEditPlace(place.tripPlaceNo) })
         }
@@ -111,30 +142,40 @@ fun PublishContent(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding)) {
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+    var previewVisible by rememberSaveable(state.tripNo) { androidx.compose.runtime.mutableStateOf(false) }
+    Column(
+        modifier = modifier.fillMaxSize().padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
+        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
+            BackButton(onBack = onBack)
+            Text(
+                text = stringResource(R.string.publish_title),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+            )
+        }
+        Row(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
-                BackButton(onBack = onBack)
-                Text(
-                    text = stringResource(R.string.publish_title),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                )
-            }
+            Column(
+                modifier = Modifier.weight(1.35f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            ) {
             ChoiceRow(
+                icon = "🔒",
                 title = stringResource(R.string.publish_private),
                 sub = stringResource(R.string.publish_private_sub),
                 selected = !state.publicChosen,
                 onClick = { onChoosePublic(false) },
             )
             ChoiceRow(
+                icon = "🌐",
                 title = stringResource(R.string.publish_public),
-                sub = stringResource(R.string.publish_public_sub, state.nicknameNm),
+                sub = stringResource(R.string.publish_public_sub),
                 selected = state.publicChosen,
                 onClick = { onChoosePublic(true) },
             )
@@ -155,67 +196,97 @@ fun PublishContent(
                     )
                 }
             }
+            }
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+            ) {
+                ActionTile(
+                    title = stringResource(R.string.publish_preview_action),
+                    subtitle = null,
+                    iconRes = R.drawable.ic_nav_trips,
+                    emphasized = false,
+                    enabled = state.publicChosen,
+                    onClick = { previewVisible = true },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+                ActionTile(
+                    title = stringResource(
+                        if (state.publicChosen && state.recoConsentNeeded) R.string.action_consent_and_save else R.string.action_save,
+                    ),
+                    subtitle = null,
+                    iconRes = R.drawable.ic_nav_records,
+                    emphasized = true,
+                    onClick = onSave,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            }
+        }
+    }
+    if (previewVisible) {
+        PublishPreviewDialog(state = state, onDismiss = { previewVisible = false })
+    }
+}
+
+@Composable
+private fun PublishPreviewDialog(state: RoadmapReviewUiState, onDismiss: () -> Unit) {
+    val separator = stringResource(R.string.reco_meta_separator)
+    val region = listOfNotNull(state.regionSidoNm, state.regionSigunguNm).joinToString(" ")
+        .ifEmpty { stringResource(R.string.region_unknown) }
+    AppDialog(
+        title = stringResource(R.string.publish_preview_dialog_title),
+        dismissLabel = stringResource(R.string.action_close),
+        confirmLabel = stringResource(R.string.action_close),
+        onDismiss = onDismiss,
+        onConfirm = onDismiss,
+        titleMaxLines = 1,
+        singleAction = true,
+    ) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = stringResource(R.string.publish_preview_title),
-                style = MaterialTheme.typography.titleMedium,
+                text = tripNameText(state.tripNm),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = listOf(state.nicknameNm, region).filter(String::isNotBlank).joinToString(separator),
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            state.places.forEach { place ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = tripNameText(state.tripNm),
+                        text = "${place.placeOrd}  ${place.userPlaceNm ?: stringResource(R.string.roadmap_place_default, place.placeOrd)}",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f),
                     )
-                    Text(
-                        text = state.nicknameNm,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.secondary,
-                        maxLines = 1,
-                    )
+                    place.tagNms.firstOrNull()?.let { tag ->
+                        Text(
+                            text = tag,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
-                val separator = stringResource(R.string.reco_meta_separator)
-                val region = listOfNotNull(state.regionSidoNm, state.regionSigunguNm).joinToString(" ")
-                    .ifEmpty { stringResource(R.string.region_unknown) }
-                Text(
-                    text = listOfNotNull(
-                        region,
-                        stringResource(R.string.trip_place_cnt_short, state.placeCnt),
-                        state.representativeTagNm,
-                    ).joinToString(separator),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
-            Text(
-                text = stringResource(R.string.publish_privacy_hint),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-            )
-        }
-        PrimaryButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = Dimens.ItemSpacing).height(Dimens.HomeButtonHeight)) {
-            Text(
-                text = stringResource(
-                    if (state.publicChosen && state.recoConsentNeeded) R.string.action_consent_and_save else R.string.action_save,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-            )
         }
     }
 }
 
 /** 비공개 · 공개 고르는 카드 한 장(라디오) — 카드 전체가 한 번 터치. */
 @Composable
-private fun ChoiceRow(title: String, sub: String, selected: Boolean, onClick: () -> Unit) {
+private fun ChoiceRow(icon: String, title: String, sub: String, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.medium
     Row(
@@ -231,9 +302,10 @@ private fun ChoiceRow(title: String, sub: String, selected: Boolean, onClick: ()
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)
+        Text(text = icon, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing)) {
             Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colors.onSurface, maxLines = 1)
-            Text(text = sub, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = sub, style = MaterialTheme.typography.bodyLarge, color = if (selected) colors.secondary else colors.onSurfaceVariant, maxLines = 3)
         }
     }
 }

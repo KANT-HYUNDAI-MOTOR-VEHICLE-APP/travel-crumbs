@@ -16,10 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.BackButton
-import com.example.travelcrumbs.ui.components.DemoDataLine
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.RatingDialog
+import com.example.travelcrumbs.ui.components.ScreenHeader
 import com.example.travelcrumbs.domain.model.Region
 import com.example.travelcrumbs.ui.recommendations.components.GuidanceConfirmDialog
 import com.example.travelcrumbs.ui.recommendations.components.RecommendationActions
@@ -85,26 +86,28 @@ fun RecommendationsScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = Dimens.ScreenPadding),
+        modifier = modifier.fillMaxSize(),
     ) {
+        ScreenHeader(
+            title = androidx.compose.ui.res.stringResource(R.string.home_recommend_roadmap),
+            parked = true,
+            modifier = Modifier.fillMaxWidth().padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
+        )
         // 머리글 — B-02 · B-03 · B-04 는 맨 왼쪽 「뒤로」(시스템 뒤로와 같은 onBack · B-01 은 레일 첫 화면이라 없음)
-        if (uiState.showsBackButton || uiState.demoData) {
+        if (uiState.showsBackButton) {
             Row(
-                modifier = Modifier.padding(top = Dimens.ItemSpacing),
+                modifier = Modifier.padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenHeaderToBody),
                 horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (uiState.showsBackButton) BackButton(onBack = onBack)
-                if (uiState.demoData) DemoDataLine()
+                BackButton(onBack = onBack)
             }
         }
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(top = Dimens.ItemSpacing),
+                .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = if (uiState.showsBackButton) Dimens.ItemSpacing else Dimens.ScreenHeaderToBody),
         ) {
             RecommendationPageContent(uiState = uiState, actions = actions, entryKey = entryKey)
         }

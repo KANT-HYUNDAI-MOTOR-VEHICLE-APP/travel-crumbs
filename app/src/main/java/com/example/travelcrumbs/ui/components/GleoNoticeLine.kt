@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,21 +59,35 @@ fun GleoNoticeLine(
         GleoCommandPhase.REQUEST_FAILED -> R.string.gleo_request_failed
         GleoCommandPhase.BUSY -> R.string.gleo_busy
     }
-    Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
-        Row(
-            modifier = Modifier.fillMaxWidth().height(Dimens.NoticeLineHeight),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (showProgress) CircularProgressIndicator(modifier = Modifier.size(Dimens.RailIconSize))
-            Text(
-                // 장소 수 · 지역 이름이 있는 문구만 [GleoCommandState.detail] 을 끼움(좌표 없음).
-                text = state.detail?.let { stringResource(text, it) } ?: stringResource(plainTextFor(text)),
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+    Row(
+        modifier = modifier.fillMaxWidth().height(Dimens.NoticeLineHeight),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val tone = when (state.phase) {
+                GleoCommandPhase.SAVED, GleoCommandPhase.TRIP_PAUSED, GleoCommandPhase.TRIP_RESUMED,
+                GleoCommandPhase.RECOMMENDED, GleoCommandPhase.TODAY_RECORDS -> NoticeTone.Success
+                GleoCommandPhase.INVALID_REQUEST, GleoCommandPhase.FAILED, GleoCommandPhase.UNCONFIRMED,
+                GleoCommandPhase.NO_RECOMMENDATION, GleoCommandPhase.REQUEST_FAILED -> NoticeTone.Failure
+                else -> NoticeTone.Neutral
+            }
+        StatusMessageBar(
+            description = state.detail?.let { stringResource(text, it) } ?: stringResource(plainTextFor(text)),
+            kind = StatusMessageKind.Gleo,
+            statusLabel = stringResource(
+                when (tone) {
+                    NoticeTone.Success -> R.string.status_tag_complete
+                    NoticeTone.Neutral -> R.string.status_tag_processing
+                    NoticeTone.Failure -> R.string.status_tag_failure
+                },
+            ),
+            statusIcon = when (tone) {
+                NoticeTone.Success -> "✓"
+                NoticeTone.Neutral -> "↻"
+                NoticeTone.Failure -> "!"
+            },
+            showProgress = showProgress,
+        )
     }
 }
 

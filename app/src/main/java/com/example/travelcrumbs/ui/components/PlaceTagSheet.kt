@@ -5,14 +5,12 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.travelcrumbs.R
-import com.example.travelcrumbs.ui.recommendations.components.RecoChip
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /** A-03 시트가 그릴 것(#51 U4) — 좌표 · 주소 없음. [editing] = 이미 저장한 장소를 고침(A-05 · A-08). */
@@ -21,6 +19,7 @@ data class PlaceTagSheetItem(
     val editing: Boolean,
     val userPlaceNm: String,
     val memo: String,
+    val memoTooLong: Boolean = false,
     val recordedHour: Int,
     val recordedMinute: Int,
     val tags: List<TagChipItem>,
@@ -49,6 +48,7 @@ fun PlaceTagSheet(
         confirmLabel = stringResource(R.string.action_save),
         onDismiss = onSkip,
         onConfirm = onSave,
+        confirmEnabled = !item.memoTooLong,
         titleMaxLines = 1,
     ) {
         Text(
@@ -69,25 +69,30 @@ fun PlaceTagSheet(
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
             item.tags.forEach { tag ->
-                RecoChip(label = tag.tagNm, selected = tag.selected, onClick = { onToggleTag(tag.tagNo) })
+                ExperienceTagChip(
+                    choice = ExperienceTagChoice(tag.tagNo, tag.tagNm, tag.selected),
+                    onClick = { onToggleTag(tag.tagNo) },
+                )
             }
         }
-        OutlinedTextField(
+        AppTextField(
             value = item.userPlaceNm,
             onValueChange = onNameChange,
-            label = { Text(text = stringResource(R.string.tag_sheet_name_label)) },
-            singleLine = true,
-            textStyle = MaterialTheme.typography.titleLarge,
+            label = stringResource(R.string.tag_sheet_name_label),
+            singleLine = false,
+            maxLines = 2,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        AppTextField(
             value = item.memo,
             onValueChange = onMemoChange,
-            label = { Text(text = stringResource(R.string.tag_sheet_memo_label)) },
-            singleLine = true,
-            textStyle = MaterialTheme.typography.titleLarge,
+            label = stringResource(R.string.tag_sheet_memo_label),
+            singleLine = false,
+            minLines = 2,
+            maxLines = 5,
+            isError = item.memoTooLong,
+            errorText = if (item.memoTooLong) stringResource(R.string.input_memo_error) else null,
             modifier = Modifier.fillMaxWidth(),
         )
-        AppDialogBody(text = stringResource(R.string.tag_sheet_hint), maxLines = 2)
     }
 }

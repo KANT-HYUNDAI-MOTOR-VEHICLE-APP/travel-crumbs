@@ -182,7 +182,7 @@ class HomeNearbyViewModelTest {
         assertEquals(NearbySectionState.NEARBY, env.state)
         assertEquals(listOf(101L, 102L, 103L), env.section.cards.map { it.tripNo })
         assertEquals(listOf(1, 2, 3), env.section.cards.map { it.rank })
-        assertEquals(12, env.section.cards.first().ratingCnt)
+        assertEquals(41, env.section.cards.first().ratingCnt)
         assertEquals(AppConfig.NEARBY_ROADMAP_RADIUS_KM, env.section.radiusKm)
         assertEquals("강원", env.section.cards.first().sidoNm)
         assertEquals("속초시", env.section.cards.first().sigunguNm)
@@ -203,14 +203,14 @@ class HomeNearbyViewModelTest {
     fun `H13 H14 T16 화면이 앞인 채 내 별점 저장 — 위치를 다시 묻지 않고 바뀐 리뷰 수 · 평균으로`() = runTest(dispatcher) {
         val env = Env()
         shown(env)
-        assertEquals(listOf(12, 9, 6), env.section.cards.map { it.ratingCnt })
+        assertEquals(listOf(41, 9, 6), env.section.cards.map { it.ratingCnt })
 
         env.rate(102L)
         env.rate(103L)
         runCurrent()
         val cards = env.section.cards
         assertEquals(listOf(101L, 102L, 103L), cards.map { it.tripNo })
-        assertEquals(listOf(12, 10, 7), cards.map { it.ratingCnt })
+        assertEquals(listOf(41, 10, 7), cards.map { it.ratingCnt })
         assertEquals((4.6 * 9 + 5) / 10, cards[1].ratingAvg, 1e-9)
         assertEquals(1, env.navi.calls)
     }
@@ -220,7 +220,7 @@ class HomeNearbyViewModelTest {
         val env = Env(naviReady = false)
         shown(env)
         assertEquals(NearbySectionState.LOCATION_UNAVAILABLE, env.state)
-        assertFalse(env.state.visible)
+        assertTrue(env.state.visible)
         assertEquals(0, env.navi.calls)
     }
 

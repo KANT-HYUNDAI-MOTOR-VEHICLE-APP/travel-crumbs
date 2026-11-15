@@ -79,7 +79,6 @@ class AppShellTwoAreaWindowTest {
         compose.onNodeWithText(text(R.string.trip_status_recording)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.elapsed_minutes, 0)).assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(R.string.trip_place_count, 0)).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.driving_navi_card_title)).assertIsDisplayed()
         button(R.string.action_record_place).assertIsDisplayed()
         button(R.string.action_voice).assertIsDisplayed()
         button(R.string.action_pause_recording).assertIsDisplayed()
@@ -92,28 +91,27 @@ class AppShellTwoAreaWindowTest {
     }
 
     @Test
-    fun `V61 창 2개 영역(넓음) — 버튼 4개 한 줄 · 순서 그대로 · 48dp 이상 · 높이 72 · 간격 12 · 글자 5 mm 이상`() {
+    fun `V61 창 2개 영역(넓음) — 큰 기록 타일과 우측 세로 행동 · 터치 영역과 글자 크기 충족`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
         val bounds = assertDrivingButtons()
-        assertTrue("한 줄", bounds.map { it.top }.distinct().size == 1)
+        assertLargeTileWithVerticalActions(bounds)
     }
 
     @Test
     @Config(qualifiers = "w900dp-h700dp-land")
-    fun `V61 좁은 창 — 버튼 4개 2 × 2 · 순서 그대로 · 48dp 이상 · 높이 72 · 간격 12 · 글자 5 mm 이상`() {
+    fun `V61 좁은 창 — 큰 기록 타일과 우측 세로 행동 · 터치 영역과 글자 크기 충족`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
         val bounds = assertDrivingButtons()
-        assertTrue("2 × 2 — 윗줄 둘 · 화면 ${compose.onRoot().getBoundsInRoot()} · ${bounds}", bounds[0].top == bounds[1].top && bounds[2].top == bounds[3].top)
-        assertTrue("2 × 2 — 아랫줄 간격 ${bounds[2].top - bounds[0].bottom} · 화면 ${compose.onRoot().getBoundsInRoot()}", bounds[2].top - bounds[0].bottom >= DESIGN_SYSTEM_SPACING)
+        assertLargeTileWithVerticalActions(bounds)
     }
 
     @Test
     @Config(qualifiers = "w817dp-h1210dp-port")
-    fun `U0-3 좁은 칸(나눈 칸 · 세로) 주행 — 레일 4칸 · 여행명 상태 경과 장소 수 · 내비 카드 없음 · 버튼 2 × 2 · 가로로 넘치지 않음`() {
+    fun `U0-3 좁은 칸(나눈 칸 · 세로) 주행 — 큰 기록 타일과 우측 세로 행동 · 가로로 넘치지 않음`() {
         graph.driving.emit(DrivingState.DRIVING)
         showShell()
 
@@ -123,7 +121,7 @@ class AppShellTwoAreaWindowTest {
         assertTrue(compose.onAllNodes(hasText(text(R.string.driving_navi_card_title))).fetchSemanticsNodes().isEmpty())
         val bounds = assertDrivingButtons()
         val root = compose.onRoot().getBoundsInRoot()
-        assertTrue("2 × 2", bounds[0].top == bounds[1].top && bounds[2].top == bounds[3].top && bounds[2].top > bounds[0].top)
+        assertLargeTileWithVerticalActions(bounds)
         bounds.forEach { assertTrue("가로로 넘치지 않음 $it · $root", it.right <= root.right) }
     }
 
@@ -161,6 +159,14 @@ class AppShellTwoAreaWindowTest {
         return bounds
     }
 
+    private fun assertLargeTileWithVerticalActions(bounds: List<DpRect>) {
+        val record = bounds.first()
+        val actions = bounds.drop(1)
+        assertTrue("큰 기록 타일이 행동 열 왼쪽", actions.all { record.right <= it.left })
+        assertTrue("오른쪽 행동은 세로 배치", actions.zipWithNext().all { (a, b) -> b.top >= a.bottom })
+        assertTrue("기록 타일은 행동 열 전체 높이", record.top <= actions.first().top && record.bottom >= actions.last().bottom)
+    }
+
     @Test
     fun `V30 창 2개 영역 정차 기록 칸 — 진행 중 · 아님 두 모양이 스크롤 없이 보이고 눌림`() {
         showShell()
@@ -176,8 +182,7 @@ class AppShellTwoAreaWindowTest {
         compose.waitForIdle()
 
         button(R.string.action_start_trip).assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
-        button(R.string.action_open_recommendations).assertIsDisplayed().performClick()
+        button(R.string.home_recommend_roadmap).assertIsDisplayed().performClick()
         compose.onNode(hasText(text(R.string.nav_recommendations)) and isSelected()).assertIsDisplayed()
     }
 
@@ -205,7 +210,7 @@ class AppShellTwoAreaWindowTest {
 
         val top = compose.onNodeWithTag(TOP_AREA_TAG).getBoundsInRoot()
         val section = compose.onNodeWithTag(SECTION_TAG).getBoundsInRoot()
-        assertTrue("구역은 맨 위 영역 아래", section.top >= top.bottom)
+        assertTrue("구역은 맨 위 영역 아래: top=$top section=$section", section.top >= top.bottom)
 
         // 스크롤은 맨 위 영역 아래(구역 · 카드)만 — 같은 스크롤 위치에서 비교
         val card = compose.onNodeWithText(text(R.string.sdk_card_title)).performScrollTo().getBoundsInRoot()

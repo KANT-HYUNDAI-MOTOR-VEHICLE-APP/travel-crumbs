@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,10 +19,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.travelcrumbs.BuildConfig
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.PlaceTagSheet
 import com.example.travelcrumbs.ui.components.RatingDialog
+import com.example.travelcrumbs.ui.components.ScreenHeader
 import com.example.travelcrumbs.ui.home.components.GuideConnectionContent
 import com.example.travelcrumbs.ui.home.components.GuideScreenActions
 import com.example.travelcrumbs.ui.home.components.NearbyRoadmapsArea
@@ -53,7 +55,7 @@ fun HomeScreen(
     onOpenTrip: (Long?) -> Unit = {},
     onOpenRoadmap: (tripNo: Long, sidoNm: String) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = viewModel(),
-    showSdkCard: Boolean = BuildConfig.DEBUG,
+    showSdkCard: Boolean = false,
     featureSections: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,59 +97,86 @@ fun HomeScreen(
                 actions = guideActions,
                 modifier = Modifier.weight(1f),
             )
-        } else Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
-        ) {
+        } else {
+            ScreenHeader(
+                title = androidx.compose.ui.res.stringResource(com.example.travelcrumbs.R.string.nav_records),
+                parked = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
+            )
+            Spacer(Modifier.height(Dimens.ScreenHeaderToBody))
             Column(
-                modifier = Modifier.testTag(TOP_AREA_TAG),
-                verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(Dimens.ScreenBodyHeight)
+                    .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd),
+                verticalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
             ) {
                 if (uiState.tripInProgress) {
-                    TripInProgressTop(
-                        tripName = uiState.tripName,
-                        status = uiState.tripStatus,
-                        elapsedMinutes = uiState.elapsedMinutes,
-                        placeCount = uiState.placeCount,
-                        onRecordPlace = viewModel::onRecordPlace,
-                        onEndTrip = viewModel::onEndTrip,
-                    )
+                    Column(
+                        modifier = Modifier.testTag(TOP_AREA_TAG),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                    ) {
+                        TripInProgressTop(
+                            tripName = uiState.tripName,
+                            status = uiState.tripStatus,
+                            elapsedMinutes = uiState.elapsedMinutes,
+                            placeCount = uiState.placeCount,
+                            onRecordPlace = viewModel::onRecordPlace,
+                            onEndTrip = viewModel::onEndTrip,
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = Dimens.SectionSpacing),
+                    ) {
+                        featureSections?.invoke(this)
+                        if (showSdkCard) {
+                            SdkCheckCard(
+                                drivingState = uiState.drivingState,
+                                naviReady = uiState.naviReady,
+                                navi = uiState.navi,
+                                openedByGleoAction = uiState.openedByGleoAction,
+                                onRefreshNavi = viewModel::refreshNavi,
+                                placeStats = uiState.placeStats,
+                                onRefreshPlaceStats = viewModel::refreshPlaceStats,
+                            )
+                        }
+                    }
                 } else {
-                    NoTripTop(
-                        nicknameNm = uiState.nicknameNm,
-                        recentTrip = uiState.recentTrip,
-                        onStartTrip = viewModel::onStartTrip,
-                        onOpenRecommendations = onOpenRecommendations,
-                        onOpenTrip = onOpenTrip,
-                    )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.testTag(TOP_AREA_TAG),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                        ) {
+                            NoTripTop(
+                                onStartTrip = viewModel::onStartTrip,
+                                onOpenRecommendations = onOpenRecommendations,
+                                recentTrip = uiState.recentTrip,
+                                onOpenTrip = { onOpenTrip(it) },
+                            ) {
+                                NearbyRoadmapsArea(
+                                    section = uiState.nearby,
+                                    onOpen = onOpenRoadmap,
+                                    onAgree = viewModel::onAgreeNearby,
+                                    onDecline = viewModel::onDeclineNearby,
+                                )
+                            }
+                        }
+                        featureSections?.invoke(this)
+                        if (showSdkCard) {
+                            SdkCheckCard(
+                                drivingState = uiState.drivingState,
+                                naviReady = uiState.naviReady,
+                                navi = uiState.navi,
+                                openedByGleoAction = uiState.openedByGleoAction,
+                                onRefreshNavi = viewModel::refreshNavi,
+                                placeStats = uiState.placeStats,
+                                onRefreshPlaceStats = viewModel::refreshPlaceStats,
+                            )
+                        }
+                    }
                 }
-            }
-
-            // 「내 근처 리뷰 많은 로드맵」(#55 · 스펙 home-nearby 2-2 · N11) — 맨 위 영역(최근 여행 포함) 바로 아래 = 옛 「가 볼 장소」 자리 ·
-            // 진행 중 여행 · 주행엔 없음(숨김 상태면 아무것도 안 그림)
-            NearbyRoadmapsArea(
-                section = uiState.nearby,
-                onOpen = onOpenRoadmap,
-                onAgree = viewModel::onAgreeNearby,
-                onDecline = viewModel::onDeclineNearby,
-            )
-
-            featureSections?.invoke(this)
-
-            if (showSdkCard) {
-                SdkCheckCard(
-                    drivingState = uiState.drivingState,
-                    naviReady = uiState.naviReady,
-                    navi = uiState.navi,
-                    openedByGleoAction = uiState.openedByGleoAction,
-                    onRefreshNavi = viewModel::refreshNavi,
-                    placeStats = uiState.placeStats,
-                    onRefreshPlaceStats = viewModel::refreshPlaceStats,
-                )
             }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)

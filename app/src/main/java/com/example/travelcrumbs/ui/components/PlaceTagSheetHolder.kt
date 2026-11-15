@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.TimeSource
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,7 @@ class PlaceTagSheetHolder(
             editing = !place.draft,
             userPlaceNm = current.userPlaceNm,
             memo = current.memo,
+            memoTooLong = !InputValidation.memo(current.memo),
             recordedHour = time.hour,
             recordedMinute = time.minute,
             tags = tagList.map { TagChipItem(it.tagNo, it.tagNm, it.tagNo in current.tagNos) },
@@ -54,9 +56,9 @@ class PlaceTagSheetHolder(
         }
     }
 
-    fun onNameChange(value: String) = edit { it.copy(userPlaceNm = value.take(AppConfig.PLACE_NAME_MAX_LENGTH)) }
+    fun onNameChange(value: String) = edit { it.copy(userPlaceNm = value) }
 
-    fun onMemoChange(value: String) = edit { it.copy(memo = value.take(AppConfig.MEMO_MAX_LENGTH)) }
+    fun onMemoChange(value: String) = edit { it.copy(memo = value.take(AppConfig.MEMO_MAX_LENGTH + 1)) }
 
     fun toggleTag(tagNo: Long) = edit { it.copy(tagNos = if (tagNo in it.tagNos) it.tagNos - tagNo else it.tagNos + tagNo) }
 
@@ -66,10 +68,14 @@ class PlaceTagSheetHolder(
     /** 「저장」 — 저장하고 닫음 · 결과 한 줄. */
     fun save() {
         val current = draft.value ?: return
-        setDraft(null)
+        if (!InputValidation.memo(current.memo)) return
         scope.launch {
-            trips.savePlace(current.tripPlaceNo, current.userPlaceNm, current.memo, current.tagNos)
-            onSaved(UiMessage.PLACE_SAVED)
+            runCatching { trips.savePlace(current.tripPlaceNo, current.userPlaceNm, current.memo, current.tagNos) }
+                .onSuccess {
+                    setDraft(null)
+                    onSaved(UiMessage.PLACE_SAVED)
+                }
+                .onFailure { onSaved(UiMessage.SAVE_FAILED) }
         }
     }
 

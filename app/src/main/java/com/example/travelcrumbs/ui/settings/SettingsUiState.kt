@@ -15,6 +15,7 @@ data class SettingsUiState(
     val recoAgreed: Boolean = false,
     /** 닉네임 수정 팝업의 입력 중 값 — null 이면 닫힘. */
     val nicknameDraft: String? = null,
+    val nicknameError: Boolean = false,
     /** 「내 기록 모두 지우기」 확인 팝업. */
     val clearAllAsk: Boolean = false,
     val message: UiMessage? = null,

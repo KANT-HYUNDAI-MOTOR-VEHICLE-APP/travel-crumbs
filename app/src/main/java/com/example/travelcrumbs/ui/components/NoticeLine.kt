@@ -3,7 +3,15 @@ package com.example.travelcrumbs.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.ui.theme.Dimens
@@ -39,15 +48,104 @@ fun NoticeLine(
         contentAlignment = Alignment.Center,
     ) {
         if (message != null) {
+            StatusMessageBar(
+                description = stringResource(message.textRes()),
+                kind = message.kind(),
+            )
+        }
+    }
+}
+
+enum class NoticeTone { Success, Neutral, Failure }
+
+enum class StatusMessageKind { Gleo, Notice, SuccessToast, FailureToast }
+
+@Composable
+fun StatusMessageBar(
+    description: String,
+    kind: StatusMessageKind,
+    modifier: Modifier = Modifier,
+    statusLabel: String? = null,
+    statusIcon: String? = null,
+    showProgress: Boolean = false,
+) {
+    val colors = MaterialTheme.colorScheme
+    val isToast = kind == StatusMessageKind.SuccessToast || kind == StatusMessageKind.FailureToast
+    val container = when (kind) {
+        StatusMessageKind.Gleo -> colors.secondaryContainer
+        StatusMessageKind.Notice -> colors.surfaceVariant
+        StatusMessageKind.SuccessToast, StatusMessageKind.FailureToast -> colors.surface
+    }
+    val leading = when (kind) {
+        StatusMessageKind.Gleo -> "Gleo"
+        StatusMessageKind.Notice -> "ⓘ"
+        StatusMessageKind.SuccessToast -> "✓"
+        StatusMessageKind.FailureToast -> "!"
+    }
+    val status = statusLabel ?: when (kind) {
+        StatusMessageKind.Gleo -> stringResource(R.string.status_tag_gleo)
+        StatusMessageKind.Notice -> stringResource(R.string.status_tag_notice)
+        StatusMessageKind.SuccessToast -> stringResource(R.string.status_tag_complete)
+        StatusMessageKind.FailureToast -> stringResource(R.string.status_tag_failure)
+    }
+    val accent = when (kind) {
+        StatusMessageKind.FailureToast -> colors.error
+        StatusMessageKind.Gleo, StatusMessageKind.SuccessToast -> colors.primary
+        StatusMessageKind.Notice -> colors.onSurfaceVariant
+    }
+    Surface(
+        modifier = modifier.widthIn(max = Dimens.StatusMessageMaxWidth),
+        shape = RoundedCornerShape(16.dp),
+        color = container,
+        shadowElevation = if (isToast) 8.dp else 0.dp,
+        border = if (isToast) null else androidx.compose.foundation.BorderStroke(Dimens.CardBorderWidth, colors.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.CardContentSpacing),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = leading, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = accent, maxLines = 1)
+            if (showProgress) {
+                CircularProgressIndicator(modifier = Modifier.size(Dimens.MinTouchTarget), color = accent)
+            } else if (kind == StatusMessageKind.Gleo || kind == StatusMessageKind.Notice) {
+                Text(
+                    text = statusIcon ?: if (kind == StatusMessageKind.Notice) "•" else "✓",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = accent,
+                    maxLines = 1,
+                )
+            }
+            Text(text = status, style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = accent, maxLines = 1)
             Text(
-                text = stringResource(message.textRes()),
+                text = description,
+                modifier = Modifier.weight(1f, fill = false),
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = colors.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
     }
+}
+
+@Composable
+fun NoticePill(text: String, tone: NoticeTone, modifier: Modifier = Modifier) {
+    StatusMessageBar(
+        description = text,
+        kind = when (tone) {
+            NoticeTone.Success -> StatusMessageKind.SuccessToast
+            NoticeTone.Neutral -> StatusMessageKind.Notice
+            NoticeTone.Failure -> StatusMessageKind.FailureToast
+        },
+        modifier = modifier,
+    )
+}
+
+private fun UiMessage.kind(): StatusMessageKind = when (this) {
+    UiMessage.GUIDANCE_FAILED, UiMessage.LOCATION_UNAVAILABLE, UiMessage.NAVI_START_FAILED, UiMessage.SAVE_FAILED -> StatusMessageKind.FailureToast
+    UiMessage.NOT_READY, UiMessage.RATING_GUIDANCE_REQUIRED, UiMessage.GUIDANCE_REQUESTED -> StatusMessageKind.Notice
+    else -> StatusMessageKind.SuccessToast
 }
 
 private fun UiMessage.textRes(): Int = when (this) {
@@ -58,6 +156,7 @@ private fun UiMessage.textRes(): Int = when (this) {
     UiMessage.RATING_GUIDANCE_REQUIRED -> R.string.rating_guidance_required
     UiMessage.PLACE_DRAFT_SAVED -> R.string.notice_place_draft_saved
     UiMessage.PLACE_SAVED -> R.string.notice_place_saved
+    UiMessage.SAVE_FAILED -> R.string.notice_save_failed
     UiMessage.LOCATION_UNAVAILABLE -> R.string.notice_location_unavailable
     UiMessage.NAVI_START_FAILED -> R.string.notice_navi_start_failed
     UiMessage.ROADMAP_SAVED -> R.string.notice_roadmap_saved

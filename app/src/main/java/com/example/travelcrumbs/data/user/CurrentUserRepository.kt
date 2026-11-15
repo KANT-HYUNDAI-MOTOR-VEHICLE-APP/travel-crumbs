@@ -5,6 +5,7 @@ import com.example.travelcrumbs.data.local.UserConsentHistEntity
 import com.example.travelcrumbs.data.local.UserMstEntity
 import com.example.travelcrumbs.data.local.YesNo
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentState
 import com.example.travelcrumbs.domain.model.ConsentType
@@ -89,8 +90,8 @@ class LocalCurrentUserRepository @Inject constructor(
     }
 
     override suspend fun updateNickname(nicknameNm: String): Boolean {
-        val trimmed = nicknameNm.trim().take(AppConfig.NICKNAME_MAX_LENGTH)
-        if (trimmed.isEmpty()) return false
+        if (!InputValidation.nickname(nicknameNm)) return false
+        val trimmed = nicknameNm.trim()
         dao.updateNickname(currentUserNo(), trimmed, timeSource.nowMillis())
         return true
     }

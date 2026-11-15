@@ -34,7 +34,7 @@ import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.SketchPoint
 import com.example.travelcrumbs.ui.components.OrderBadge
-import com.example.travelcrumbs.ui.components.PrimaryButton
+import com.example.travelcrumbs.ui.components.ActionTile
 import com.example.travelcrumbs.ui.components.RoadmapMap
 import com.example.travelcrumbs.ui.components.RouteSketch
 import com.example.travelcrumbs.ui.components.SecondaryButton
@@ -116,22 +116,26 @@ fun TripDetailContent(
             Column(
                 modifier = Modifier
                     .weight(1f - Dimens.DetailRouteWeight)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
             ) {
-                detail.places.forEach { place ->
-                    PlaceRow(place = place, onGuideHere = { onGuideHere(place.placeNo) })
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                ) {
+                    detail.places.forEach { place ->
+                        PlaceRow(place = place, onGuideHere = { onGuideHere(place.placeNo) })
+                    }
                 }
+                ActionTile(
+                    title = stringResource(R.string.reco_guide_from_first),
+                    subtitle = null,
+                    iconRes = R.drawable.ic_nav_recommendations,
+                    emphasized = true,
+                    onClick = onGuideFromFirst,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-        }
-        PrimaryButton(
-            onClick = onGuideFromFirst,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Dimens.HomeButtonHeight),
-        ) {
-            Text(text = stringResource(R.string.reco_guide_from_first), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -174,7 +178,7 @@ private fun PlaceRow(place: PlaceItem, onGuideHere: () -> Unit) {
                     text = place.placeNm,
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (place.tagNms.isNotEmpty()) {

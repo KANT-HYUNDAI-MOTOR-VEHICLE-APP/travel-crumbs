@@ -38,6 +38,8 @@ import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.components.durationText
 import com.example.travelcrumbs.ui.components.tripMetaText
 import com.example.travelcrumbs.ui.components.tripNameText
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.trips.components.RecoConsentDialog
 import com.example.travelcrumbs.ui.trips.components.RenameTripDialog
@@ -64,7 +66,7 @@ fun TripDetailScreen(
     }
     val summary = uiState.summary
 
-    Column(modifier = modifier.fillMaxSize().padding(Dimens.ScreenPadding), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+    Column(modifier = modifier.fillMaxSize().padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop), verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing), verticalAlignment = Alignment.CenterVertically) {
             BackButton(onBack = onBack)
             Text(
@@ -82,6 +84,9 @@ fun TripDetailScreen(
             DangerButton(onClick = viewModel::onAskDelete, modifier = Modifier.height(Dimens.HomeButtonHeight)) {
                 Text(text = stringResource(R.string.trip_delete_action), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
+        }
+        if (summary == null) {
+            AppStatePanel(title = stringResource(R.string.state_loading), kind = AppStateKind.Loading)
         }
         if (summary != null) {
             Text(
@@ -125,6 +130,9 @@ fun TripDetailScreen(
                         modifier = Modifier.weight(1f - Dimens.DetailRouteWeight).fillMaxHeight().verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                     ) {
+                        if (uiState.places.isEmpty()) {
+                            AppStatePanel(title = stringResource(R.string.empty_visited_places), kind = AppStateKind.Empty)
+                        }
                         uiState.places.forEach { place -> RoadmapPlaceCard(item = place, onEdit = { viewModel.onEditPlace(place.tripPlaceNo) }) }
                     }
                 }
@@ -134,6 +142,9 @@ fun TripDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 ) {
                     RouteSketchBox(pins = uiState.sketch, modifier = Modifier.fillMaxWidth().height(Dimens.RoadmapSketchHeight))
+                    if (uiState.places.isEmpty()) {
+                        AppStatePanel(title = stringResource(R.string.empty_visited_places), kind = AppStateKind.Empty)
+                    }
                     uiState.places.forEach { place -> RoadmapPlaceCard(item = place, onEdit = { viewModel.onEditPlace(place.tripPlaceNo) }) }
                 }
             }
@@ -142,7 +153,13 @@ fun TripDetailScreen(
     }
 
     uiState.renameDraft?.let { draft ->
-        RenameTripDialog(value = draft, onValueChange = viewModel::onRenameChange, onDismiss = viewModel::onDismissRename, onSave = viewModel::onSaveRename)
+        RenameTripDialog(
+            value = draft,
+            isError = uiState.renameError,
+            onValueChange = viewModel::onRenameChange,
+            onDismiss = viewModel::onDismissRename,
+            onSave = viewModel::onSaveRename,
+        )
     }
     if (uiState.deleteAsk) {
         ConfirmDialog(

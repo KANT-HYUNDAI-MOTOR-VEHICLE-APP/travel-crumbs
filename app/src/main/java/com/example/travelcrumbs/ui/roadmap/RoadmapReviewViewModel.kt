@@ -15,6 +15,7 @@ import com.example.travelcrumbs.domain.model.Visibility
 import com.example.travelcrumbs.ui.components.roadmapPlaces
 import com.example.travelcrumbs.ui.components.sketchPins
 import com.example.travelcrumbs.ui.components.PlaceTagSheetHolder
+import com.example.travelcrumbs.ui.components.UiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +46,7 @@ class RoadmapReviewViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val done = MutableStateFlow(false)
+    private val message = MutableStateFlow<UiMessage?>(null)
 
     /** 목적지 이름 → 주소(앱 장소 목록) — 장소 주소로 지역을 모를 때 쓰는 대체(#51 U7). */
     private val destAddrs = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -55,17 +57,19 @@ class RoadmapReviewViewModel @Inject constructor(
         tags = tagRepository,
         savedStateHandle = savedStateHandle,
         timeSource = timeSource,
-        onSaved = {},
+        onSaved = { message.value = it },
     )
 
     private val trip = savedStateHandle.getStateFlow<Long?>(KEY_TRIP, null)
         .flatMapLatest { no -> if (no == null) flowOf(null) else tripRepository.trip(no) }
 
+    private val completion = combine(done, message) { finished, notice -> finished to notice }
+
     private val choices = combine(
         savedStateHandle.getStateFlow(KEY_STEP, RoadmapStep.REVIEW.name),
         savedStateHandle.getStateFlow(KEY_PUBLIC, false),
-        done,
-    ) { step, public, finished -> Triple(RoadmapStep.valueOf(step), public, finished) }
+        completion,
+    ) { step, public, (finished, notice) -> ReviewChoices(RoadmapStep.valueOf(step), public, finished, notice) }
 
     private val people = combine(userRepository.user, userRepository.consents, destAddrs) { user, consents, addrs ->
         Triple(user.nicknameNm, consents[ConsentType.RECO_PUBLIC]?.agreed != true, addrs)
@@ -81,24 +85,25 @@ class RoadmapReviewViewModel @Inject constructor(
         choices,
         people,
         tagSheet.item,
-    ) { record, tags, (step, public, finished), (nickname, consentNeeded, addrs), sheet ->
+    ) { record, tags, choice, (nickname, consentNeeded, addrs), sheet ->
         val names = tags.associate { it.tagNo to it.tagNm }
         val region = record?.let { RoadmapRules.regionOfTrip(it.places, addrs[it.destPlaceNm]) }
         RoadmapReviewUiState(
-            step = step,
+            step = choice.step,
             tripNo = record?.tripNo,
             tripNm = record?.tripNm,
             durationMinutes = (record?.durationMillis ?: 0L) / AppConfig.ELAPSED_UNIT_MILLIS,
             places = record?.roadmapPlaces(names).orEmpty(),
             sketch = record?.sketchPins().orEmpty(),
-            publicChosen = public,
+            publicChosen = choice.public,
             recoConsentNeeded = consentNeeded,
             nicknameNm = nickname,
             regionSidoNm = region?.sidoNm,
             regionSigunguNm = region?.sigunguNm,
             representativeTagNm = record?.let { RoadmapRules.representativeTagNo(it.places) }?.let { names[it] },
             tagSheet = sheet,
-            done = finished,
+            message = choice.message,
+            done = choice.done,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -144,11 +149,19 @@ class RoadmapReviewViewModel @Inject constructor(
         val public = savedStateHandle.get<Boolean>(KEY_PUBLIC) == true
         val consentNeeded = uiState.value.recoConsentNeeded
         viewModelScope.launch {
-            if (public && consentNeeded) userRepository.recordConsent(ConsentType.RECO_PUBLIC, agreed = true)
-            tripRepository.setVisibility(tripNo, if (public) Visibility.ANONYMOUS_PUBLIC else Visibility.PRIVATE)
-            // 검토 끝 표시는 화면이 「끝」을 받은 뒤([onDoneHandled]) — 먼저 하면 기록 칸이 이 화면을 먼저 치워 끝을 못 받음
-            done.value = true
+            runCatching {
+                if (public && consentNeeded) userRepository.recordConsent(ConsentType.RECO_PUBLIC, agreed = true)
+                tripRepository.setVisibility(tripNo, if (public) Visibility.ANONYMOUS_PUBLIC else Visibility.PRIVATE)
+            }.onSuccess {
+                done.value = true
+            }.onFailure {
+                message.value = UiMessage.SAVE_FAILED
+            }
         }
+    }
+
+    fun onMessageShown() {
+        message.value = null
     }
 
     /** 시스템 뒤로 — A-06 이면 A-05 · A-05 면 「나중에」(검토 끝 · 비공개로 보관함에 남음). */
@@ -173,4 +186,11 @@ class RoadmapReviewViewModel @Inject constructor(
         const val KEY_STEP = "roadmap_step"
         const val KEY_PUBLIC = "roadmap_public"
     }
+
+    private data class ReviewChoices(
+        val step: RoadmapStep,
+        val public: Boolean,
+        val done: Boolean,
+        val message: UiMessage?,
+    )
 }

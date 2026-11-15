@@ -12,6 +12,7 @@ import com.example.travelcrumbs.data.local.TripPlaceTagRelEntity
 import com.example.travelcrumbs.data.local.YesNo
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.AutoPlace
 import com.example.travelcrumbs.domain.model.CompanionType
@@ -167,7 +168,7 @@ class LocalTripRepository @Inject constructor(
         dao.savePlace(
             tripPlaceNo = tripPlaceNo,
             userPlaceNm = userPlaceNm?.trim()?.take(AppConfig.PLACE_NAME_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
-            memo = memo?.trim()?.take(AppConfig.MEMO_MAX_LENGTH)?.takeIf { it.isNotEmpty() },
+            memo = memo?.trim()?.takeIf { InputValidation.memo(it) && it.isNotEmpty() },
             draftYn = YesNo.NO,
             tags = tagNos.sorted().map {
                 TripPlaceTagRelEntity(
@@ -184,8 +185,8 @@ class LocalTripRepository @Inject constructor(
     }
 
     override suspend fun rename(tripNo: Long, tripNm: String) {
-        val trimmed = tripNm.trim().take(AppConfig.TRIP_NAME_MAX_LENGTH)
-        if (trimmed.isNotEmpty()) dao.renameTrip(tripNo, trimmed, timeSource.nowMillis())
+        if (!InputValidation.tripName(tripNm)) return
+        dao.renameTrip(tripNo, tripNm.trim(), timeSource.nowMillis())
     }
 
     override suspend fun setVisibility(tripNo: Long, visibility: Visibility) {
@@ -280,7 +281,7 @@ internal fun placeNameFromAddr(addr: String): String? {
     val parts = addr.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
     if (parts.isEmpty()) return null
     val rest = if (parts.size > 2) parts.drop(2) else parts
-    return rest.joinToString(" ").take(AppConfig.PLACE_NAME_MAX_LENGTH)
+    return rest.joinToString(" ")
 }
 
 private const val MILLIS_PER_SECOND = 1_000L

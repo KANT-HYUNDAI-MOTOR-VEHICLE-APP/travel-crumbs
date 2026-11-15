@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -50,29 +52,25 @@ class HomeV6ScreenTest {
     }
 
     @Test
-    fun `U2-1 여행 없음 — 인사 · 여행 시작 · 추천 보러 가기 한 줄 · 최근 여행 카드 공개 중`() {
+    fun `v1_8 여행 없음 — 큰 여행 시작 타일과 추천 로드맵 타일`() {
         val graph = ShellTestGraph(withTrip = false)
         graph.trips.put(completedTrip(visibility = Visibility.ANONYMOUS_PUBLIC))
         runBlocking { graph.trips.markReviewed(7) }
         show(graph)
 
-        compose.onNodeWithText(compose.activity.getString(R.string.home_greeting, "민지네")).assertIsDisplayed()
         val start = button(R.string.action_start_trip).assertIsDisplayed().getBoundsInRoot()
-        val reco = button(R.string.action_open_recommendations).assertIsDisplayed().getBoundsInRoot()
+        val reco = button(R.string.home_recommend_roadmap).assertIsDisplayed().getBoundsInRoot()
         assertTrue("넓은 칸은 한 줄", start.top == reco.top && reco.left > start.right)
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
-        compose.onNodeWithText(text(R.string.trip_public_badge)).assertIsDisplayed()
     }
 
     @Test
     @Config(qualifiers = "w817dp-h1210dp-port")
-    fun `U2-6 좁은 칸 여행 없음 — 두 카드가 위아래 · 최근 여행 없음 안내`() {
+    fun `v1_8 좁은 칸 여행 없음 — 두 Action Tile이 위아래`() {
         show(ShellTestGraph(withTrip = false))
 
         val start = button(R.string.action_start_trip).assertIsDisplayed().getBoundsInRoot()
-        val reco = button(R.string.action_open_recommendations).assertIsDisplayed().getBoundsInRoot()
+        val reco = button(R.string.home_recommend_roadmap).assertIsDisplayed().getBoundsInRoot()
         assertTrue("좁은 칸은 위아래", reco.top >= start.bottom)
-        compose.onNodeWithText(text(R.string.recent_trip_empty)).assertIsDisplayed()
     }
 
     @Test
@@ -89,6 +87,23 @@ class HomeV6ScreenTest {
         compose.waitForIdle()
 
         compose.onNode(hasText(text(R.string.nav_trips)) and isSelected()).assertIsDisplayed()
+    }
+
+    @Test
+    fun `v1_8 공개 선택 뒤 미리 보기 모달은 장소 순서를 보여 주고 닫힌다`() {
+        val graph = ShellTestGraph(withTrip = false)
+        graph.trips.put(completedTrip(places = 2))
+        show(graph)
+
+        button(R.string.review_save).performClick()
+        compose.onNode(hasText(text(R.string.publish_public)) and hasClickAction()).performClick()
+        button(R.string.publish_preview_action).assertIsEnabled().performClick()
+
+        compose.onNodeWithText(text(R.string.publish_preview_dialog_title)).assertIsDisplayed()
+        compose.onNodeWithText("1  장소 1").assertIsDisplayed()
+        compose.onNodeWithText("2  장소 2").assertIsDisplayed()
+        button(R.string.action_close).performClick()
+        compose.onAllNodes(hasText(text(R.string.publish_preview_dialog_title))).assertCountEquals(0)
     }
 
     @Test

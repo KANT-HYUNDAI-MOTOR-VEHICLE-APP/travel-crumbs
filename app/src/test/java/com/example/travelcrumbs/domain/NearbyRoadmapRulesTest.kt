@@ -174,8 +174,6 @@ class NearbyRoadmapRulesTest {
             setOf(
                 NearbySectionState.INELIGIBLE,
                 NearbySectionState.CONSENT_DECLINED,
-                NearbySectionState.NO_ROADMAP,
-                NearbySectionState.LOCATION_UNAVAILABLE,
             ),
             hidden.toSet(),
         )

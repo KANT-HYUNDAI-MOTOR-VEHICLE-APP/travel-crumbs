@@ -1,27 +1,28 @@
 package com.example.travelcrumbs.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.ui.theme.Dimens
@@ -40,6 +41,7 @@ fun RatingDialog(
     onSubmit: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    var showExperiencePicker by rememberSaveable(item.tripNo) { androidx.compose.runtime.mutableStateOf(false) }
     AppDialog(
         title = stringResource(R.string.rating_title),
         dismissLabel = stringResource(R.string.rating_later),
@@ -48,20 +50,32 @@ fun RatingDialog(
         onConfirm = onSubmit,
         confirmEnabled = item.canSubmit,
         titleMaxLines = 1,
+        footerContent = {
+            if (item.tags.size > REPRESENTATIVE_TAG_COUNT) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    TextButton(onClick = { showExperiencePicker = true }) {
+                        Text(
+                            text = stringResource(R.string.rating_more_tags),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colors.primary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        },
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing)) {
             Text(
-                text = item.nicknameNm,
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.secondary,
-                maxLines = 1,
+                text = item.tripNm,
+                style = MaterialTheme.typography.headlineSmall,
+                color = colors.primary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(R.string.rating_trip_line, item.tripNm, item.guidedMonth, item.guidedDay),
-                style = MaterialTheme.typography.titleLarge,
+                text = stringResource(R.string.rating_trip_line, item.nicknameNm, item.guidedMonth, item.guidedDay),
+                style = MaterialTheme.typography.bodyLarge,
                 color = colors.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -79,29 +93,28 @@ fun RatingDialog(
                 )
             }
         }
-        Text(
-            text = item.ratingScore?.let { stringResource(R.string.rating_score_text, stringResource(scoreWordRes(it)), it) }
-                ?: stringResource(R.string.rating_pick_stars),
-            modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (item.ratingScore != null) colors.primary else colors.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Text(
-            text = stringResource(R.string.rating_tags_label),
-            style = MaterialTheme.typography.titleLarge,
-            color = colors.onSurface,
-        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            item.tags.forEach { tag ->
-                TagChip(tag = tag, onClick = { onToggleTag(tag.tagNo) })
+            item.tags.take(REPRESENTATIVE_TAG_COUNT).forEach { tag ->
+                ExperienceTagChip(
+                    choice = ExperienceTagChoice(tag.tagNo, tag.tagNm, tag.selected),
+                    onClick = { onToggleTag(tag.tagNo) },
+                )
             }
         }
-        AppDialogBody(text = stringResource(R.string.rating_anonymous_hint), maxLines = 2)
+    }
+    if (showExperiencePicker) {
+        val choices = item.tags.map { ExperienceTagChoice(it.tagNo, it.tagNm, it.selected) }
+        ExperienceTagPickerDialog(
+            tags = choices,
+            onDismiss = { showExperiencePicker = false },
+            onComplete = { selectedIds ->
+                choices.filter { it.selected != (it.id in selectedIds) }.forEach { onToggleTag(it.id) }
+                showExperiencePicker = false
+            },
+        )
     }
 }
 
@@ -131,32 +144,7 @@ private fun StarButton(score: Int, filled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** 좋았던 점 칩 — 고른 칩은 Brand/Secondary 바탕 + ✓(디자인 시스템 13절 · 색 · 체크 · 글자를 함께). */
-@Composable
-private fun TagChip(tag: RatingTagItem, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .heightIn(min = Dimens.ChipHeight)
-            .semantics { selected = tag.selected },
-        shape = CircleShape,
-        color = if (tag.selected) colors.secondary else colors.surface,
-        contentColor = if (tag.selected) colors.onSecondary else colors.onSurface,
-        border = if (tag.selected) null else BorderStroke(Dimens.CardBorderWidth, colors.outline),
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = Dimens.ScreenPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = if (tag.selected) stringResource(R.string.rating_tag_selected, tag.tagNm) else tag.tagNm,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-            )
-        }
-    }
-}
+private const val REPRESENTATIVE_TAG_COUNT = 4
 
 /** 별 수 → 글(1 별로예요 · 2 아쉬워요 · 3 괜찮아요 · 4 좋아요 · 5 최고예요). */
 fun scoreWordRes(score: Int): Int = when (score) {

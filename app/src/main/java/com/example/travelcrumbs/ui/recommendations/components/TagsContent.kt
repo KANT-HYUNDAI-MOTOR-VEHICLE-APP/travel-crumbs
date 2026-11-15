@@ -24,6 +24,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.recommendations.TagCountItem
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 import com.example.travelcrumbs.ui.recommendations.TripCardItem
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -48,7 +50,7 @@ fun TagsContent(
         RecoTitle(stringResource(R.string.reco_tags_title, regionNm))
         RecoSectionLabel(stringResource(R.string.reco_tags_sub, regionTripCnt))
         if (tagCounts.isEmpty()) {
-            RecoSectionLabel(stringResource(R.string.reco_tags_empty))
+            AppStatePanel(title = stringResource(R.string.reco_tags_empty), kind = AppStateKind.Empty)
             return@Column
         }
         tagCounts.forEach { tag ->

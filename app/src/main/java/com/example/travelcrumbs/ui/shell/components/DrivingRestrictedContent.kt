@@ -3,6 +3,8 @@ package com.example.travelcrumbs.ui.shell.components
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.components.NoticePill
+import com.example.travelcrumbs.ui.components.NoticeTone
+import com.example.travelcrumbs.ui.components.ScreenHeader
 
 /**
  * 주행 제한 안내(스펙 app-shell-v5 2-8) — 주행 · 모름 중 「기록」 밖 칸의 내용 대신. 제목 + 「정차 후 볼 수 있어요」 한 줄.
@@ -27,22 +32,12 @@ fun DrivingRestrictedContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(Dimens.ScreenPadding),
+            .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
         verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
     ) {
-        Text(
-            text = stringResource(titleRes),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-        )
-        Text(
-            text = stringResource(R.string.driving_restricted),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        ScreenHeader(title = stringResource(titleRes), parked = false, modifier = Modifier.fillMaxWidth())
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+            NoticePill(text = stringResource(R.string.driving_restricted), tone = NoticeTone.Neutral)
+        }
     }
 }

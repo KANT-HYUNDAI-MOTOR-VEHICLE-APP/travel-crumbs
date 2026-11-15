@@ -6,11 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,6 +32,7 @@ import com.example.travelcrumbs.ui.shell.components.AppNavigationRail
 import com.example.travelcrumbs.ui.shell.components.DrivingRestrictedContent
 import com.example.travelcrumbs.ui.shell.components.UnfinishedInputBanner
 import com.example.travelcrumbs.ui.trips.TripsScreen
+import com.example.travelcrumbs.ui.theme.Dimens
 
 /**
  * 앱 틀 — 레일 4칸은 늘 보이고 눌림 · 내용 영역만 판정대로(스펙 app-shell-v5 2 · 2-1 · 2-7 · D29 · D33).
@@ -75,6 +81,13 @@ fun AppShellScreen(
             AppNavigationRail(
                 highlighted = uiState.highlightedRailItem,
                 onSelect = viewModel::selectDestination,
+            )
+            Box(
+                modifier = Modifier
+                    .padding(top = Dimens.ScreenTop)
+                    .width(2.dp)
+                    .height(1112.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
             )
             Column(
                 modifier = Modifier

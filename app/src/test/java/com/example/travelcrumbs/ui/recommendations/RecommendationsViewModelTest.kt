@@ -103,13 +103,13 @@ class RecommendationsViewModelTest {
         assertEquals(RecommendationPage.RANKING, state.page)
         assertEquals("속초시", state.regionSigunguNm)
         val first = state.rankedTrips.first()
-        assertEquals(listOf("속초 가족여행", "바다 보고 시장 한 바퀴", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
+        assertEquals(listOf("아이와 편한 속초 여행", "바다 보고 시장 한 바퀴", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
         assertEquals(listOf(1, 2, 3), state.rankedTrips.map { it.rank })
         assertEquals("민지네", first.nicknameNm)
         assertEquals(4.8, first.ratingAvg, 0.0)
-        assertEquals(12, first.ratingCnt)
-        assertEquals(4, first.placeCnt)
-        assertEquals("아이와 가기 좋아요", first.representativeTagNm)
+        assertEquals(41, first.ratingCnt)
+        assertEquals(3, first.placeCnt)
+        assertEquals("아이도 잘 먹어요", first.representativeTagNm)
     }
 
     @Test
@@ -124,7 +124,7 @@ class RecommendationsViewModelTest {
         vm.selectSort(RankingSort.RATING)
         vm.selectCompanion(CompanionType.CHILD)
         runCurrent()
-        assertEquals(listOf("속초 가족여행", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
+        assertEquals(listOf("아이와 편한 속초 여행", "설악산 아래 하루"), state.rankedTrips.map { it.tripNm })
 
         vm.selectCompanion(CompanionType.SOLO)
         runCurrent()
@@ -167,11 +167,11 @@ class RecommendationsViewModelTest {
         assertEquals(counts.sortedDescending(), counts)
         assertEquals(state.tagCounts.first().tagNo, state.selectedTagNo)
 
-        val kids = state.tagCounts.first { it.tagNm == "아이와 가기 좋아요" }
+        val kids = state.tagCounts.first { it.tagNm == "아이와 함께 가기 좋아요" }
         vm.selectTag(kids.tagNo)
         runCurrent()
-        assertEquals("아이와 가기 좋아요", state.selectedTagNm)
-        assertEquals(listOf("속초 가족여행", "설악산 아래 하루"), state.taggedTrips.map { it.tripNm })
+        assertEquals("아이와 함께 가기 좋아요", state.selectedTagNm)
+        assertEquals(listOf("설악산 아래 하루"), state.taggedTrips.map { it.tripNm })
     }
 
     @Test
@@ -183,12 +183,12 @@ class RecommendationsViewModelTest {
 
         val detail = state.detail!!
         assertEquals(RecommendationPage.DETAIL, state.page)
-        assertEquals("속초 가족여행", detail.tripNm)
+        assertEquals("아이와 편한 속초 여행", detail.tripNm)
         assertEquals(listOf(CompanionType.SPOUSE, CompanionType.CHILD), detail.companionTypes)
-        assertEquals(listOf(1, 2, 3, 4), detail.places.map { it.placeOrd })
-        assertEquals("속초 중앙시장 공영주차장", detail.places.first().placeNm)
-        assertEquals(listOf("주차 편해요", "화장실 깨끗해요"), detail.places.first().tagNms)
-        assertEquals(4, detail.sketch.size)
+        assertEquals(listOf(1, 2, 3), detail.places.map { it.placeOrd })
+        assertEquals("중앙시장 닭강정", detail.places.first().placeNm)
+        assertEquals(listOf("아이도 잘 먹어요", "대기 시간이 길어요"), detail.places.first().tagNms)
+        assertEquals(3, detail.sketch.size)
     }
 
     @Test
@@ -201,7 +201,7 @@ class RecommendationsViewModelTest {
         vm.askGuidanceFromFirst()
         runCurrent()
         val confirm = state.confirm!!
-        assertEquals("속초 중앙시장 공영주차장", confirm.placeNm)
+        assertEquals("중앙시장 닭강정", confirm.placeNm)
         assertEquals(1, confirm.placeOrd)
         assertEquals("민지네", confirm.nicknameNm)
         assertTrue(guidance.requested.isEmpty())
@@ -212,9 +212,9 @@ class RecommendationsViewModelTest {
 
         assertEquals(1, guidance.requested.size)
         val sent = guidance.requested.single()
-        assertEquals(1001L, sent.placeNo)
-        assertEquals("속초 중앙시장 공영주차장", sent.placeNm)
-        assertEquals(38.2049, sent.lat, 0.0)
+        assertEquals(1002L, sent.placeNo)
+        assertEquals("중앙시장 닭강정", sent.placeNm)
+        assertEquals(38.2075, sent.lat, 0.0)
         assertNull(state.confirm)
         assertEquals(UiMessage.GUIDANCE_REQUESTED, state.message)
 
@@ -233,7 +233,7 @@ class RecommendationsViewModelTest {
         vm.askGuidance(1003)
         runCurrent()
         assertEquals("영랑호 산책로", state.confirm!!.placeNm)
-        assertEquals(3, state.confirm!!.placeOrd)
+        assertEquals(2, state.confirm!!.placeOrd)
         vm.dismissGuidance()
         runCurrent()
         assertNull(state.confirm)
@@ -331,15 +331,15 @@ class RecommendationsViewModelTest {
         assertNull(state.rating)
         assertEquals(UiMessage.RATING_SAVED, state.message)
         val detail = state.detail!!
-        assertEquals(13, detail.ratingCnt)
-        assertEquals((4.8 * 12 + 5) / 13, detail.ratingAvg, 1e-9)
+        assertEquals(42, detail.ratingCnt)
+        assertEquals((4.8 * 41 + 5) / 42, detail.ratingAvg, 1e-9)
         assertEquals(5, detail.myRatingScore)
         assertEquals(kidsBefore + 1, state.tagCounts.first { it.tagNo == 1L }.cnt)
 
         vm.onBack()
         runCurrent()
         val card = state.rankedTrips.first { it.tripNo == 101L }
-        assertEquals(13, card.ratingCnt)
+        assertEquals(42, card.ratingCnt)
         assertEquals(1, card.rank)
     }
 
@@ -388,7 +388,7 @@ class RecommendationsViewModelTest {
 
         val detail = state.detail!!
         assertEquals(1, detail.myRatingScore)
-        assertEquals(13, detail.ratingCnt)
-        assertEquals((4.8 * 12 + 1) / 13, detail.ratingAvg, 1e-9)
+        assertEquals(42, detail.ratingCnt)
+        assertEquals((4.8 * 41 + 1) / 42, detail.ratingAvg, 1e-9)
     }
 }

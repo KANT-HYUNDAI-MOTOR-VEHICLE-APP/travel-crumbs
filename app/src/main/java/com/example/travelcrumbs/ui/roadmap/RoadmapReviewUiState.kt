@@ -3,6 +3,7 @@ package com.example.travelcrumbs.ui.roadmap
 import com.example.travelcrumbs.ui.components.PlaceTagSheetItem
 import com.example.travelcrumbs.ui.components.RoadmapPlaceItem
 import com.example.travelcrumbs.ui.components.SketchPinItem
+import com.example.travelcrumbs.ui.components.UiMessage
 
 /** 로드맵 검토 안의 단계(와이어프레임 v6) — A-05 검토 → A-06 저장 · 공개. */
 enum class RoadmapStep {
@@ -28,6 +29,7 @@ data class RoadmapReviewUiState(
     val regionSigunguNm: String? = null,
     val representativeTagNm: String? = null,
     val tagSheet: PlaceTagSheetItem? = null,
+    val message: UiMessage? = null,
     /** 저장 끝 — 화면이 받아 내 여행 보관함(A-07)으로. */
     val done: Boolean = false,
 ) {

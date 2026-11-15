@@ -3,11 +3,12 @@ package com.example.travelcrumbs.ui.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
-/** 색 토큰 → Material 색 역할 — 매핑은 여기 한 곳(디자인 시스템 5절 · #34). 차량 화면은 어두운 바탕만. */
-private val TravelCrumbsColorScheme = darkColorScheme(
+/** Figma v1.8 Brand Indigo 기반 밝은 차량 화면 색 역할. */
+private val TravelCrumbsColorScheme = lightColorScheme(
     primary = TravelCrumbsColors.BrandPrimary,
     onPrimary = TravelCrumbsColors.TextOnPrimary,
     primaryContainer = TravelCrumbsColors.BrandPrimary,
@@ -16,7 +17,7 @@ private val TravelCrumbsColorScheme = darkColorScheme(
     onSecondary = TravelCrumbsColors.TextOnPrimary,
     // 선택 상태(레일 선택 칸 · 띠) = Background/Selected + Brand/Secondary(10절)
     secondaryContainer = TravelCrumbsColors.BackgroundSelected,
-    onSecondaryContainer = TravelCrumbsColors.BrandSecondary,
+    onSecondaryContainer = Color(0xFF29237D),
     background = TravelCrumbsColors.BackgroundBase,
     onBackground = TravelCrumbsColors.TextPrimary,
     surface = TravelCrumbsColors.BackgroundSurface,

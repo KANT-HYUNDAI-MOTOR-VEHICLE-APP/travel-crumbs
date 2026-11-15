@@ -10,6 +10,8 @@ import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.RankingSort
 import com.example.travelcrumbs.ui.recommendations.RecommendationPage
 import com.example.travelcrumbs.ui.recommendations.RecommendationsUiState
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
 
 /** 「추천」 칸의 사용자 행동 — 화면 부품은 상태와 이 람다만 받음(ViewModel 을 모름). */
 class RecommendationActions(
@@ -83,6 +85,6 @@ fun RecommendationPageContent(
                 onGuideHere = actions.onGuideHere,
                 onOpenRating = actions.onOpenRating,
             )
-        }
+        } ?: AppStatePanel(title = stringResource(R.string.state_loading), kind = AppStateKind.Loading)
     }
 }

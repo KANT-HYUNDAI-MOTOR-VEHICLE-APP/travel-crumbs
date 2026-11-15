@@ -91,7 +91,7 @@ class HomeNearbyScreenTest {
         compose.onNodeWithText(compose.activity.getString(R.string.home_nearby_desc, 10)).assertIsDisplayed()
         compose.onNodeWithTag(NEARBY_SECTION_TAG).assertIsDisplayed()
         listOf(101L, 102L, 103L).forEach { compose.onNodeWithTag(nearbyCardTag(it)).assertIsDisplayed() }
-        compose.onNode(hasContentDescription("1위 · 속초 가족여행 · 강원 속초시 · 별점 4.8 · 리뷰 12명 · 여기서 0.1km"))
+        compose.onNode(hasContentDescription("1위 · 아이와 편한 속초 여행 · 강원 속초시 · 별점 4.8 · 리뷰 41명 · 여기서 0.5km"))
             .assertIsDisplayed()
     }
 
@@ -103,24 +103,20 @@ class HomeNearbyScreenTest {
 
     @Test
     @Config(qualifiers = "w817dp-h1210dp-port")
-    fun `H28 H40 카드 10장(전국 대체) · 밀었다 놓으면 카드 한 장 단위로 맞춰 멈춤 · 겹침 없음 · 폭 고정`() {
+    fun `H28 H40 카드 10장(전국 대체) · 압축 목록은 상위 3장 · 겹침 없음 · 폭 통일`() {
         show(graph(location = CurrentLocation(33.0, 124.0, null)))
         compose.onNodeWithText(text(R.string.home_nearby_title_nationwide)).assertIsDisplayed()
 
         val list = compose.onNodeWithTag(NEARBY_LIST_TAG).fetchSemanticsNode().boundsInRoot
-        compose.onNodeWithTag(NEARBY_LIST_TAG).performTouchInput { swipeLeft(startX = centerX, endX = centerX - width / 3) }
-        compose.waitForIdle()
-
-        // 잘리지 않은 자리 · 크기(목록 밖으로 나간 카드도 제 폭)
         val cards = compose.onAllNodes(nearbyCard).fetchSemanticsNodes()
             .map { Rect(it.positionInRoot, it.size.toSize()) }
-            .sortedBy { it.left }
-        assertTrue("밀어서 첫 카드가 왼쪽 밖으로 나감", cards.first().left < list.left)
-        val leftmost = cards.first { it.right > list.left + 1f }
-        assertTrue("카드 왼쪽 끝이 목록 왼쪽 끝에 맞음: ${leftmost.left} vs ${list.left}", abs(leftmost.left - list.left) < 2f)
-        val widthPx = with(compose.density) { Dimens.NearbyCardWidth.toPx() }
-        cards.forEach { assertEquals(widthPx, it.width, 1f) }
-        cards.zipWithNext().forEach { (a, b) -> assertTrue("겹침 없음", b.left >= a.right) }
+            .sortedBy { it.top }
+        assertEquals(3, cards.size)
+        cards.forEach {
+            assertTrue("카드가 목록 너비 안에 있음", it.left >= list.left && it.right <= list.right)
+            assertEquals(cards.first().width, it.width, 1f)
+        }
+        cards.zipWithNext().forEach { (a, b) -> assertTrue("세로 카드 겹침 없음", b.top >= a.bottom) }
     }
 
     @Test
@@ -152,8 +148,8 @@ class HomeNearbyScreenTest {
         compose.waitForIdle()
         compose.onNode(hasText(text(R.string.nav_recommendations)) and hasClickAction()).performClick()
         compose.waitForIdle()
-        // B-01 — 머리 「뒤로」 없음 · 「속초 가족여행」 상세가 아님
-        assertEquals(0, compose.onAllNodes(hasText("속초 가족여행")).fetchSemanticsNodes().size)
+        // B-01 — 머리 「뒤로」 없음 · 「아이와 편한 속초 여행」 상세가 아님
+        assertEquals(0, compose.onAllNodes(hasText("아이와 편한 속초 여행")).fetchSemanticsNodes().size)
     }
 
     @Test
@@ -165,7 +161,7 @@ class HomeNearbyScreenTest {
         compose.onNode(hasText(text(R.string.reco_guide_from_first)) and hasClickAction()).performClick()
         compose.waitForIdle()
         back()
-        compose.onNodeWithText("속초 가족여행").assertIsDisplayed()
+        compose.onNodeWithText("아이와 편한 속초 여행").assertIsDisplayed()
         compose.onNode(hasText(text(R.string.nav_recommendations)) and isSelected()).assertIsDisplayed()
         back()
         compose.onNodeWithTag(NEARBY_SECTION_TAG).assertIsDisplayed()
@@ -178,7 +174,10 @@ class HomeNearbyScreenTest {
 
         compose.onNodeWithText(text(R.string.nearby_consent_title)).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.nearby_consent_body)).assertIsDisplayed()
-        assertTrue(text(R.string.nearby_consent_body).lines().size == 4)
+        assertEquals(
+            "이용 정보 · 차량 내비가 알려 주는 현재 위치(위도·경도)",
+            text(R.string.nearby_consent_body),
+        )
         compose.onNode(hasText(text(R.string.nearby_consent_decline)) and hasClickAction()).assertIsDisplayed()
         compose.onNodeWithText(text(R.string.home_nearby_title)).assertDoesNotExist()
 

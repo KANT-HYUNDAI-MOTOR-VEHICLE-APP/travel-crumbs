@@ -73,13 +73,15 @@ object AppConfig {
      * 기본 닉네임은 화면 문구가 아니라 user_mst.nickname_nm 의 처음 값(데이터)이라 여기 둠 — C-03 에서 바꿈.
      */
     const val LOCAL_USER_NO: Long = 1L
-    const val DEFAULT_NICKNAME_NM: String = "여행자"
+    const val DEFAULT_NICKNAME_NM: String = "서윤맘"
 
-    /** 입력 길이 한도(글자) — 닉네임 · 여행명 · 장소 이름은 표준 도메인 「명」 100 · 메모는 「메모」 500 안에서 화면에 맞게. */
-    const val NICKNAME_MAX_LENGTH: Int = 20
-    const val TRIP_NAME_MAX_LENGTH: Int = 40
+    /** v1.7 사용자 입력 길이 — Kotlin [String.length] 기준. */
+    const val NICKNAME_MIN_LENGTH: Int = 2
+    const val NICKNAME_MAX_LENGTH: Int = 12
+    const val TRIP_NAME_MIN_LENGTH: Int = 1
+    const val TRIP_NAME_MAX_LENGTH: Int = 30
     const val PLACE_NAME_MAX_LENGTH: Int = 60
-    const val MEMO_MAX_LENGTH: Int = 500
+    const val MEMO_MAX_LENGTH: Int = 200
 
     /**
      * 내 공개 여행이 추천 로드맵에 오를 때 쓰는 번호 = 이 값 + trip_no(#51 U6 · U7) — 시드 로드맵 번호(101 ~ 301)와 겹치지 않게.

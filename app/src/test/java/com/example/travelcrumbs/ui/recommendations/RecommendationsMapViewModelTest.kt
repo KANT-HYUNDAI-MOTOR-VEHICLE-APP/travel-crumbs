@@ -129,16 +129,16 @@ class RecommendationsMapViewModelTest {
     }
 
     @Test
-    fun `M12 M17 낱개 핀 — 장소 카드 · 로드맵 후보 리뷰 많은 순 · 고르면 대상 바뀜 · 요청 없음`() = runTest(dispatcher) {
+    fun `M12 M17 낱개 핀 — 장소 카드 · 로드맵 후보 · 요청 없음`() = runTest(dispatcher) {
         start()
         vm.selectMapPlace(1001)
         runCurrent()
 
         val card = map.card!!
         assertEquals("속초 중앙시장 공영주차장", card.placeNm)
-        assertEquals(listOf(101L, 102L), card.roadmaps.map { it.tripNo })
-        assertEquals(101L, card.selectedTripNo)
-        assertEquals("민지네", card.selectedRoadmap.nicknameNm)
+        assertEquals(listOf(102L), card.roadmaps.map { it.tripNo })
+        assertEquals(102L, card.selectedTripNo)
+        assertEquals("바다곰", card.selectedRoadmap.nicknameNm)
         assertTrue(card.tagNms.isNotEmpty())
         assertTrue(guidance.requested.isEmpty())
 
@@ -183,9 +183,9 @@ class RecommendationsMapViewModelTest {
         runCurrent()
 
         val candidates = map.candidates!!
-        // 1001 은 로드맵 둘(12 + 9) · 1011 · 1003 은 하나씩
-        assertEquals(1001L, candidates.first().placeNo)
-        assertEquals(2, candidates.first().roadmapCnt)
+        // 1003 은 리뷰 12명 로드맵 · 1001 · 1011 은 리뷰 9명 로드맵
+        assertEquals(1003L, candidates.first().placeNo)
+        assertEquals(1, candidates.first().roadmapCnt)
         assertNull(map.card)
 
         vm.selectMapCandidate(1011)

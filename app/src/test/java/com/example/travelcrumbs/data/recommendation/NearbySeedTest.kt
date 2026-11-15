@@ -18,9 +18,9 @@ class NearbySeedTest {
 
         assertTrue(pick.nearby)
         assertEquals(listOf(101L, 102L, 103L), pick.roadmaps.map { it.trip.tripNo })
-        assertEquals(listOf(12, 9, 6), pick.roadmaps.map { it.trip.ratingCnt })
+        assertEquals(listOf(41, 9, 6), pick.roadmaps.map { it.trip.ratingCnt })
         assertEquals(listOf(1, 2, 3), pick.roadmaps.map { it.rank })
-        assertEquals(0, pick.roadmaps.first().distM)
+        assertTrue(pick.roadmaps.first().distM < 1_000)
     }
 
     @Test

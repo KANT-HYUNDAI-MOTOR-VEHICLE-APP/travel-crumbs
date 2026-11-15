@@ -8,6 +8,7 @@ import com.example.travelcrumbs.data.trip.TagRepository
 import com.example.travelcrumbs.data.trip.TripRepository
 import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.PlaceRecordCleanup
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.ConsentType
@@ -97,6 +98,7 @@ class TripDetailViewModel @Inject constructor(
             ratingAvg = mine?.ratingScore?.toDouble() ?: 0.0,
             ratingCnt = if (mine == null) 0 else 1,
             renameDraft = d.rename,
+            renameError = d.rename != null && !InputValidation.tripName(d.rename),
             consentAsk = d.consentAsk,
             deleteAsk = d.deleteAsk,
             deleted = d.deleted || (selectedNo != null && record == null),
@@ -122,7 +124,7 @@ class TripDetailViewModel @Inject constructor(
     }
 
     fun onRenameChange(value: String) {
-        savedStateHandle[KEY_RENAME] = value.take(AppConfig.TRIP_NAME_MAX_LENGTH)
+        savedStateHandle[KEY_RENAME] = value.take(AppConfig.TRIP_NAME_MAX_LENGTH + 1)
     }
 
     fun onDismissRename() {
@@ -132,11 +134,15 @@ class TripDetailViewModel @Inject constructor(
     fun onSaveRename() {
         val tripNo = savedStateHandle.get<Long>(KEY_TRIP) ?: return
         val draft = savedStateHandle.get<String>(KEY_RENAME)?.trim().orEmpty()
-        if (draft.isEmpty()) return
+        if (!InputValidation.tripName(draft)) return
         savedStateHandle[KEY_RENAME] = null
         viewModelScope.launch {
-            tripRepository.rename(tripNo, draft)
-            message.value = UiMessage.ROADMAP_SAVED
+            runCatching { tripRepository.rename(tripNo, draft) }
+                .onSuccess { message.value = UiMessage.ROADMAP_SAVED }
+                .onFailure {
+                    savedStateHandle[KEY_RENAME] = draft
+                    message.value = UiMessage.SAVE_FAILED
+                }
         }
     }
 

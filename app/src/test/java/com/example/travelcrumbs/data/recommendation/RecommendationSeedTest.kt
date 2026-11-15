@@ -46,4 +46,16 @@ class RecommendationSeedTest {
         val fromRegions = regions.flatMap { sido -> sido.sigunguNms.map { sido.sidoNm to it } }.toSet()
         assertEquals(fromTrips, fromRegions)
     }
+
+    @Test
+    fun `S5 핵심 시연 코스는 확정한 이름 장소 순서 태그를 사용함`() {
+        val trip = trips.single { it.tripNo == 101L }
+
+        assertEquals("아이와 편한 속초 여행", trip.tripNm)
+        assertEquals("민지네", trip.nicknameNm)
+        assertEquals(listOf("중앙시장 닭강정", "영랑호 산책로", "속초해수욕장"), trip.places.map { it.placeNm })
+        assertEquals(listOf("아이도 잘 먹어요", "대기 시간이 길어요"), trip.places[0].tags.map { it.tagNm })
+        assertEquals(listOf("아이와 걷기 좋아요", "다시 가고 싶어요"), trip.places[1].tags.map { it.tagNm })
+        assertEquals(listOf("아이가 좋아해요", "주차가 쉬워요"), trip.places[2].tags.map { it.tagNm })
+    }
 }

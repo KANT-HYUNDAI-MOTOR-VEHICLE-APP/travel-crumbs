@@ -22,6 +22,11 @@ val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 val debugSeedToken: String = localProperties.getProperty("travelcrumbs.debugSeedToken", "")
+val releaseStorePath: String? = localProperties.getProperty("travelcrumbs.releaseStoreFile")?.takeIf { it.isNotBlank() }
+val releaseKeyAlias: String? = localProperties.getProperty("travelcrumbs.releaseKeyAlias")?.takeIf { it.isNotBlank() }
+val releaseStorePassword: String? = System.getenv("TRAVELCRUMBS_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+val releaseKeyPassword: String? = System.getenv("TRAVELCRUMBS_KEY_PASSWORD")?.takeIf { it.isNotBlank() } ?: releaseStorePassword
+val releaseSigningReady = listOf(releaseStorePath, releaseKeyAlias, releaseStorePassword, releaseKeyPassword).all { it != null }
 
 android {
     namespace = "com.example.travelcrumbs"
@@ -48,6 +53,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("release") {
+                storeFile = rootProject.file(checkNotNull(releaseStorePath))
+                storePassword = checkNotNull(releaseStorePassword)
+                keyAlias = checkNotNull(releaseKeyAlias)
+                keyPassword = checkNotNull(releaseKeyPassword)
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // 서버 주소는 빌드 타입별로 BuildConfig 한 곳 — 실제 주소는 서버 이슈에서 정함
@@ -56,6 +72,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            if (releaseSigningReady) signingConfig = signingConfigs.getByName("release")
             buildConfigField("String", "API_BASE_URL", "\"https://api.invalid/\"")
             buildConfigField("String", "DEBUG_SEED_TOKEN", "\"\"")
         }

@@ -71,6 +71,7 @@ class HomeTagSheetTest {
         assertNotNull(sheet)
         assertFalse(sheet!!.editing)
         assertEquals("강원 속초시 중앙로 147", sheet.userPlaceNm)
+        assertEquals(8, sheet.tags.size)
 
         vm.onToggleSheetTag(2L)
         vm.onTagMemoChange("지하 2층")

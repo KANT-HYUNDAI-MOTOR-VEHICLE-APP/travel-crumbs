@@ -23,6 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.AppStateKind
+import com.example.travelcrumbs.ui.components.AppStatePanel
+import com.example.travelcrumbs.ui.components.ScreenHeader
 import com.example.travelcrumbs.ui.components.TripSummaryCard
 import com.example.travelcrumbs.ui.theme.Dimens
 import com.example.travelcrumbs.ui.tripdetail.TripDetailScreen
@@ -57,16 +60,11 @@ fun TripsScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(Dimens.ScreenPadding),
+                .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = stringResource(R.string.nav_trips),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
+            ScreenHeader(title = stringResource(R.string.nav_trips), parked = true)
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(top = Dimens.ScreenHeaderToBody - Dimens.ItemSpacing))
             Text(
                 text = stringResource(R.string.trips_sub),
                 style = MaterialTheme.typography.titleMedium,
@@ -74,12 +72,7 @@ fun TripsScreen(
                 maxLines = 1,
             )
             if (uiState.trips.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.trips_empty),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
+                AppStatePanel(title = stringResource(R.string.trips_empty), kind = AppStateKind.Empty)
             }
             uiState.trips.forEach { item ->
                 val toggleLabel = stringResource(R.string.trips_public_toggle, item.tripNm.orEmpty())

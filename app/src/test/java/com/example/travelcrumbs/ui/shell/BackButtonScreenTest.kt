@@ -104,13 +104,13 @@ class BackButtonScreenTest {
     }
 
     @Test
-    fun `BK3 A-01 여행 시작 — 뒤로 버튼 · 시스템 뒤로 모두 C-02 로(입력 버림 · 확인 없음)`() {
+    fun `BK3 A-01 여행 시작 — 작업 취소 · 시스템 뒤로 모두 C-02 로(입력 버림 · 확인 없음)`() {
         show(ShellTestGraph(withTrip = false))
 
         button(R.string.action_start_trip).performClick()
         compose.waitForIdle()
         compose.onNodeWithText(text(R.string.trip_start_title)).assertIsDisplayed()
-        tapBack()
+        button(R.string.action_cancel_work).assertIsDisplayed().performClick()
         button(R.string.action_start_trip).assertIsDisplayed()
         assertNoBackButton()
 
@@ -163,7 +163,7 @@ class BackButtonScreenTest {
         compose.onNode(hasText("강원") and hasClickAction()).performClick()
         compose.onNode(hasText("속초시") and hasClickAction()).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("속초 가족여행").performClick()
+        compose.onNodeWithText("아이와 편한 속초 여행").performClick()
         compose.waitForIdle()
         button(R.string.reco_guide_from_first).assertIsDisplayed()
 

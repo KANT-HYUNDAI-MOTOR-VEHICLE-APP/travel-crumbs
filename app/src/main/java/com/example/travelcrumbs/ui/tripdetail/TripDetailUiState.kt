@@ -17,6 +17,7 @@ data class TripDetailUiState(
     val ratingCnt: Int = 0,
     /** 여행명 고치기 팝업 입력 중 값 — null 이면 닫힘. */
     val renameDraft: String? = null,
+    val renameError: Boolean = false,
     val consentAsk: Boolean = false,
     /** 「여행 삭제」 확인 팝업. */
     val deleteAsk: Boolean = false,

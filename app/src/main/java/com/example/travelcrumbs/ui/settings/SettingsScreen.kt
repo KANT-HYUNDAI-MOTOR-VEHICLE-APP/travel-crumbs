@@ -2,6 +2,8 @@ package com.example.travelcrumbs.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.ConfirmDialog
 import com.example.travelcrumbs.ui.components.NoticeLine
+import com.example.travelcrumbs.ui.components.ScreenHeader
 import com.example.travelcrumbs.ui.settings.components.NearbyConsentDialog
 import com.example.travelcrumbs.ui.settings.components.NicknameDialog
 import com.example.travelcrumbs.ui.settings.components.SettingsRow
@@ -36,68 +39,63 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(Dimens.ScreenPadding),
-            verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
-        ) {
-            Text(
-                text = stringResource(R.string.nav_settings),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
-            SettingsRow(
-                title = stringResource(R.string.settings_nickname),
-                sub = stringResource(R.string.settings_nickname_sub, uiState.nicknameNm),
-                actionLabel = stringResource(R.string.settings_edit),
-                onAction = viewModel::onEditNickname,
-            )
+        Column(modifier = Modifier.weight(1f).fillMaxWidth().padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop)) {
+            ScreenHeader(title = stringResource(R.string.nav_settings), parked = true)
             val location = uiState.locationAgreedOn
-            SettingsRow(
-                title = stringResource(R.string.settings_location),
-                sub = if (location != null) {
-                    stringResource(R.string.settings_location_agreed, location.year, location.month, location.day)
-                } else {
-                    stringResource(R.string.settings_location_none)
-                },
-                actionLabel = if (location != null) stringResource(R.string.settings_withdraw) else null,
-                onAction = viewModel::onWithdrawLocation,
-            )
-            // 근처 로드맵 위치 이용(#55 · 2-9) — 「위치정보 수집」 바로 아래 · 그 행과 독립
             val nearby = uiState.nearbyLocationAgreedOn
-            SettingsRow(
-                title = stringResource(R.string.settings_nearby_location),
-                sub = if (nearby != null) {
-                    stringResource(R.string.settings_nearby_location_agreed, nearby.year, nearby.month, nearby.day)
-                } else {
-                    stringResource(R.string.settings_nearby_location_none)
-                },
-                actionLabel = stringResource(if (nearby != null) R.string.settings_withdraw else R.string.settings_consent_agree),
-                onAction = if (nearby != null) viewModel::onWithdrawNearbyLocation else viewModel::onAskNearbyConsent,
-            )
-            SettingsRow(
-                title = stringResource(R.string.settings_reco),
-                sub = stringResource(if (uiState.recoAgreed) R.string.settings_reco_agreed else R.string.settings_reco_none),
-                actionLabel = if (uiState.recoAgreed) stringResource(R.string.settings_withdraw) else null,
-                onAction = viewModel::onWithdrawReco,
-            )
-            SettingsRow(
-                title = stringResource(R.string.settings_data),
-                sub = stringResource(R.string.settings_data_sub),
-                actionLabel = stringResource(R.string.settings_data_clear),
-                onAction = viewModel::onAskClearAll,
-            )
-            SettingsRow(
-                title = stringResource(R.string.settings_account),
-                sub = stringResource(R.string.settings_account_sub),
-                actionLabel = null,
-                onAction = {},
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(top = Dimens.ScreenHeaderToBody),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                ) {
+                    SettingsRow(
+                        title = stringResource(R.string.settings_nickname),
+                        sub = stringResource(R.string.settings_nickname_sub, uiState.nicknameNm),
+                        actionLabel = stringResource(R.string.settings_edit),
+                        onAction = viewModel::onEditNickname,
+                    )
+                    SettingsRow(
+                        title = stringResource(R.string.settings_location),
+                        sub = if (location != null) stringResource(R.string.settings_location_agreed, location.year, location.month, location.day)
+                        else stringResource(R.string.settings_location_none),
+                        actionLabel = if (location != null) stringResource(R.string.settings_withdraw) else null,
+                        onAction = viewModel::onWithdrawLocation,
+                    )
+                    SettingsRow(
+                        title = stringResource(R.string.settings_nearby_location),
+                        sub = if (nearby != null) stringResource(R.string.settings_nearby_location_agreed, nearby.year, nearby.month, nearby.day)
+                        else stringResource(R.string.settings_nearby_location_none),
+                        actionLabel = stringResource(if (nearby != null) R.string.settings_withdraw else R.string.settings_consent_agree),
+                        onAction = if (nearby != null) viewModel::onWithdrawNearbyLocation else viewModel::onAskNearbyConsent,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                ) {
+                    SettingsRow(
+                        title = stringResource(R.string.settings_reco),
+                        sub = stringResource(if (uiState.recoAgreed) R.string.settings_reco_agreed else R.string.settings_reco_none),
+                        actionLabel = if (uiState.recoAgreed) stringResource(R.string.settings_withdraw) else null,
+                        onAction = viewModel::onWithdrawReco,
+                    )
+                    SettingsRow(
+                        title = stringResource(R.string.settings_data),
+                        sub = stringResource(R.string.settings_data_sub),
+                        actionLabel = stringResource(R.string.settings_data_clear),
+                        onAction = viewModel::onAskClearAll,
+                    )
+                    SettingsRow(
+                        title = stringResource(R.string.settings_account),
+                        sub = stringResource(R.string.settings_account_sub),
+                        actionLabel = null,
+                        onAction = {},
+                    )
+                }
+            }
         }
         NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
     }
@@ -119,6 +117,7 @@ fun SettingsScreen(
     uiState.nicknameDraft?.let { draft ->
         NicknameDialog(
             value = draft,
+            isError = uiState.nicknameError,
             onValueChange = viewModel::onNicknameChange,
             onDismiss = viewModel::onDismissNickname,
             onSave = viewModel::onSaveNickname,

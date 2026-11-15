@@ -182,7 +182,7 @@ fun RoadmapPlaceCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (item.tagNms.isEmpty()) {

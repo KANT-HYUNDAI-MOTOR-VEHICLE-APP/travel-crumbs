@@ -246,11 +246,11 @@ class LocalTripStoreTest {
     }
 
     @Test
-    fun `U1-8 태그 마스터 — 처음 읽으면 시드 5개 · sort_ord 순 · 두 번 읽어도 그대로`() = runBlocking {
+    fun `U1-8 태그 마스터 — 처음 읽으면 시드 8개 · sort_ord 순 · 두 번 읽어도 그대로`() = runBlocking {
         val tags = LocalTagRepository(db().travelDao(), time)
         val first = tags.tags.first()
-        assertEquals(5, first.size)
-        assertEquals("아이와 가기 좋아요", first.first().tagNm)
+        assertEquals(8, first.size)
+        assertEquals("아이와 함께 가기 좋아요", first.first().tagNm)
         assertEquals(first, tags.tags.first())
     }
 

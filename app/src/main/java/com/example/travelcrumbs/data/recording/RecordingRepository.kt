@@ -1,6 +1,7 @@
 package com.example.travelcrumbs.data.recording
 
 import com.example.travelcrumbs.domain.AppConfig
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.CurrentTrip
 import com.example.travelcrumbs.domain.model.NewTrip
@@ -84,6 +85,7 @@ class DefaultRecordingRepository @Inject constructor(
     }
 
     override suspend fun startTrip(newTrip: NewTrip): Boolean {
+        if (newTrip.tripNm != null && !InputValidation.tripName(newTrip.tripNm)) return false
         var started = false
         local.update { current ->
             if (current != null && current.status.inProgress) {

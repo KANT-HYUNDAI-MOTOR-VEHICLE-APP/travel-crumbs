@@ -82,7 +82,12 @@ class TripStartViewModelTest {
         vm.onSelectDestination("b")
         runCurrent()
 
-        vm.onStart("11월 10일 여행")
+        vm.onStart()
+        runCurrent()
+
+        assertTrue(vm.uiState.value.consentStepVisible)
+        assertTrue(users.history.isEmpty())
+        vm.onConfirmConsent()
         runCurrent()
 
         assertEquals(listOf(ConsentType.LOCATION_COLLECT to true), users.history)
@@ -98,17 +103,18 @@ class TripStartViewModelTest {
     }
 
     @Test
-    fun `U3-4 목적지 없음 · 이름 비움 — 기본 이름 · 내비 앱을 엶`() = runTest(dispatcher) {
+    fun `U3-4 목적지 없음 · 이름 비움 — 시작하지 않음`() = runTest(dispatcher) {
         val navi = FakeNaviRepository()
         val vm = viewModel(navi)
+        val before = local.current
 
-        vm.onStart("11월 10일 여행")
+        vm.onStart()
         runCurrent()
 
-        assertEquals("11월 10일 여행", local.current!!.tripName)
-        assertEquals(1, navi.naviAppOpens)
+        assertEquals(before, local.current)
+        assertEquals(0, navi.naviAppOpens)
         assertTrue(navi.routeRequests.isEmpty())
-        assertTrue(vm.uiState.value.done)
+        assertFalse(vm.uiState.value.done)
     }
 
     @Test
@@ -117,10 +123,11 @@ class TripStartViewModelTest {
         val navi = FakeNaviRepository(ready = false)
         val vm = viewModel(navi)
         assertFalse(vm.uiState.value.consentNeeded)
+        vm.onNameChange("속초 가족여행")
         vm.onSelectDestination("a")
         runCurrent()
 
-        vm.onStart("11월 10일 여행")
+        vm.onStart()
         runCurrent()
 
         assertEquals(TripStatus.RECORDING, local.current!!.status)

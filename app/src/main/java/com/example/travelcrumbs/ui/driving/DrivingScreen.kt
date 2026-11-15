@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,14 +21,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.DangerButton
+import com.example.travelcrumbs.ui.components.ActionTile
+import com.example.travelcrumbs.ui.components.AppCard
 import com.example.travelcrumbs.ui.components.NoticeLine
 import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.SecondaryButton
+import com.example.travelcrumbs.ui.components.ScreenHeader
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.components.tripStatusText
@@ -53,74 +59,96 @@ fun DrivingScreen(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val twoByTwo = maxWidth < Dimens.DrivingButtonsRowMinWidth
         val wide = maxWidth >= Dimens.DrivingWideMinWidth
+        val compactHeight = maxHeight < 900.dp
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(Dimens.ScreenPadding),
+                .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop),
             verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            Text(
-                text = tripNameText(uiState.tripName),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Dimens.ScreenPadding),
-                verticalAlignment = Alignment.Bottom,
-            ) {
+            ScreenHeader(title = stringResource(R.string.nav_records), parked = false, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(if (compactHeight) Dimens.ItemSpacing else Dimens.ScreenHeaderToBody - Dimens.ItemSpacing))
+            if (!compactHeight) {
                 Text(
-                    text = tripStatusText(uiState.tripStatus),
-                    style = MaterialTheme.typography.displayMedium,
+                    text = stringResource(R.string.driving_focus_title),
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                 )
                 Text(
-                    text = elapsedText(uiState.elapsedMinutes),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    text = tripNameText(uiState.tripName),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.ScreenPadding),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = tripStatusText(uiState.tripStatus),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = elapsedText(uiState.elapsedMinutes),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = stringResource(R.string.trip_place_count, uiState.placeCount),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
-            Text(
-                text = stringResource(R.string.trip_place_count, uiState.placeCount),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
-            if (wide) {
+            if (wide && uiState.naviDestinationName != null) {
                 NaviGuideCard(
                     destinationName = uiState.naviDestinationName,
                     naviAppAvailable = uiState.naviAppAvailable,
                     onOpenNavi = viewModel::onOpenNavi,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Dimens.DrivingNaviCompactHeight),
                 )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
             }
-            val buttons = listOf(
-                DrivingButtonSpec(R.string.action_record_place, uiState.recordingActionsEnabled, viewModel::onRecordPlace, DrivingButtonKind.PRIMARY),
-                DrivingButtonSpec(R.string.action_voice, enabled = true, onClick = viewModel::onVoice),
-                DrivingButtonSpec(
-                    labelRes = if (uiState.pauseButtonShowsResume) R.string.action_resume_recording else R.string.action_pause_recording,
-                    enabled = uiState.pauseButtonEnabled,
-                    onClick = viewModel::onTogglePause,
-                ),
-                DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip, DrivingButtonKind.DANGER),
-            )
-            val rows = if (twoByTwo) buttons.chunked(2) else listOf(buttons)
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing)) {
-                rows.forEach { row ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing),
-                    ) {
-                        row.forEach { DrivingButton(it, Modifier.weight(1f)) }
-                    }
+            Row(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing),
+            ) {
+                ActionTile(
+                    title = stringResource(R.string.action_record_place),
+                    subtitle = null,
+                    iconRes = R.drawable.ic_place,
+                    emphasized = true,
+                    enabled = uiState.recordingActionsEnabled,
+                    onClick = viewModel::onRecordPlace,
+                    modifier = Modifier.weight(1.7f).fillMaxHeight(),
+                )
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.DrivingButtonSpacing),
+                ) {
+                    DrivingButton(DrivingButtonSpec(R.string.action_voice, true, viewModel::onVoice), Modifier.weight(1f))
+                    DrivingButton(
+                        DrivingButtonSpec(
+                            if (uiState.pauseButtonShowsResume) R.string.action_resume_recording else R.string.action_pause_recording,
+                            uiState.pauseButtonEnabled,
+                            viewModel::onTogglePause,
+                        ),
+                        Modifier.weight(1f),
+                    )
+                    DrivingButton(
+                        DrivingButtonSpec(R.string.action_end_trip, uiState.recordingActionsEnabled, viewModel::onEndTrip, DrivingButtonKind.DANGER),
+                        Modifier.weight(1f),
+                    )
                 }
             }
             NoticeLine(message = uiState.message, onShown = viewModel::onMessageShown)
@@ -158,7 +186,7 @@ private fun DrivingButton(
             overflow = TextOverflow.Ellipsis,
         )
     }
-    val sized = modifier.height(Dimens.DrivingButtonHeight)
+    val sized = modifier.fillMaxWidth().heightIn(min = Dimens.DrivingButtonHeight)
     when (spec.kind) {
         DrivingButtonKind.PRIMARY -> PrimaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)
         DrivingButtonKind.SECONDARY -> SecondaryButton(onClick = spec.onClick, modifier = sized, enabled = spec.enabled, content = label)

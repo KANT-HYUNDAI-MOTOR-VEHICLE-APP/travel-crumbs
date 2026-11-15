@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -57,6 +58,8 @@ fun AppDialog(
     confirmEnabled: Boolean = true,
     buttonHeight: Dp = Dimens.HomeButtonHeight,
     titleMaxLines: Int = 2,
+    singleAction: Boolean = false,
+    footerContent: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     Dialog(
@@ -91,13 +94,13 @@ fun AppDialog(
             Surface(
                 modifier = Modifier
                     .width(dialogWidth)
+                    .heightIn(max = maxHeight)
                     .testTag(APP_DIALOG_TAG),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
             ) {
                 Column(
                     modifier = Modifier
-                        .verticalScroll(rememberScrollState())
                         .padding(Dimens.ScreenPadding),
                     verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
                 ) {
@@ -108,14 +111,25 @@ fun AppDialog(
                         maxLines = titleMaxLines,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    content()
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
+                    ) {
+                        content()
+                    }
+                    footerContent()
                     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
                         val buttonModifier = Modifier
                             .weight(1f)
                             .widthIn(min = Dimens.MinTouchTarget)
                             .height(buttonHeight)
-                        SecondaryButton(onClick = onDismiss, modifier = buttonModifier) {
-                            DialogButtonText(dismissLabel)
+                        if (!singleAction) {
+                            SecondaryButton(onClick = onDismiss, modifier = buttonModifier) {
+                                DialogButtonText(dismissLabel)
+                            }
                         }
                         when (confirmKind) {
                             DialogConfirmKind.Primary ->

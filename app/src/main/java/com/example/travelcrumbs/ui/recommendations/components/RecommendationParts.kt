@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.recommendations.TripCardItem
 import com.example.travelcrumbs.ui.theme.Dimens
@@ -60,7 +62,7 @@ fun RecoChip(
         ) {
             Text(
                 text = if (selected) stringResource(R.string.reco_selected, label) else label,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 48.sp, lineHeight = 56.sp, fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
             )
         }
@@ -145,7 +147,7 @@ fun TripCard(
                     text = item.tripNm,
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(

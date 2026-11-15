@@ -10,6 +10,7 @@ import com.example.travelcrumbs.data.user.CurrentUserRepository
 import com.example.travelcrumbs.domain.AppConfig
 import com.example.travelcrumbs.domain.GuideRequestState
 import com.example.travelcrumbs.domain.GuideRequestTracker
+import com.example.travelcrumbs.domain.InputValidation
 import com.example.travelcrumbs.domain.TimeSource
 import com.example.travelcrumbs.domain.model.CompanionType
 import com.example.travelcrumbs.domain.model.ConsentType
@@ -65,10 +66,13 @@ class TripStartViewModel @Inject constructor(
             defaultMonth = today.monthValue,
             defaultDay = today.dayOfMonth,
             tripNm = input.name,
+            tripNameError = step.validationRequested && !InputValidation.tripName(input.name),
+            canStart = InputValidation.tripName(input.name) && !step.starting,
             companions = input.companions,
             destinations = list.map { DestinationItem(it.id, it.name, it.address) },
             destinationId = input.destinationId?.takeIf { id -> list.any { it.id == id } },
             consentNeeded = consents[ConsentType.LOCATION_COLLECT]?.agreed != true,
+            consentStepVisible = step.consentStepVisible,
             starting = step.starting,
             done = step.done,
             message = step.message,
@@ -80,11 +84,27 @@ class TripStartViewModel @Inject constructor(
     )
 
     init {
+        if (!savedStateHandle.contains(KEY_NAME)) {
+            val today = Instant.ofEpochMilli(timeSource.nowMillis()).atZone(timeSource.zoneId()).toLocalDate()
+            savedStateHandle[KEY_NAME] = "${today.monthValue}월 ${today.dayOfMonth}일 여행"
+        }
+        if (!savedStateHandle.contains(KEY_COMPANIONS)) {
+            savedStateHandle[KEY_COMPANIONS] = arrayListOf(CompanionType.SPOUSE.name, CompanionType.CHILD.name)
+        }
         viewModelScope.launch { places.value = placeCatalogRepository.candidates() }
     }
 
     fun onNameChange(value: String) {
-        savedStateHandle[KEY_NAME] = value.take(AppConfig.TRIP_NAME_MAX_LENGTH)
+        savedStateHandle[KEY_NAME] = value.take(AppConfig.TRIP_NAME_MAX_LENGTH + 1)
+        if (progress.value.validationRequested && InputValidation.tripName(value)) {
+            progress.value = progress.value.copy(validationRequested = false)
+        }
+    }
+
+    fun onNameFocusLost() {
+        if (!InputValidation.tripName(uiState.value.tripNm)) {
+            progress.value = progress.value.copy(validationRequested = true)
+        }
     }
 
     /** 동행자 칩 — 「혼자」는 다른 동행자와 함께 고를 수 없음(고르면 나머지가 풀림). */
@@ -106,19 +126,44 @@ class TripStartViewModel @Inject constructor(
     }
 
     /**
-     * 「기록 시작」(「동의하고 기록 시작」) — [defaultTripNm] 은 화면이 만든 기본 이름(이름 칸이 비었을 때 저장).
+     * 「기록 시작」(「동의하고 기록 시작」) — 여행 이름은 필수이며 입력값을 그대로 검증해 저장한다.
      * 동의가 필요하면 LOCATION_COLLECT 동의 행 → 여행 저장 → 내비(길안내 요청 또는 내비 앱 열기).
      */
-    fun onStart(defaultTripNm: String) {
+    fun onStart() {
         val state = uiState.value
+        val tripName = state.tripNm.trim()
         if (state.starting || state.done) return
+        if (!InputValidation.tripName(tripName)) {
+            progress.value = progress.value.copy(validationRequested = true)
+            return
+        }
+        if (state.consentNeeded) {
+            progress.value = progress.value.copy(consentStepVisible = true, validationRequested = false)
+            return
+        }
+        startTrip(recordConsent = false)
+    }
+
+    fun onDeclineConsent() {
+        progress.value = progress.value.copy(consentStepVisible = false)
+    }
+
+    fun onConfirmConsent() {
+        if (!uiState.value.consentStepVisible) return
+        startTrip(recordConsent = true)
+    }
+
+    private fun startTrip(recordConsent: Boolean) {
+        val state = uiState.value
+        val tripName = state.tripNm.trim()
+        if (state.starting || state.done || !InputValidation.tripName(tripName)) return
         progress.value = Progress(starting = true)
         val destination = places.value.firstOrNull { it.id == state.destinationId }
         viewModelScope.launch {
-            if (state.consentNeeded) userRepository.recordConsent(ConsentType.LOCATION_COLLECT, agreed = true)
+            if (recordConsent) userRepository.recordConsent(ConsentType.LOCATION_COLLECT, agreed = true)
             recordingRepository.startTrip(
                 NewTrip(
-                    tripNm = state.tripNm.trim().ifEmpty { defaultTripNm },
+                    tripNm = tripName,
                     companions = state.companions,
                     destPlaceNm = destination?.name,
                 ),
@@ -145,7 +190,13 @@ class TripStartViewModel @Inject constructor(
 
     private data class Inputs(val name: String, val companions: Set<CompanionType>, val destinationId: String?)
 
-    private data class Progress(val starting: Boolean = false, val done: Boolean = false, val message: UiMessage? = null)
+    private data class Progress(
+        val starting: Boolean = false,
+        val done: Boolean = false,
+        val message: UiMessage? = null,
+        val validationRequested: Boolean = false,
+        val consentStepVisible: Boolean = false,
+    )
 
     private companion object {
         const val KEY_NAME = "trip_start_name"

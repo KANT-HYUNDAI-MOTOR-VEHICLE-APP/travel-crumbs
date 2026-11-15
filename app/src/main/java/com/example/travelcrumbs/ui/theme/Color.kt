@@ -10,23 +10,32 @@ import androidx.compose.ui.graphics.Color
  * Danger 는 Background/Elevated 위(4.3)에 쓰지 않음.
  */
 object TravelCrumbsColors {
-    val BrandPrimary = Color(0xFFF2A766)
-    val BrandSecondary = Color(0xFFE8D3A8)
+    val BrandPrimary = Color(0xFF4F46D8)
+    val BrandPressed = Color(0xFF342DAF)
+    val BrandSecondary = Color(0xFF4F46D8)
+    val NeutralAction = Color(0xFF44464E)
 
-    val BackgroundBase = Color(0xFF101922)
-    val BackgroundSurface = Color(0xFF18232D)
-    val BackgroundElevated = Color(0xFF202C36)
-    val BackgroundSelected = Color(0xFF3A3935)
+    val BackgroundBase = Color(0xFFF2F3F6)
+    val BackgroundSurface = Color(0xFFFFFFFF)
+    val BackgroundElevated = Color(0xFFF0F1F5)
+    val BackgroundSelected = Color(0xFFE7E6FF)
+    val NavigationSelected = Color(0xFFE0E1E5)
 
-    val TextPrimary = Color(0xFFF7F7F5)
-    val TextSecondary = Color(0xFFC4CAD0)
-    val TextMuted = Color(0xFF8F99A3)
-    val TextOnPrimary = Color(0xFF101922)
+    /** v1.8 경험 태그 — 긍정은 연보라, 부정 선택은 중립 회색으로 감정을 색으로도 구분. */
+    val PositiveSelected = Color(0xFFEDEDFB)
+    val NegativeSelected = Color(0xFFF2F3F6)
+    val NegativeBorder = Color(0xFF8B8D95)
+    val NegativeText = Color(0xFF44464E)
 
-    val BorderDefault = Color(0xFF65717C)
-    val BorderSubtle = Color(0xFF35424D)
+    val TextPrimary = Color(0xFF131417)
+    val TextSecondary = Color(0xFF686A72)
+    val TextMuted = Color(0xFF8B8D95)
+    val TextOnPrimary = Color(0xFFFFFFFF)
 
-    val Danger = Color(0xFFD96C68)
+    val BorderDefault = Color(0xFF686A72)
+    val BorderSubtle = Color(0xFFCDD0D8)
+
+    val Danger = Color(0xFFB3261E)
 
     /** Background/Dim — 팝업 뒤 화면을 덮는 검은색의 불투명도 60%(창 dimAmount · AppDialog). */
     const val BackgroundDimAlpha = 0.6f

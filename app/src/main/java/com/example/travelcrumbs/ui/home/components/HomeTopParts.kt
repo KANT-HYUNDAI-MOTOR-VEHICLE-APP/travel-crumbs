@@ -1,38 +1,41 @@
 package com.example.travelcrumbs.ui.home.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.DangerButton
-import com.example.travelcrumbs.ui.components.PrimaryButton
-import com.example.travelcrumbs.ui.components.TripSummaryCard
-import com.example.travelcrumbs.ui.components.TripSummaryItem
-import com.example.travelcrumbs.ui.components.VisibilityBadge
+import com.example.travelcrumbs.ui.components.ActionTile
+import com.example.travelcrumbs.ui.components.AppCard
 import com.example.travelcrumbs.ui.components.elapsedText
 import com.example.travelcrumbs.ui.components.tripNameText
 import com.example.travelcrumbs.ui.components.tripStatusText
+import com.example.travelcrumbs.ui.components.TripSummaryItem
+import com.example.travelcrumbs.ui.components.tripMetaText
 import com.example.travelcrumbs.domain.model.TripStatus
 import com.example.travelcrumbs.ui.theme.Dimens
+import com.example.travelcrumbs.ui.theme.TravelCrumbsColors
 
 /**
  * C-02 진행 중 여행이 없을 때(와이어프레임 v6 · #51 U2) — 인사 · 「여행 시작」(목적지 있음 · 주요) · 「추천 보러 가기」(목적지 없음) 나란히 ·
@@ -40,104 +43,106 @@ import com.example.travelcrumbs.ui.theme.Dimens
  */
 @Composable
 fun ColumnScope.NoTripTop(
-    nicknameNm: String,
-    recentTrip: TripSummaryItem?,
     onStartTrip: () -> Unit,
     onOpenRecommendations: () -> Unit,
-    onOpenTrip: (Long?) -> Unit,
+    recentTrip: TripSummaryItem?,
+    onOpenTrip: (Long) -> Unit,
+    nearbyContent: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing)) {
-        Text(
-            text = stringResource(R.string.home_greeting, nicknameNm),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = stringResource(R.string.home_greeting_sub),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-    }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val stacked = maxWidth < Dimens.HomeChoiceRowMinWidth
         val start: @Composable (Modifier) -> Unit = { m ->
-            ChoiceCard(R.string.action_start_trip, R.string.home_start_trip_sub, primary = true, onClick = onStartTrip, modifier = m)
+            ActionTile(
+                title = stringResource(R.string.action_start_trip),
+                subtitle = stringResource(R.string.home_start_trip_sub_v18),
+                iconRes = R.drawable.ic_place,
+                emphasized = true,
+                onClick = onStartTrip,
+                modifier = m,
+            )
         }
         val reco: @Composable (Modifier) -> Unit = { m ->
-            ChoiceCard(R.string.action_open_recommendations, R.string.home_open_reco_sub, primary = false, onClick = onOpenRecommendations, modifier = m)
+            ActionTile(
+                title = stringResource(R.string.home_recommend_roadmap),
+                subtitle = stringResource(R.string.home_open_reco_sub_v18),
+                iconRes = R.drawable.ic_nav_recommendations,
+                emphasized = false,
+                onClick = onOpenRecommendations,
+                modifier = m,
+            )
         }
         if (stacked) {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                start(Modifier.fillMaxWidth())
-                reco(Modifier.fillMaxWidth())
+                start(Modifier.fillMaxWidth().heightIn(min = 280.dp))
+                reco(Modifier.fillMaxWidth().heightIn(min = 280.dp))
+                if (recentTrip != null) RecentTripSummaryCard(recentTrip, { onOpenTrip(recentTrip.tripNo) }) else nearbyContent()
             }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-                start(Modifier.weight(1f))
-                reco(Modifier.weight(1f))
+            Row(
+                modifier = Modifier.fillMaxWidth().height(Dimens.HomeActionAreaHeight),
+                horizontalArrangement = Arrangement.spacedBy(32.dp),
+            ) {
+                Column(modifier = Modifier.weight(824f), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    start(Modifier.fillMaxWidth().height(466.dp))
+                    Column(modifier = Modifier.fillMaxWidth().height(470.dp)) { nearbyContent() }
+                }
+                reco(Modifier.weight(482f).fillMaxHeight())
             }
-        }
-    }
-    Text(
-        text = stringResource(R.string.home_recent_title),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
-    if (recentTrip == null) {
-        Text(
-            text = stringResource(R.string.recent_trip_empty),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-    } else {
-        TripSummaryCard(item = recentTrip, onClick = { onOpenTrip(recentTrip.tripNo) }) {
-            if (recentTrip.public) VisibilityBadge(public = true)
         }
     }
 }
 
-/** 큰 선택 카드 하나 — 제목 + 한 줄 설명 · 카드 전체가 버튼(한 번 터치). */
 @Composable
-private fun ChoiceCard(
-    titleRes: Int,
-    subRes: Int,
-    primary: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun RecentTripSummaryCard(item: TripSummaryItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val shape = MaterialTheme.shapes.medium
-    val content = if (primary) colors.onPrimary else colors.onSurface
     Column(
         modifier = modifier
-            .heightIn(min = Dimens.HomeChoiceCardHeight)
-            .clip(shape)
-            .background(if (primary) colors.primary else colors.surface)
-            .border(Dimens.CardBorderWidth, if (primary) Color.Transparent else colors.outline, shape)
+            .background(colors.surface, MaterialTheme.shapes.large)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(Dimens.ScreenPadding),
+            .padding(Dimens.ActionTilePadding),
         verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing),
     ) {
         Text(
-            text = stringResource(titleRes),
+            text = tripNameText(item.tripNm),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = content,
-            maxLines = 1,
+            color = colors.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = stringResource(subRes),
-            style = MaterialTheme.typography.titleMedium,
-            color = content,
-            maxLines = 2,
+            text = tripMetaText(item),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
+        if (item.placeNames.isNotEmpty()) RouteStrip(item.placeNames)
+    }
+}
+
+@Composable
+private fun RouteStrip(placeNames: List<String>) {
+    val first = placeNames.first()
+    val last = placeNames.last()
+    val dotCount = if (placeNames.size >= 3) 3 else 2
+    val accent = TravelCrumbsColors.BrandPrimary
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.CardContentSpacing)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(22.dp)) {
+            val y = size.height / 2
+            val start = 8.dp.toPx()
+            val end = size.width - start
+            drawLine(TravelCrumbsColors.BorderSubtle, Offset(start, y), Offset(end, y), 3.dp.toPx(), StrokeCap.Round)
+            repeat(dotCount) { index ->
+                val x = start + (end - start) * index / (dotCount - 1)
+                drawCircle(accent, 7.dp.toPx(), Offset(x, y))
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(first, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(last, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
     }
 }
 
@@ -153,38 +158,58 @@ fun ColumnScope.TripInProgressTop(
     onRecordPlace: () -> Unit,
     onEndTrip: () -> Unit,
 ) {
-    Text(
-        text = tripNameText(tripName),
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-    Text(
-        text = tripStatusText(status),
-        style = MaterialTheme.typography.headlineLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
-    Text(
-        text = elapsedText(elapsedMinutes),
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
-    Text(
-        text = stringResource(R.string.trip_place_count, placeCount),
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
-        PrimaryButton(onClick = onRecordPlace, modifier = Modifier.weight(1f).height(Dimens.HomeButtonHeight)) {
-            Text(text = stringResource(R.string.action_record_place), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().height(720.dp),
+    ) {
+        val status: @Composable (Modifier) -> Unit = { panelModifier ->
+            AppCard(modifier = panelModifier) {
+                Text(
+                    text = tripNameText(tripName),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = tripStatusText(status),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing)) {
+                    Text(text = elapsedText(elapsedMinutes), style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                    Text(text = stringResource(R.string.trip_place_count, placeCount), style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                }
+                DangerButton(onClick = onEndTrip, modifier = Modifier.fillMaxWidth().height(Dimens.HomeButtonHeight)) {
+                    Text(text = stringResource(R.string.action_end_trip), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                }
+            }
         }
-        DangerButton(onClick = onEndTrip, modifier = Modifier.weight(1f).height(Dimens.HomeButtonHeight)) {
-            Text(text = stringResource(R.string.action_end_trip), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        val actions: @Composable (Modifier) -> Unit = { panelModifier ->
+            ActionTile(
+                title = stringResource(R.string.action_record_place),
+                subtitle = null,
+                iconRes = R.drawable.ic_place,
+                emphasized = true,
+                onClick = onRecordPlace,
+                modifier = panelModifier,
+            )
+        }
+        if (maxWidth < Dimens.RailWidth * 3) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing)) {
+                status(Modifier.fillMaxWidth())
+                actions(Modifier.fillMaxWidth().heightIn(min = Dimens.HomeChoiceCardHeight))
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SectionSpacing),
+            ) {
+                status(Modifier.weight(1.2f).fillMaxHeight())
+                actions(Modifier.weight(1f).fillMaxHeight())
+            }
         }
     }
 }

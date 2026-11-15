@@ -41,6 +41,8 @@ data class TripSummaryItem(
     /** 받은 별점 평균 · 참여 수(공개 로드맵 · 없으면 0). */
     val ratingAvg: Double = 0.0,
     val ratingCnt: Int = 0,
+    /** 홈 경로 띠에 표시할 실제 기록 장소명. */
+    val placeNames: List<String> = emptyList(),
 )
 
 /** 여행 → 카드(시작 날짜는 [zone] 기준). */
@@ -57,6 +59,7 @@ fun TripRecord.toSummary(zone: ZoneId, ratingAvg: Double = 0.0, ratingCnt: Int =
         public = visibility == Visibility.ANONYMOUS_PUBLIC,
         ratingAvg = ratingAvg,
         ratingCnt = ratingCnt,
+        placeNames = places.mapNotNull { it.userPlaceNm ?: it.addr },
     )
 }
 
@@ -111,7 +114,7 @@ fun TripSummaryCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(

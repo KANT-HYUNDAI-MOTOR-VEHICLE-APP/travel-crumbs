@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,6 +24,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.recommendations.MapCandidateItem
 import com.example.travelcrumbs.ui.recommendations.MapPlaceCardItem
+import com.example.travelcrumbs.ui.components.BrandOutlineButton
+import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.theme.Dimens
 
 /*
@@ -79,13 +79,13 @@ fun MapPlaceCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
         ) {
-            OutlinedButton(
+            BrandOutlineButton(
                 onClick = onOpenRoadmap,
                 modifier = Modifier.weight(1f).heightIn(min = Dimens.HomeButtonHeight),
             ) {
                 Text(stringResource(R.string.reco_map_open_roadmap), style = MaterialTheme.typography.titleMedium, maxLines = 1)
             }
-            Button(
+            PrimaryButton(
                 onClick = onGuide,
                 enabled = !guidanceRequesting,
                 modifier = Modifier.weight(1f).heightIn(min = Dimens.HomeButtonHeight),

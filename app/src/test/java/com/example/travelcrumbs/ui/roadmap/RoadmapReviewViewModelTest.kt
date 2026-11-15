@@ -55,7 +55,7 @@ class RoadmapReviewViewModelTest {
         assertEquals(RoadmapStep.REVIEW, state.step)
         assertEquals(listOf(1, 2, 3), state.places.map { it.placeOrd })
         assertTrue(state.places[0].draft)
-        assertEquals(listOf("아이와 가기 좋아요"), state.places[1].tagNms)
+        assertEquals(listOf("아이와 함께 가기 좋아요"), state.places[1].tagNms)
         assertEquals(3, state.sketch.size)
         assertEquals(60L, state.durationMinutes)
         assertEquals("강원", state.regionSidoNm)

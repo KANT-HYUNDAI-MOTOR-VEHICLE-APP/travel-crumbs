@@ -23,14 +23,17 @@ import com.example.travelcrumbs.domain.model.Tag
  */
 internal object RecommendationSeed {
 
-    private val KIDS = Tag(tagNo = 1, tagNm = "아이와 가기 좋아요")
-    private val PARKING = Tag(tagNo = 2, tagNm = "주차 편해요")
+    private val KIDS = Tag(tagNo = 1, tagNm = "아이와 함께 가기 좋아요")
+    private val PARKING = Tag(tagNo = 2, tagNm = "주차가 쉬워요")
     private val AGAIN = Tag(tagNo = 3, tagNm = "다시 가고 싶어요")
-    private val WAITING = Tag(tagNo = 4, tagNm = "웨이팅 있어요")
-    private val RESTROOM = Tag(tagNo = 5, tagNm = "화장실 깨끗해요")
+    private val WAITING = Tag(tagNo = 4, tagNm = "대기 시간이 길어요")
+    private val RESTROOM = Tag(tagNo = 5, tagNm = "화장실이 깨끗해요")
+    private val KIDS_FOOD = Tag(tagNo = 6, tagNm = "아이도 잘 먹어요")
+    private val KIDS_WALK = Tag(tagNo = 7, tagNm = "아이와 걷기 좋아요")
+    private val KIDS_FAVORITE = Tag(tagNo = 8, tagNm = "아이가 좋아해요")
 
     /** 태그 마스터(tag_mst) — 별점 「좋았던 점」 칩(#41). */
-    val tags: List<Tag> = listOf(KIDS, PARKING, AGAIN, WAITING, RESTROOM)
+    val tags: List<Tag> = listOf(KIDS, PARKING, AGAIN, WAITING, RESTROOM, KIDS_FOOD, KIDS_WALK, KIDS_FAVORITE)
 
     private const val GANGWON = "강원"
     private val SOKCHO = Region(GANGWON, "속초시")
@@ -65,18 +68,17 @@ internal object RecommendationSeed {
     val trips: List<RecommendedTrip> = listOf(
         RecommendedTrip(
             tripNo = 101,
-            tripNm = "속초 가족여행",
+            tripNm = "아이와 편한 속초 여행",
             nicknameNm = "민지네",
             region = SOKCHO,
             companionTypes = setOf(CompanionType.SPOUSE, CompanionType.CHILD),
             ratingAvg = 4.8,
-            ratingCnt = 12,
+            ratingCnt = 41,
             publishedAt = 1_762_300_000_000,
             places = listOf(
-                place(1001, "속초 중앙시장 공영주차장", 1, "강원 속초시 중앙로", 38.2049, 128.5906, PARKING, RESTROOM),
-                place(1002, "중앙시장 닭강정", 2, "강원 속초시 중앙로", 38.2075, 128.5950, WAITING, KIDS),
-                place(1003, "영랑호 산책로", 3, "강원 속초시 영랑호반길", 38.2236, 128.5852, KIDS, AGAIN),
-                place(1004, "속초해수욕장", 4, "강원 속초시 해오름로", 38.1906, 128.6022, KIDS, PARKING),
+                place(1002, "중앙시장 닭강정", 1, "강원 속초시 중앙로", 38.2075, 128.5950, KIDS_FOOD, WAITING),
+                place(1003, "영랑호 산책로", 2, "강원 속초시 영랑호반길", 38.2236, 128.5852, KIDS_WALK, AGAIN),
+                place(1004, "속초해수욕장", 3, "강원 속초시 해오름로", 38.1906, 128.6022, KIDS_FAVORITE, PARKING),
             ),
         ),
         RecommendedTrip(
@@ -194,7 +196,7 @@ internal object RecommendationSeed {
             region = JONGNO,
             companionTypes = setOf(CompanionType.PARENT),
             ratingAvg = 4.9,
-            ratingCnt = 21,
+            ratingCnt = 28,
             publishedAt = 1_762_350_000_000,
             places = listOf(
                 place(6001, "경복궁", 1, "서울 종로구 사직로 161", 37.5796, 126.9770, AGAIN, RESTROOM),

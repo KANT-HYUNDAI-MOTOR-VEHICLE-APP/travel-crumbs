@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +18,7 @@ import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.AppCard
 import com.example.travelcrumbs.ui.components.AppDialog
 import com.example.travelcrumbs.ui.components.AppDialogBody
+import com.example.travelcrumbs.ui.components.AppTextField
 import com.example.travelcrumbs.ui.components.SecondaryButton
 import com.example.travelcrumbs.ui.theme.Dimens
 
@@ -68,6 +68,7 @@ fun SettingsRow(
 @Composable
 fun NicknameDialog(
     value: String,
+    isError: Boolean,
     onValueChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
@@ -78,13 +79,18 @@ fun NicknameDialog(
         confirmLabel = stringResource(R.string.action_save),
         onDismiss = onDismiss,
         onConfirm = onSave,
-        confirmEnabled = value.isNotBlank(),
+        confirmEnabled = !isError,
     ) {
-        OutlinedTextField(
+        Text(
+            text = stringResource(R.string.nickname_dialog_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AppTextField(
             value = value,
             onValueChange = onValueChange,
-            singleLine = true,
-            textStyle = MaterialTheme.typography.titleLarge,
+            isError = isError,
+            errorText = if (isError) stringResource(R.string.input_nickname_error) else null,
             modifier = Modifier.fillMaxWidth(),
         )
     }

@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.example.travelcrumbs.R
 import com.example.travelcrumbs.ui.components.PrimaryButton
 import com.example.travelcrumbs.ui.components.SecondaryButton
+import com.example.travelcrumbs.ui.components.StatusMessageBar
+import com.example.travelcrumbs.ui.components.StatusMessageKind
 import com.example.travelcrumbs.ui.home.HomeUiState
 import com.example.travelcrumbs.ui.home.PlaceItem
 import com.example.travelcrumbs.ui.home.RouteRequestState
@@ -55,7 +57,7 @@ fun GuideConnectionContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(Dimens.ScreenPadding)
+            .padding(start = Dimens.ScreenContentStart, end = Dimens.ScreenContentEnd, top = Dimens.ScreenTop)
             .testTag(GUIDE_SCREEN_TAG),
         verticalArrangement = Arrangement.spacedBy(Dimens.ItemSpacing),
     ) {
@@ -130,7 +132,7 @@ private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifie
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -138,7 +140,7 @@ private fun GuideMapBox(place: PlaceItem, dummyRoute: Boolean, modifier: Modifie
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -166,16 +168,16 @@ private fun GuideStatusLine(request: RouteRequestState) {
         is RouteRequestState.Started -> stringResource(R.string.guide_route_started)
         is RouteRequestState.Failed -> stringResource(R.string.places_route_failed, stringResource(request.reason.textRes()))
     }
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(Dimens.ItemSpacing),
-        )
-    }
+    StatusMessageBar(
+        description = text,
+        kind = when (request) {
+            is RouteRequestState.Requesting -> StatusMessageKind.Notice
+            is RouteRequestState.Started -> StatusMessageKind.SuccessToast
+            is RouteRequestState.Failed -> StatusMessageKind.FailureToast
+            RouteRequestState.Idle -> return
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /** G3 실패 박스 — 왼쪽 글자(debug 만) · 미연결 한 줄 · 오른쪽 G4 「다시 시도」 · G5 「더미 경로」(debug 만). */
